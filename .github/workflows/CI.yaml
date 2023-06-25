@@ -56,7 +56,7 @@ jobs:
       - name: Setup DynamoDB Local for tests
         uses: rrainn/dynamodb-action@v2.0.1
         with:
-          dbPath: # undefined by default, if this is undefined inMemory will be used
+          dbPath: ./data
           sharedDb: # no
           delayTransientStatuses: # no
           optimizeDbBeforeStartup: # no
