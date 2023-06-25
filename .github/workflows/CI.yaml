@@ -53,5 +53,14 @@ jobs:
       - name: ESLint
         run: pnpm run eslint
 
+      - name: Setup DynamoDB Local for tests
+        uses: rrainn/dynamodb-action@v2.0.1
+        with:
+          dbPath: # undefined by default, if this is undefined inMemory will be used
+          sharedDb: # undefined by default
+          delayTransientStatuses: # undefined by default
+          optimizeDbBeforeStartup: # undefined by default
+          port: 8000
+
       - name: Test
-        run: pnpm run test
+        run: pnpm run test --ci
