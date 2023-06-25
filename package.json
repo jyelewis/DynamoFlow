@@ -11,7 +11,7 @@
     "eslint": "eslint src",
     "start": "ts-node --esm",
     "test": "jest",
-    "check": "pnpm run check:ts && pnpm run prettier:check && pnpm run eslint && pnpm run test"
+    "check": "pnpm run check:ts && pnpm run prettier && pnpm run eslint && pnpm run test"
   },
   "devDependencies": {
     "@types/jest": "^29.5.1",
