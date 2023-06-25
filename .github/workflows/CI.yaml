@@ -57,7 +57,7 @@ jobs:
         uses: rrainn/dynamodb-action@v2.0.1
         with:
           dbPath: # undefined by default, if this is undefined inMemory will be used
-          sharedDb: true
+          sharedDb: # no
           delayTransientStatuses: # no
           optimizeDbBeforeStartup: # no
           cors: #no
