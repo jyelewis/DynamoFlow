@@ -184,37 +184,42 @@ export class DFDB {
       });
     }
 
-    await this.client.send(
-      new CreateTableCommand({
-        TableName: this.tableName,
-        BillingMode: "PAY_PER_REQUEST",
-        KeySchema: [
-          { AttributeName: "_PK", KeyType: "HASH" },
-          { AttributeName: "_SK", KeyType: "RANGE" },
-        ],
-        AttributeDefinitions: attributeDefinitions,
-        GlobalSecondaryIndexes: this.config.GSIs?.map((gsi) => ({
-          IndexName: gsi,
+    try {
+      await this.client.send(
+        new CreateTableCommand({
+          TableName: this.tableName,
+          BillingMode: "PAY_PER_REQUEST",
           KeySchema: [
-            { AttributeName: `_${gsi}PK`, KeyType: "HASH" },
-            { AttributeName: `_${gsi}SK`, KeyType: "RANGE" },
+            { AttributeName: "_PK", KeyType: "HASH" },
+            { AttributeName: "_SK", KeyType: "RANGE" },
           ],
-          Projection: {
-            ProjectionType: "ALL",
-          },
-        })),
-      })
-    );
+          AttributeDefinitions: attributeDefinitions,
+          GlobalSecondaryIndexes: this.config.GSIs?.map((gsi) => ({
+            IndexName: gsi,
+            KeySchema: [
+              { AttributeName: `_${gsi}PK`, KeyType: "HASH" },
+              { AttributeName: `_${gsi}SK`, KeyType: "RANGE" },
+            ],
+            Projection: {
+              ProjectionType: "ALL",
+            },
+          })),
+        })
+      );
 
-    // enable ttl
-    await this.client.send(
-      new UpdateTimeToLiveCommand({
-        TableName: this.tableName,
-        TimeToLiveSpecification: {
-          AttributeName: "_ttl",
-          Enabled: true,
-        },
-      })
-    );
+      // enable ttl
+      await this.client.send(
+        new UpdateTimeToLiveCommand({
+          TableName: this.tableName,
+          TimeToLiveSpecification: {
+            AttributeName: "_ttl",
+            Enabled: true,
+          },
+        })
+      );
+    } catch (e) {
+      // swallow if table already exists
+      // other test threads often race us to the check
+    }
   }
 }

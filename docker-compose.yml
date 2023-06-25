@@ -10,4 +10,4 @@ services:
     #volumes:
     #  - ./dynamodb_data:/home/dynamodblocal/data
     #  "-dbPath ./data"
-    command: "-jar DynamoDBLocal.jar"
+    command: "-jar DynamoDBLocal.jar -inMemory -sharedDb -port 8000"
