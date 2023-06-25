@@ -12,6 +12,8 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
   // will throw if required values are not provided
   const pk = `${collectionName}#${generateKeyString(
     partitionKeys,
+    // casting as we assume PKs are all given as literals
+    // if they aren't generateKeyString will throw
     query.where as any
   )}`;
 
@@ -20,7 +22,7 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
 
   // default query expression fetches all items in this partition
   // applying filters narrows this down
-  let queryExpression: PartialQueryExpression = {
+  const queryExpression: PartialQueryExpression = {
     keyConditionExpression: `#PK = :pk AND begins_with(#SK, :value)`,
     expressionAttributeValues: {
       ":pk": pk,

@@ -47,7 +47,7 @@ export class DFSecondaryIndexExt<
 
   public onInsert(
     entity: EntityWithMetadata<Entity>,
-    transaction: DFWriteTransaction
+    _transaction: DFWriteTransaction
   ): void | Promise<void> {
     if (this.config.includeInIndex && !this.config.includeInIndex(entity)) {
       // don't write to this secondary index
@@ -57,11 +57,13 @@ export class DFSecondaryIndexExt<
 
     // TODO: refactor later
     // TODO: not sure why TS doesn't like this EntityWithMetadata thing in some contexts (when Entity is still generic)
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     entity[this.indexPartitionKey] =
       `${this.collection.config.name}#` +
       generateKeyString(this.config.partitionKey, entity);
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     entity[this.indexSortKey] =
       `${this.collection.config.name}#` +
@@ -69,11 +71,11 @@ export class DFSecondaryIndexExt<
   }
 
   public onUpdate(
-    key: Partial<Entity>,
-    partialEntity: EntityWithMetadata<
+    _key: Partial<Entity>,
+    _partialEntity: EntityWithMetadata<
       Partial<Record<keyof Entity, UpdateValue>>
     >,
-    transaction: DFWriteTransaction
+    _transaction: DFWriteTransaction
   ): void | Promise<void> {
     // partialEntity[this.fieldName] = `${this.collection.config.name}#` +
     //   indexValuesToString(this.config.partitionKey, partialEntity);

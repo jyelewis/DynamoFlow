@@ -13,6 +13,7 @@ import {
   DFWritePrimaryOperation,
   DFWriteSecondaryOperation,
 } from "./types/operations.js";
+import assert from "assert";
 
 const MAX_TRANSACTION_RETRIES = 5;
 
@@ -64,9 +65,10 @@ export class DFWriteTransaction {
           this.primaryOperation.type === "Update" &&
           this.primaryOperation.successHandlers
         ) {
+          assert(item);
           await Promise.all(
             this.primaryOperation.successHandlers.map((handler) =>
-              handler(item!)
+              handler(item)
             )
           );
         }
@@ -88,7 +90,8 @@ export class DFWriteTransaction {
 
         const errorHandlerResponse = this.primaryOperation.errorHandler(
           cancellationReason,
-          // @ts-ignore intentionally didn't want to type PrimaryOperation down to the op type - too much complexity
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore: intentionally didn't want to type PrimaryOperation down to the op type - too much complexity
           this.primaryOperation
         );
 
@@ -244,14 +247,16 @@ export class DFWriteTransaction {
     const op = this.primaryOperation;
 
     switch (op.type) {
-      case "Update":
+      case "Update": {
         const updateRes = await this.db.client.update(
           this.updateExpressionToParams(op)
         );
         return updateRes.Attributes as DynamoItem;
-      case "Delete":
+      }
+      case "Delete": {
         await this.db.client.delete(this.deleteExpressionToParams(op));
         return null;
+      }
       default:
         throw new Error(`Unknown operation type`);
     }

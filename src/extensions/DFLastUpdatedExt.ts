@@ -13,7 +13,7 @@ export class DFLastUpdatedExt<
 
   public onInsert(
     entity: EntityWithMetadata<Entity>,
-    transaction: DFWriteTransaction
+    _transaction: DFWriteTransaction
   ): void | Promise<void> {
     entity[this.fieldName] = new Date().toISOString() as any;
   }

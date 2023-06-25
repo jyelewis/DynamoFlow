@@ -41,6 +41,7 @@ describe("valueToSortableString", () => {
 
     // truncates large number
     expect(
+      // eslint-disable-next-line @typescript-eslint/no-loss-of-precision
       valueToSortableString(16879999999999999602125961)
     ).toMatchInlineSnapshot(`"n:24crhygif2.000000"`);
   });

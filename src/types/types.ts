@@ -42,7 +42,7 @@ export type FullTableScan = {
   ) => Promise<void | typeof STOP_SCAN>;
   maxBatchSize?: number;
 } & (
-  | {}
+  | Record<string, never>
   | {
       filterExpression?: ScanCommandInput["FilterExpression"];
       filterExpressionAttributeNames?: ScanCommandInput["ExpressionAttributeNames"];

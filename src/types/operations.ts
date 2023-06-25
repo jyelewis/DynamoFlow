@@ -7,8 +7,15 @@ export interface DFConditionExpression {
   conditionExpressionAttributeNames: Record<string, string>;
   conditionExpressionAttributeValues?: Record<string, DynamoValue>;
 }
+type DFOptionalConditionExpression =
+  | DFConditionExpression
+  | {
+      conditionExpression?: never;
+      conditionExpressionAttributeNames?: never;
+      conditionExpressionAttributeValues?: never;
+    };
 export type DFWriteTransactionErrorHandler<Operation extends DFWriteOperation> =
-  (error: CancellationReason, op: Operation) => Symbol | Promise<Symbol>;
+  (error: CancellationReason, op: Operation) => symbol | Promise<symbol>;
 
 export type DFUpdateOperation = {
   type: "Update";
@@ -16,13 +23,13 @@ export type DFUpdateOperation = {
   entity: Record<string, UpdateValue>;
   successHandlers?: Array<(item: DynamoItem) => void | Promise<void>>;
   errorHandler?: DFWriteTransactionErrorHandler<DFUpdateOperation>;
-} & ({} | DFConditionExpression);
+} & DFOptionalConditionExpression;
 
 export type DFDeleteOperation = {
   type: "Delete";
   key: Record<string, DynamoValue>;
   errorHandler?: DFWriteTransactionErrorHandler<DFDeleteOperation>;
-} & ({} | DFConditionExpression);
+} & DFOptionalConditionExpression;
 
 export type DFConditionCheckOperation = {
   type: "ConditionCheck";

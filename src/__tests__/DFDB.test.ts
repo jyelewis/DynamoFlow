@@ -83,7 +83,7 @@ describe("DFDB", () => {
     });
 
     // annoying trick to get 'beforeAll' behaviour from jest.concurrent
-    let allItemsProm: Promise<Array<User | Project>> = (async () => {
+    const allItemsProm: Promise<Array<User | Project>> = (async () => {
       let lastId = 0;
       const addUser = (firstName: string, lastName: string) => {
         return usersCollection.insert(
@@ -143,7 +143,6 @@ describe("DFDB", () => {
       async (maxBatchSize: number) => {
         const allItems = await allItemsProm;
 
-        let numBatchesReceived = 0;
         let itemsReceived: Array<any> = [];
 
         await db.fullTableScan({
@@ -151,7 +150,6 @@ describe("DFDB", () => {
             expect(items.length).toBeLessThanOrEqual(maxBatchSize);
 
             itemsReceived = itemsReceived.concat(items);
-            numBatchesReceived += 1;
           },
           maxBatchSize,
         });

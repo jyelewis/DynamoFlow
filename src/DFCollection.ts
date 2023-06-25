@@ -11,6 +11,7 @@ import {
 import { PartialQueryExpression } from "./types/internalTypes.js";
 import { generateIndexStrings } from "./utils/generateIndexStrings.js";
 import { generateQueryExpression } from "./utils/generateQueryExpression.js";
+import { DFUpdateOperation } from "./types/operations.js";
 
 export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
   name: string;
@@ -42,10 +43,12 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     // TODO: test this
     // TODO: why isn't TS happy with this?
     // used for table scans so we can call the appropriate collection to handle this entity
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     entityWithMetadata["_collection"] = this.config.name;
     // allows extensions to perform optimistic locking on entities
     // without storing extra metadata properties themselves
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     entityWithMetadata["_writeCount"] = 1;
 
@@ -82,7 +85,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
         /* istanbul ignore next */
         throw e;
       },
-    });
+    } as DFUpdateOperation);
 
     // run extensions
     await Promise.all(
@@ -122,6 +125,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     // increment write count in every transaction
     // this allows extensions to perform optimistic locking on entities
     // and re-try if we are interrupting their operation with this write
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     partialEntityWithMetadata["_writeCount"] = { $inc: 1 };
 
