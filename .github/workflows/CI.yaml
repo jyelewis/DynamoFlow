@@ -58,8 +58,9 @@ jobs:
         with:
           dbPath: # undefined by default, if this is undefined inMemory will be used
           sharedDb: true
-          delayTransientStatuses: false
-          optimizeDbBeforeStartup: false
+          delayTransientStatuses: # no
+          optimizeDbBeforeStartup: # no
+          cors: #no
           port: 8000
 
       - name: Test
