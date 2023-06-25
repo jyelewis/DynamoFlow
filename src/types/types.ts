@@ -10,11 +10,11 @@ export const RETRY_TRANSACTION = Symbol("RETRY_TRANSACTION");
 export const STOP_SCAN = Symbol("STOP_SCAN");
 
 export type SafeEntity<Entity> = {
-  [K in keyof Entity]: DynamoValue;
+  [K in keyof Entity]: K extends string ? DynamoValue : never;
 };
 
-export type EntityWithMetadata<Entity> = Entity &
-  Record<`_${string}`, DynamoValue>;
+// export type EntityWithMetadata = Entity & Record<string, DynamoValue>;
+export type EntityWithMetadata = Record<string, DynamoValue>;
 
 export interface Query<Entity extends SafeEntity<Entity>> {
   where: {

@@ -38,18 +38,13 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       allowOverwrite?: boolean;
     }
   ): Promise<DFWriteTransaction> {
-    const entityWithMetadata: EntityWithMetadata<Entity> = { ...newEntity };
+    const entityWithMetadata: EntityWithMetadata = { ...newEntity };
 
     // TODO: test this
-    // TODO: why isn't TS happy with this?
     // used for table scans so we can call the appropriate collection to handle this entity
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     entityWithMetadata["_collection"] = this.config.name;
     // allows extensions to perform optimistic locking on entities
     // without storing extra metadata properties themselves
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     entityWithMetadata["_writeCount"] = 1;
 
     const allowOverwrite = !options || !options.allowOverwrite;
@@ -113,21 +108,17 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
   public async updateTransaction(
     key: Partial<Entity>,
-    updatedEntity: Partial<Record<keyof Entity, UpdateValue>>
+    updateFields: Partial<Record<keyof Entity, UpdateValue>>
   ): Promise<DFWriteTransaction> {
-    const partialEntityWithMetadata: EntityWithMetadata<typeof updatedEntity> =
-      {
-        ...updatedEntity,
-      };
+    const updateFieldsWithMetadata = {
+      ...updateFields,
+    } as Record<string, UpdateValue>;
 
     // TODO: test this
-    // TODO: why isn't TS happy with this?
     // increment write count in every transaction
     // this allows extensions to perform optimistic locking on entities
     // and re-try if we are interrupting their operation with this write
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    partialEntityWithMetadata["_writeCount"] = { $inc: 1 };
+    updateFieldsWithMetadata["_writeCount"] = { $inc: 1 };
 
     // this will throw if the user hasn't provided required keys
     const [pk, sk] = generateIndexStrings(
@@ -142,7 +133,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
         _PK: pk,
         _SK: sk,
       },
-      entity: partialEntityWithMetadata,
+      entity: updateFieldsWithMetadata,
       // ensure this entity already exists, we're expecting this to be an update
       conditionExpression: "attribute_exists(#PK)",
       conditionExpressionAttributeNames: {
@@ -161,7 +152,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     // run extensions
     await Promise.all(
       Object.values(this.config.extensions).map((extension) =>
-        extension.onUpdate(key, partialEntityWithMetadata, transaction)
+        extension.onUpdate(key, updateFieldsWithMetadata, transaction)
       )
     );
 
@@ -197,7 +188,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       ConsistentRead: query.consistentRead,
       IndexName: queryExpression.indexName,
     });
-    const entities = result.Items as EntityWithMetadata<Entity>[];
+    const entities = result.Items as EntityWithMetadata[];
 
     // run extensions on all items & strip metadata
     return await Promise.all(
@@ -226,7 +217,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     // run postRetrieve hooks
     await Promise.all(
       Object.values(this.config.extensions).map((extension) =>
-        extension.postRetrieve(entityWithMetadata as EntityWithMetadata<Entity>)
+        extension.postRetrieve(entityWithMetadata as EntityWithMetadata)
       )
     );
 

@@ -11,8 +11,6 @@ import { PartialQueryExpression } from "../types/internalTypes.js";
 import { generateQueryExpression } from "../utils/generateQueryExpression.js";
 import { DFCollection } from "../DFCollection.js";
 
-// TODO: this is very much just a POC, re-write when appropriate
-
 interface DFSecondaryIndexExtConfig<Entity extends SafeEntity<Entity>> {
   indexName: string;
   dynamoIndex: "GSI1" | "GSI2" | "GSI3" | "GSI4" | "GSI5";
@@ -33,7 +31,6 @@ export class DFSecondaryIndexExt<
   public init(collection: DFCollection<Entity>) {
     super.init(collection);
 
-    // TODO: test this
     // ensure this DB supports GSIs
     if (!this.collection.db.config.GSIs) {
       throw new Error(`DB does not have any GSIs defined`);
@@ -41,44 +38,42 @@ export class DFSecondaryIndexExt<
 
     // validate the index being used here exists on the database
     if (!this.collection.db.config.GSIs.includes(this.config.dynamoIndex)) {
-      throw new Error(`GSI ${this.config.dynamoIndex} not defined for this DB`);
+      throw new Error(
+        `GSI '${this.config.dynamoIndex}' not defined for this DB`
+      );
     }
   }
 
   public onInsert(
-    entity: EntityWithMetadata<Entity>,
+    entity: EntityWithMetadata,
     _transaction: DFWriteTransaction
   ): void | Promise<void> {
-    if (this.config.includeInIndex && !this.config.includeInIndex(entity)) {
+    if (
+      this.config.includeInIndex &&
+      !this.config.includeInIndex(entity as Entity)
+    ) {
       // don't write to this secondary index
       // leave out keys, Dynamo will not write to the index if the keys are missing
       return;
     }
 
-    // TODO: refactor later
-    // TODO: not sure why TS doesn't like this EntityWithMetadata thing in some contexts (when Entity is still generic)
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     entity[this.indexPartitionKey] =
       `${this.collection.config.name}#` +
       generateKeyString(this.config.partitionKey, entity);
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     entity[this.indexSortKey] =
       `${this.collection.config.name}#` +
       generateKeyString(this.config.sortKey || [], entity);
   }
 
   public onUpdate(
-    _key: Partial<Entity>,
-    _partialEntity: EntityWithMetadata<
-      Partial<Record<keyof Entity, UpdateValue>>
-    >,
-    _transaction: DFWriteTransaction
+    key: Partial<Entity>,
+    entityUpdate: Record<string, UpdateValue>,
+    transaction: DFWriteTransaction
   ): void | Promise<void> {
-    // partialEntity[this.fieldName] = `${this.collection.config.name}#` +
-    //   indexValuesToString(this.config.partitionKey, partialEntity);
+    // TODO: we have the whole key, merge with entityUpdate to see if any properties will change
+    // then compute the new key & persist if needed
+    // also, run should index check here - we might even need to remove it from the index
   }
 
   public expressionForQuery(

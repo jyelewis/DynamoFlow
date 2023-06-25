@@ -28,15 +28,13 @@ export abstract class DFBaseExtension<Entity extends SafeEntity<Entity>> {
   }
 
   public onInsert(
-    entity: EntityWithMetadata<Entity>,
+    entity: EntityWithMetadata,
     transaction: DFWriteTransaction
   ): void | Promise<void> {}
 
   public onUpdate(
     key: Partial<Entity>,
-    partialEntity: EntityWithMetadata<
-      Partial<Record<keyof Entity, UpdateValue>>
-    >,
+    entityUpdate: Record<string, UpdateValue>,
     transaction: DFWriteTransaction
   ): void | Promise<void> {}
 
@@ -52,6 +50,6 @@ export abstract class DFBaseExtension<Entity extends SafeEntity<Entity>> {
   }
 
   public postRetrieve(
-    entity: Partial<EntityWithMetadata<Entity>>
+    entity: Partial<EntityWithMetadata>
   ): void | Promise<void> {}
 }

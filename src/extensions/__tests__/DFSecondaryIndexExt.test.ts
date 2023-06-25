@@ -13,6 +13,50 @@ interface User {
 }
 
 describe("DFSecondaryIndexExt", () => {
+  it("Throws if the DB has no GSIs", () => {
+    const db = new DFDB({
+      ...testDbConfig,
+      GSIs: undefined,
+    });
+
+    expect(() => {
+      db.createCollection<User>({
+        name: `${genTestPrefix()}-user`,
+        partitionKey: "id",
+        extensions: [
+          new DFSecondaryIndexExt({
+            indexName: "name",
+            dynamoIndex: "GSI1",
+            partitionKey: "lastName",
+            sortKey: "firstName",
+          }),
+        ],
+      });
+    }).toThrowError("DB does not have any GSIs defined");
+  });
+
+  it("Throws if the DB does not have the required GSI defined", () => {
+    const db = new DFDB({
+      ...testDbConfig,
+      GSIs: ["GSI1", "GSI2"],
+    });
+
+    expect(() => {
+      db.createCollection<User>({
+        name: `${genTestPrefix()}-user`,
+        partitionKey: "id",
+        extensions: [
+          new DFSecondaryIndexExt({
+            indexName: "name",
+            dynamoIndex: "GSI3",
+            partitionKey: "lastName",
+            sortKey: "firstName",
+          }),
+        ],
+      });
+    }).toThrowError("GSI 'GSI3' not defined for this DB");
+  });
+
   it.concurrent("Writes & retrieves from secondary index", async () => {
     const db = new DFDB(testDbConfig);
 

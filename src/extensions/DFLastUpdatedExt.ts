@@ -12,19 +12,17 @@ export class DFLastUpdatedExt<
   }
 
   public onInsert(
-    entity: EntityWithMetadata<Entity>,
+    entity: EntityWithMetadata,
     _transaction: DFWriteTransaction
   ): void | Promise<void> {
-    entity[this.fieldName] = new Date().toISOString() as any;
+    entity[this.fieldName as string] = new Date().toISOString();
   }
 
   public onUpdate(
     key: Partial<Entity>,
-    partialEntity: EntityWithMetadata<
-      Partial<Record<keyof Entity, UpdateValue>>
-    >,
+    entityUpdate: Record<string, UpdateValue>,
     transaction: DFWriteTransaction
   ): void | Promise<void> {
-    partialEntity[this.fieldName] = new Date().toISOString() as any;
+    entityUpdate[this.fieldName as string] = new Date().toISOString();
   }
 }
