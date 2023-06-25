@@ -11,7 +11,7 @@ on:
 
 name: Lint & test
 jobs:
-  cache-and-install:
+  lint-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -51,7 +51,7 @@ jobs:
         run: pnpm run prettier
 
       - name: ESLint
-        run: pnpm run esLint
+        run: pnpm run eslint
 
       - name: Test
         run: pnpm run test
