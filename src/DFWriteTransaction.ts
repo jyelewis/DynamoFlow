@@ -33,6 +33,7 @@ export class DFWriteTransaction {
   // Maybe that's a cleaner way to add meta properties to objects anyway though? idk
   private retryCount = 0;
   public readonly secondaryOperations: DFWriteSecondaryOperation[] = [];
+  public readonly preCommitHandlers: Array<() => Promise<void>> = [];
   public resultTransformer?: (
     item: DynamoItem
   ) => Promise<DynamoItem> | DynamoItem;
@@ -50,10 +51,21 @@ export class DFWriteTransaction {
   public addSecondaryTransaction(secondaryTransaction: DFWriteTransaction) {
     this.secondaryOperations.push(secondaryTransaction.primaryOperation);
     this.secondaryOperations.push(...secondaryTransaction.secondaryOperations);
+    // TODO: test me
+    this.preCommitHandlers.push(...secondaryTransaction.preCommitHandlers);
     // leave their resultTransformer behind, only needed for the primary item
   }
 
+  public addPreCommitHandler(handlerFn: () => Promise<void>) {
+    // pre-commit handlers will run right before the commit
+    // allowing read-before-write operations
+    // if the commit fails and is re-tried, the pre-commit handler will be run again
+    this.preCommitHandlers.push(handlerFn);
+  }
+
   public async commit(): Promise<DynamoItem | null> {
+    await Promise.all(this.preCommitHandlers.map((x) => x()));
+
     if (this.secondaryOperations.length === 0) {
       try {
         // executeSingle always returns the full item from primaryOperation
@@ -308,10 +320,10 @@ export class DFWriteTransaction {
       SET: [],
       REMOVE: [],
     };
-    Object.keys(op.entity).forEach((key, index) => {
+    Object.keys(op.updateValues).forEach((key, index) => {
       expressionAttributeNames[`#update_key${index}`] = key;
 
-      const updateValue = op.entity[key];
+      const updateValue = op.updateValues[key];
       if (typeof updateValue === "object" && updateValue !== null) {
         if ("$inc" in updateValue) {
           // "SET #age = if_not_exists(#age, :zero) + :inc"
@@ -332,7 +344,7 @@ export class DFWriteTransaction {
         }
       }
 
-      expressionAttributeValues[`:update_value${index}`] = op.entity[key];
+      expressionAttributeValues[`:update_value${index}`] = op.updateValues[key];
 
       operations.SET.push(`#update_key${index}=:update_value${index}`);
     });

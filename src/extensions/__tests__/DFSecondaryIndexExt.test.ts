@@ -150,4 +150,6 @@ describe("DFSecondaryIndexExt", () => {
       })
     ).resolves.toEqual([user2, user1]);
   });
+
+  // TODO: finish writing tests here
 });

@@ -20,7 +20,7 @@ export type DFWriteTransactionErrorHandler<Operation extends DFWriteOperation> =
 export type DFUpdateOperation = {
   type: "Update";
   key: Record<string, DynamoValue>;
-  entity: Record<string, UpdateValue>;
+  updateValues: Record<string, UpdateValue>;
   successHandlers?: Array<(item: DynamoItem) => void | Promise<void>>;
   errorHandler?: DFWriteTransactionErrorHandler<DFUpdateOperation>;
 } & DFOptionalConditionExpression;

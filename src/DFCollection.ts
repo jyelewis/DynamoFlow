@@ -31,7 +31,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     // TODO: validate this DB doesn't have any collections wth a conflicting name
   }
 
-  // kind of annoying this can't be sync, extensions may need to do pre-fetches
+  // TODO: do these need to be async anymore?
   public async insertTransaction(
     newEntity: Entity,
     options?: {
@@ -40,12 +40,13 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   ): Promise<DFWriteTransaction> {
     const entityWithMetadata: EntityWithMetadata = { ...newEntity };
 
+    // TODO: make these smaller?
     // TODO: test this
     // used for table scans so we can call the appropriate collection to handle this entity
-    entityWithMetadata["_collection"] = this.config.name;
+    entityWithMetadata["_c"] = this.config.name;
     // allows extensions to perform optimistic locking on entities
     // without storing extra metadata properties themselves
-    entityWithMetadata["_writeCount"] = 1;
+    entityWithMetadata["_wc"] = 1;
 
     const allowOverwrite = !options || !options.allowOverwrite;
 
@@ -61,7 +62,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
         _PK: pk,
         _SK: sk,
       },
-      entity: entityWithMetadata,
+      updateValues: entityWithMetadata,
       // ensure this entity doesn't already exist! We're creating it
       // can we get away without using conditionExpressionAttributeNames??
       conditionExpression: allowOverwrite
@@ -118,7 +119,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     // increment write count in every transaction
     // this allows extensions to perform optimistic locking on entities
     // and re-try if we are interrupting their operation with this write
-    updateFieldsWithMetadata["_writeCount"] = { $inc: 1 };
+    updateFieldsWithMetadata["_wc"] = { $inc: 1 };
 
     // this will throw if the user hasn't provided required keys
     const [pk, sk] = generateIndexStrings(
@@ -133,7 +134,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
         _PK: pk,
         _SK: sk,
       },
-      entity: updateFieldsWithMetadata,
+      updateValues: updateFieldsWithMetadata,
       // ensure this entity already exists, we're expecting this to be an update
       conditionExpression: "attribute_exists(#PK)",
       conditionExpressionAttributeNames: {

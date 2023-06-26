@@ -15,6 +15,8 @@ export class DFLastUpdatedExt<
     entity: EntityWithMetadata,
     _transaction: DFWriteTransaction
   ): void | Promise<void> {
+    // TODO: kinda want to only write this if the item didn't already exist?
+    // no clean way to write this expression with our system
     entity[this.fieldName as string] = new Date().toISOString();
   }
 

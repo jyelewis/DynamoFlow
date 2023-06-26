@@ -4,12 +4,12 @@ export function valueToSortableString(value: DynamoValue): string {
   if (value === null) {
     // sort null items first (capital N to sort before lowercase prefixes)
     // this could conflict with strings containing "!NULL!"
-    return "N:NULL";
+    return "!NULL!";
   }
 
   if (typeof value === "string") {
     // escape hash values & prefix with "s:"
-    return `s:${value.toLowerCase().replace(/#/g, "\\#").substring(0, 100)}`;
+    return `${value.toLowerCase().replace(/#/g, "\\#").substring(0, 100)}`;
   }
 
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -35,15 +35,15 @@ export function valueToSortableString(value: DynamoValue): string {
       .padStart(decimalPlaces, "0")
       .substring(0, decimalPlaces);
 
-    return `n:${isNegative ? "-" : ""}${integerString36}.${decimalString36}`;
+    return `${isNegative ? "-" : ""}${integerString36}.${decimalString36}`;
   }
 
   // sort true items first
   if (value === true) {
-    return `b:1`;
+    return `1`;
   }
   if (value === false) {
-    return `b:0`;
+    return `0`;
   }
 
   throw new Error(

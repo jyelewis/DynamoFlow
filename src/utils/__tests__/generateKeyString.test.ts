@@ -14,32 +14,32 @@ const testObject = {
 
 describe("generateKeyString", () => {
   it("Single fields", () => {
-    expect(generateKeyString(["userId"], testObject)).toEqual(
-      "userId=s:asdf-qwer#"
+    expect(generateKeyString(["userId"], testObject)).toMatchInlineSnapshot(
+      `"asdf-qwer#"`
     );
-    expect(generateKeyString(["email"], testObject)).toEqual(
-      "email=s:joe@gmail.com#"
+    expect(generateKeyString(["email"], testObject)).toMatchInlineSnapshot(
+      `"joe@gmail.com#"`
     );
   });
 
   it("Multiple fields", () => {
-    expect(generateKeyString(["firstName", "lastName"], testObject)).toEqual(
-      "firstName=s:joe#lastName=s:bot#"
-    );
-    expect(generateKeyString(["userId", "email"], testObject)).toEqual(
-      "userId=s:asdf-qwer#email=s:joe@gmail.com#"
-    );
+    expect(
+      generateKeyString(["firstName", "lastName"], testObject)
+    ).toMatchInlineSnapshot(`"joe#bot#"`);
+    expect(
+      generateKeyString(["userId", "email"], testObject)
+    ).toMatchInlineSnapshot(`"asdf-qwer#joe@gmail.com#"`);
   });
 
   it("Supports providing a single key rather than an array", () => {
-    expect(generateKeyString("userId", testObject)).toEqual(
-      "userId=s:asdf-qwer#"
+    expect(generateKeyString("userId", testObject)).toMatchInlineSnapshot(
+      `"asdf-qwer#"`
     );
-    expect(generateKeyString("email", testObject)).toEqual(
-      "email=s:joe@gmail.com#"
+    expect(generateKeyString("email", testObject)).toMatchInlineSnapshot(
+      `"joe@gmail.com#"`
     );
-    expect(generateKeyString("isActivated", testObject)).toEqual(
-      "isActivated=b:1#"
+    expect(generateKeyString("isActivated", testObject)).toMatchInlineSnapshot(
+      `"1#"`
     );
   });
 

@@ -243,7 +243,7 @@ describe("E2E tests", () => {
           dynamoIndex: "GSI1",
           partitionKey: "siteId",
           sortKey: "dateCaptured",
-          includeInIndex: (survey) => survey.isReleased,
+          includeInIndex: [(survey) => survey.isReleased, ["isReleased"]],
         }),
       ],
     });

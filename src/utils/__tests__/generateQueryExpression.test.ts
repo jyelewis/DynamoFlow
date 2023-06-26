@@ -22,8 +22,8 @@ describe("generateQueryExpression", () => {
         "#SK": "_SK",
       },
       expressionAttributeValues: {
-        ":pk": "users#lastName=s:lewis#",
-        ":value": "users#firstName=s:jye#",
+        ":pk": "users#lewis#",
+        ":value": "users#jye#",
       },
       indexName: undefined,
     });
@@ -50,7 +50,7 @@ describe("generateQueryExpression", () => {
         "#SK": "_SK",
       },
       expressionAttributeValues: {
-        ":pk": "things#a=s:aa#b=s:bb#c=s:cc#",
+        ":pk": "things#aa#bb#cc#",
         ":value": "things#",
       },
       indexName: undefined,
@@ -72,8 +72,8 @@ describe("generateQueryExpression", () => {
         "#SK": "_SK",
       },
       expressionAttributeValues: {
-        ":pk": "things#a=s:aa#",
-        ":value": "things#b=s:b#",
+        ":pk": "things#aa#",
+        ":value": "things#b#",
       },
       indexName: undefined,
     });
@@ -94,8 +94,8 @@ describe("generateQueryExpression", () => {
         "#SK": "_SK",
       },
       expressionAttributeValues: {
-        ":pk": "things#a=s:aa#",
-        ":value": "things#b=s:b#",
+        ":pk": "things#aa#",
+        ":value": "things#b#",
       },
       indexName: undefined,
     });
@@ -116,8 +116,8 @@ describe("generateQueryExpression", () => {
         "#SK": "_SK",
       },
       expressionAttributeValues: {
-        ":pk": "things#a=s:aa#",
-        ":value": "things#b=s:b#",
+        ":pk": "things#aa#",
+        ":value": "things#b#",
       },
       indexName: undefined,
     });
@@ -138,8 +138,8 @@ describe("generateQueryExpression", () => {
         "#SK": "_SK",
       },
       expressionAttributeValues: {
-        ":pk": "things#a=s:aa#",
-        ":value": "things#b=s:b#",
+        ":pk": "things#aa#",
+        ":value": "things#b#",
       },
       indexName: undefined,
     });
@@ -160,9 +160,9 @@ describe("generateQueryExpression", () => {
         "#SK": "_SK",
       },
       expressionAttributeValues: {
-        ":pk": "things#a=s:aa#",
-        ":gte": "things#b=s:b#",
-        ":lte": "things#b=s:z#",
+        ":pk": "things#aa#",
+        ":gte": "things#b#",
+        ":lte": "things#z#",
       },
       indexName: undefined,
     });
@@ -183,8 +183,8 @@ describe("generateQueryExpression", () => {
         "#SK": "_SK",
       },
       expressionAttributeValues: {
-        ":pk": "things#a=s:aa#",
-        ":value": "things#b=s:bb",
+        ":pk": "things#aa#",
+        ":value": "things#bb",
       },
       indexName: undefined,
     });
@@ -211,8 +211,8 @@ describe("generateQueryExpression", () => {
         "#SK": "_SK",
       },
       expressionAttributeValues: {
-        ":pk": "things#a=s:aa#",
-        ":value": "things#b=s:b#c=s:cc",
+        ":pk": "things#aa#",
+        ":value": "things#b#cc",
       },
       indexName: undefined,
     });
@@ -239,8 +239,8 @@ describe("generateQueryExpression", () => {
         "#SK": "_SK",
       },
       expressionAttributeValues: {
-        ":pk": "things#a=s:a#",
-        ":value": "things#b=s:b#c=s:c#",
+        ":pk": "things#a#",
+        ":value": "things#b#c#",
       },
       indexName: undefined,
     });

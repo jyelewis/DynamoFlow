@@ -21,7 +21,6 @@ export interface DFDBConfig {
   tableName: string;
   region?: string;
   endpoint?: string;
-  keyPrefix?: string;
   GSIs?: string[];
 }
 
@@ -114,7 +113,7 @@ export class DFDB {
       // store as the next batch once we are ready
       nextBatch = await Promise.all(
         scanRes.Items.map(async (item) => {
-          const collectionName = item._collection as string;
+          const collectionName = item._c as string;
           const collectionForItem = this.collections[collectionName];
           if (collectionForItem === undefined) {
             return {

@@ -5,6 +5,7 @@ import { testDbConfig } from "../testHelpers/testDbConfigs.js";
 import { genTestPrefix } from "../testHelpers/genTestPrefix.js";
 import { DFUpdateOperation } from "../types/operations.js";
 import { DynamoItem, RETRY_TRANSACTION } from "../types/types.js";
+import { setTimeout } from "timers/promises";
 
 describe("DFWriteTransaction", () => {
   describe("Basic single operations", () => {
@@ -27,7 +28,7 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
         },
-        entity: {
+        updateValues: {
           firstName: "Jye",
           lastName: "Lewis",
         },
@@ -78,7 +79,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
-          entity: {
+          updateValues: {
             firstName: "Jye 2",
             lastName: "Lewis 2",
             age: { $inc: 1 },
@@ -134,7 +135,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
-          entity: {
+          updateValues: {
             firstName: "Jye 2",
             lastName: "Lewis 2",
             age: { $inc: 1 },
@@ -198,7 +199,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
-          entity: {
+          updateValues: {
             firstName: "Jye",
             lastName: "Lewis",
             age: { $inc: 1 },
@@ -257,7 +258,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
-          entity: {
+          updateValues: {
             firstName: "Jye",
             lastName: "Lewis",
           },
@@ -395,7 +396,7 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
         },
-        entity: {
+        updateValues: {
           firstName: "Joe",
           lastName: "Bot",
         },
@@ -435,7 +436,7 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
         },
-        entity: {
+        updateValues: {
           firstName: "Jye",
           lastName: "Lewis",
         },
@@ -446,7 +447,7 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USER#user2`,
           _SK: "USER#user2",
         },
-        entity: {
+        updateValues: {
           firstName: "Joe",
           lastName: "Bot",
         },
@@ -516,7 +517,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
-          entity: {
+          updateValues: {
             firstName: "Jye",
             lastName: "Lewis",
           },
@@ -527,7 +528,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user2`,
             _SK: "USER#user2",
           },
-          entity: {
+          updateValues: {
             firstName: "Joe",
             lastName: "Bot",
           },
@@ -594,7 +595,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
-          entity: {
+          updateValues: {
             firstName: "Jye",
             lastName: "Lewis",
           },
@@ -606,7 +607,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user2`,
             _SK: "USER#user2",
           },
-          entity: {
+          updateValues: {
             firstName: "Joe",
             lastName: "Bot",
           },
@@ -746,7 +747,7 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USER#user2`,
           _SK: "USER#user2",
         },
-        entity: {
+        updateValues: {
           firstName: "Joe",
           lastName: "Bot",
         },
@@ -797,7 +798,7 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USER#user2`,
           _SK: "USER#user2",
         },
-        entity: {
+        updateValues: {
           firstName: "Joe",
           lastName: "Bot",
         },
@@ -857,7 +858,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user2`,
             _SK: "USER#user2",
           },
-          entity: {
+          updateValues: {
             firstName: "Joe",
             lastName: "Bot",
           },
@@ -921,7 +922,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
-          entity: {
+          updateValues: {
             firstName: "Joe",
             lastName: "Bot",
           },
@@ -963,7 +964,7 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
         },
-        entity: {
+        updateValues: {
           firstName: "Joe",
           lastName: "Bot",
         },
@@ -1005,6 +1006,73 @@ describe("DFWriteTransaction", () => {
     );
   });
 
+  describe("Pre-commit handlers", () => {
+    it.concurrent("Runs pre-commit handlers for single operation", async () => {
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      const eventLog: string[] = [];
+
+      const transaction = db.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          firstName: "Jye",
+          lastName: "Lewis",
+        },
+      });
+      transaction.addPreCommitHandler(async () => {
+        eventLog.push("pre-commit handler 1");
+
+        // modify the transaction
+        const op = transaction.primaryOperation as DFUpdateOperation;
+        op.updateValues.firstName += "2";
+      });
+      transaction.addPreCommitHandler(async () => {
+        eventLog.push("pre-commit handler 2");
+        // do something async
+        await setTimeout(0);
+      });
+      eventLog.push("pre-commit");
+      const updatedEntity = await transaction.commit();
+      eventLog.push("post-commit");
+
+      expect(updatedEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye2",
+        lastName: "Lewis",
+      });
+      expect(eventLog).toEqual([
+        "pre-commit",
+        "pre-commit handler 1",
+        "pre-commit handler 2",
+        "post-commit",
+      ]);
+
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye2", // changed by the pre-commit hook
+        lastName: "Lewis",
+      });
+    });
+
+    it.todo("Runs pre-commit handlers for a multiple operation");
+
+    it.todo("Runs pre-commit on re-try");
+  });
+
   describe("Transaction error handling & retrying", () => {
     it.concurrent(
       "Re-tries transaction if error handler returns RETRY_TRANSACTION (single item)",
@@ -1030,7 +1098,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
-          entity: {
+          updateValues: {
             firstName: "Joe",
             lastName: "Bot",
           },
@@ -1091,7 +1159,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
-          entity: {
+          updateValues: {
             firstName: "Joe",
             lastName: "Bot",
           },
@@ -1122,7 +1190,7 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
         },
-        entity: {
+        updateValues: {
           firstName: "Joe",
           lastName: "Bot",
         },
@@ -1166,7 +1234,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
-          entity: {
+          updateValues: {
             firstName: "Joe",
             lastName: "Bot",
           },
@@ -1225,7 +1293,7 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
-          entity: {
+          updateValues: {
             firstName: "Joe",
             lastName: "Bot",
           },
@@ -1270,7 +1338,7 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
         },
-        entity: {
+        updateValues: {
           firstName: "Jye",
           lastName: "Lewis",
         },
@@ -1293,7 +1361,7 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USER#user2`,
           _SK: "USER#user2",
         },
-        entity: {
+        updateValues: {
           firstName: "Joe",
           lastName: "Bot",
         },
@@ -1324,6 +1392,8 @@ describe("DFWriteTransaction", () => {
         lastName: "Lewis",
       });
     });
+
+    it.todo("Runs pre-commit for all items in merged transaction");
   });
 
   describe("Just for fun: scans", () => {

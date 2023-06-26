@@ -25,14 +25,14 @@ describe("DFDB", () => {
       const transaction = db.createTransaction({
         type: "Update",
         key: { id: 1 },
-        entity: { name: "Joe" },
+        updateValues: { name: "Joe" },
       });
 
       expect(transaction.db).toStrictEqual(db);
       expect(transaction.primaryOperation).toEqual({
         type: "Update",
         key: { id: 1 },
-        entity: { name: "Joe" },
+        updateValues: { name: "Joe" },
       });
     });
 

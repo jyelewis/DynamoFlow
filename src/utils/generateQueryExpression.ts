@@ -63,7 +63,7 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
       sortValue === null
     ) {
       // literal value, append to our search string
-      sortKeyBase += `#${sortKey}=${valueToSortableString(sortValue)}`;
+      sortKeyBase += `#${valueToSortableString(sortValue)}`;
       continue;
     }
 
@@ -75,10 +75,10 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
     }
 
     if ("$betweenIncl" in sortValue) {
-      const gte = `${sortKeyBase}#${sortKey}=${valueToSortableString(
+      const gte = `${sortKeyBase}#${valueToSortableString(
         sortValue.$betweenIncl[0]
       )}#`;
-      const lte = `${sortKeyBase}#${sortKey}=${valueToSortableString(
+      const lte = `${sortKeyBase}#${valueToSortableString(
         sortValue.$betweenIncl[1]
       )}#`;
 
@@ -93,7 +93,7 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
     }
 
     if ("$beginsWith" in sortValue) {
-      const value = `${sortKeyBase}#${sortKey}=${valueToSortableString(
+      const value = `${sortKeyBase}#${valueToSortableString(
         sortValue.$beginsWith
       )}`;
 
@@ -106,9 +106,7 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
     }
 
     if ("$gt" in sortValue) {
-      const value = `${sortKeyBase}#${sortKey}=${valueToSortableString(
-        sortValue.$gt
-      )}#`;
+      const value = `${sortKeyBase}#${valueToSortableString(sortValue.$gt)}#`;
 
       // store the final query we need to send
       queryExpression.keyConditionExpression = `#PK = :pk AND #SK > :value`;
@@ -119,9 +117,7 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
     }
 
     if ("$gte" in sortValue) {
-      const value = `${sortKeyBase}#${sortKey}=${valueToSortableString(
-        sortValue.$gte
-      )}#`;
+      const value = `${sortKeyBase}#${valueToSortableString(sortValue.$gte)}#`;
 
       // store the final query we need to send
       queryExpression.keyConditionExpression = `#PK = :pk AND #SK >= :value`;
@@ -132,9 +128,7 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
     }
 
     if ("$lt" in sortValue) {
-      const value = `${sortKeyBase}#${sortKey}=${valueToSortableString(
-        sortValue.$lt
-      )}#`;
+      const value = `${sortKeyBase}#${valueToSortableString(sortValue.$lt)}#`;
 
       // store the final query we need to send
       queryExpression.keyConditionExpression = `#PK = :pk AND #SK < :value`;
@@ -145,9 +139,7 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
     }
 
     if ("$lte" in sortValue) {
-      const value = `${sortKeyBase}#${sortKey}=${valueToSortableString(
-        sortValue.$lte
-      )}#`;
+      const value = `${sortKeyBase}#${valueToSortableString(sortValue.$lte)}#`;
 
       // store the final query we need to send
       queryExpression.keyConditionExpression = `#PK = :pk AND #SK <= :value`;

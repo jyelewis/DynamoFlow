@@ -13,12 +13,12 @@ export function generateKeyString(
         throw new Error(`Missing required value for ${key} in index`);
       }
 
-      return `${key}=${valueToSortableString(value)}`;
+      return valueToSortableString(value);
     })
     .join("#");
 
   // all index segments end with #
   // this allows us to find all matching items with a strict eq comparison
-  // by performing begins_with(#SK, :`item1=value1#item2=value2#`)
+  // by performing begins_with(#SK, :`value1#value2#`)
   return indexString + "#";
 }
