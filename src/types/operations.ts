@@ -1,19 +1,54 @@
 import { DynamoItem, DynamoValue, UpdateValue } from "./types.js";
 import { CancellationReason } from "@aws-sdk/client-dynamodb";
 
-export interface DFConditionExpression {
-  // TODO: this is going to need to be regularlly extended, maybe string concats aren't the best idea
-  conditionExpression: string;
-  conditionExpressionAttributeNames: Record<string, string>;
-  conditionExpressionAttributeValues?: Record<string, DynamoValue>;
-}
-type DFOptionalConditionExpression =
-  | DFConditionExpression
+export type DFConditionValue =
+  | DynamoValue
   | {
-      conditionExpression?: never;
-      conditionExpressionAttributeNames?: never;
-      conditionExpressionAttributeValues?: never;
+      $eq: DynamoValue;
+    }
+  | {
+      $ne: DynamoValue;
+    }
+  | {
+      $exists: boolean;
+    }
+  | {
+      $gt: DynamoValue;
+    }
+  | {
+      $gte: DynamoValue;
+    }
+  | {
+      $lt: DynamoValue;
+    }
+  | {
+      $lte: DynamoValue;
+    }
+  | {
+      $beginsWith: DynamoValue;
+    }
+  | {
+      $in: DynamoValue[];
+    }
+  | {
+      $betweenIncl: [DynamoValue, DynamoValue];
+    }
+  | {
+      $contains: DynamoValue;
+    }
+  | {
+      // allow providing any query by literal fields
+      $raw: Required<ConditionExpressionProperties>;
     };
+
+export type DFCondition = Record<string, DFConditionValue>;
+
+export interface ConditionExpressionProperties {
+  conditionExpression?: string;
+  expressionAttributeNames?: Record<string, string>;
+  expressionAttributeValues?: Record<string, DynamoValue>;
+}
+
 export type DFWriteTransactionErrorHandler<Operation extends DFWriteOperation> =
   (error: CancellationReason, op: Operation) => symbol | Promise<symbol>;
 
@@ -21,21 +56,24 @@ export type DFUpdateOperation = {
   type: "Update";
   key: Record<string, DynamoValue>;
   updateValues: Record<string, UpdateValue>;
+  condition?: DFCondition;
   successHandlers?: Array<(item: DynamoItem) => void | Promise<void>>;
   errorHandler?: DFWriteTransactionErrorHandler<DFUpdateOperation>;
-} & DFOptionalConditionExpression;
+};
 
 export type DFDeleteOperation = {
   type: "Delete";
   key: Record<string, DynamoValue>;
+  condition?: DFCondition;
   errorHandler?: DFWriteTransactionErrorHandler<DFDeleteOperation>;
-} & DFOptionalConditionExpression;
+};
 
 export type DFConditionCheckOperation = {
   type: "ConditionCheck";
   key: Record<string, DynamoValue>;
+  condition: DFCondition;
   errorHandler?: DFWriteTransactionErrorHandler<DFConditionCheckOperation>;
-} & DFConditionExpression;
+};
 
 export type DFWriteOperation =
   | DFUpdateOperation

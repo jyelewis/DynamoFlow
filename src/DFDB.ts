@@ -16,6 +16,7 @@ import {
   STOP_SCAN,
 } from "./types/types.js";
 import { DFWritePrimaryOperation } from "./types/operations.js";
+import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
 
 export interface DFDBConfig {
   tableName: string;
@@ -78,22 +79,19 @@ export class DFDB {
         return;
       }
 
+      const {
+        conditionExpression,
+        expressionAttributeNames,
+        expressionAttributeValues,
+      } = conditionToConditionExpression(scanParams.filter);
+
       const scanRes = await this.client.scan({
         TableName: this.tableName,
         ExclusiveStartKey: lastEvaluatedKey,
         Limit: scanParams.maxBatchSize,
-        FilterExpression:
-          "filterExpression" in scanParams
-            ? scanParams.filterExpression
-            : undefined,
-        ExpressionAttributeNames:
-          "filterExpression" in scanParams
-            ? scanParams.filterExpressionAttributeNames
-            : undefined,
-        ExpressionAttributeValues:
-          "filterExpression" in scanParams
-            ? scanParams.filterExpressionAttributeValues
-            : undefined,
+        FilterExpression: conditionExpression,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
       });
       lastEvaluatedKey = scanRes.LastEvaluatedKey;
       if (lastEvaluatedKey === undefined) {

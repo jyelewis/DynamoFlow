@@ -14,6 +14,7 @@ import {
   DFWriteSecondaryOperation,
 } from "./types/operations.js";
 import assert from "assert";
+import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
 
 const MAX_TRANSACTION_RETRIES = 5;
 
@@ -305,15 +306,8 @@ export class DFWriteTransaction {
   }
 
   private updateExpressionToParams(op: DFUpdateOperation): UpdateCommandInput {
-    // load in the condition expression values, if we have any
-    const expressionAttributeNames: Record<string, any> =
-      "conditionExpression" in op
-        ? { ...op.conditionExpressionAttributeNames }
-        : {};
-    const expressionAttributeValues: Record<string, any> =
-      "conditionExpression" in op
-        ? { ...op.conditionExpressionAttributeValues }
-        : {};
+    const expressionAttributeNames: Record<string, any> = {};
+    const expressionAttributeValues: Record<string, any> = {};
 
     // generate an update expression & add the values to the expressionAttributes
     const operations: { SET: string[]; REMOVE: string[] } = {
@@ -333,6 +327,18 @@ export class DFWriteTransaction {
 
           operations.SET.push(
             `#update_key${index}=if_not_exists(#update_key${index}, :zero) + :update_value${index}`
+          );
+          return;
+        }
+
+        // TODO: test me
+        if ("$setIfNotExists" in updateValue) {
+          // "SET #name = if_not_exists(#name, :new_value)"
+          expressionAttributeValues[`:update_value${index}`] =
+            updateValue["$setIfNotExists"];
+
+          operations.SET.push(
+            `#update_key${index}=if_not_exists(#update_key${index}, :update_value${index})`
           );
           return;
         }
@@ -358,12 +364,23 @@ export class DFWriteTransaction {
     }
     const fullUpdateExpression = updateExpressions.join(" ");
 
+    const {
+      conditionExpression,
+      expressionAttributeNames: conditionExpressionAttributeNames,
+      expressionAttributeValues: conditionExpressionAttributeValues,
+    } = conditionToConditionExpression(op.condition);
+
+    Object.assign(expressionAttributeNames, conditionExpressionAttributeNames);
+    Object.assign(
+      expressionAttributeValues,
+      conditionExpressionAttributeValues
+    );
+
     return {
       TableName: this.db.tableName,
       Key: op.key,
       UpdateExpression: fullUpdateExpression,
-      ConditionExpression:
-        "conditionExpression" in op ? op.conditionExpression : undefined,
+      ConditionExpression: conditionExpression,
       ExpressionAttributeNames: expressionAttributeNames,
       ExpressionAttributeValues: expressionAttributeValues,
       ReturnValues: "ALL_NEW",
@@ -371,31 +388,36 @@ export class DFWriteTransaction {
   }
 
   private deleteExpressionToParams(op: DFDeleteOperation): DeleteCommandInput {
+    const {
+      conditionExpression,
+      expressionAttributeNames,
+      expressionAttributeValues,
+    } = conditionToConditionExpression(op.condition);
+
     return {
       TableName: this.db.tableName,
       Key: op.key,
-      ConditionExpression:
-        "conditionExpression" in op ? op.conditionExpression : undefined,
-      ExpressionAttributeNames:
-        "conditionExpression" in op
-          ? op.conditionExpressionAttributeNames
-          : undefined,
-      ExpressionAttributeValues:
-        "conditionExpression" in op
-          ? op.conditionExpressionAttributeValues
-          : undefined,
+      ConditionExpression: conditionExpression!,
+      ExpressionAttributeNames: expressionAttributeNames!,
+      ExpressionAttributeValues: expressionAttributeValues,
     };
   }
 
   private conditionCheckExpressionToParams(
     op: DFConditionCheckOperation
   ): ConditionCheckCommandInput {
+    const {
+      conditionExpression,
+      expressionAttributeNames,
+      expressionAttributeValues,
+    } = conditionToConditionExpression(op.condition);
+
     return {
       TableName: this.db.tableName,
       Key: op.key,
-      ConditionExpression: op.conditionExpression,
-      ExpressionAttributeNames: op.conditionExpressionAttributeNames,
-      ExpressionAttributeValues: op.conditionExpressionAttributeValues,
-    } as any;
+      ConditionExpression: conditionExpression!,
+      ExpressionAttributeNames: expressionAttributeNames!,
+      ExpressionAttributeValues: expressionAttributeValues,
+    };
   }
 }

@@ -1,10 +1,14 @@
 // TODO: support set & dict operations
-import { ScanCommandInput } from "@aws-sdk/lib-dynamodb";
 import { DFCollection } from "../DFCollection.js";
+import { DFConditionValue } from "./operations.js";
 
 export type DynamoValue = string | number | boolean | null;
 export type DynamoItem = Record<string, DynamoValue>;
-export type UpdateValue = DynamoValue | { $inc: number } | { $remove: true };
+export type UpdateValue =
+  | DynamoValue
+  | { $inc: number }
+  | { $remove: true }
+  | { $setIfNotExists: DynamoValue };
 
 export const RETRY_TRANSACTION = Symbol("RETRY_TRANSACTION");
 export const STOP_SCAN = Symbol("STOP_SCAN");
@@ -27,6 +31,7 @@ export interface Query<Entity extends SafeEntity<Entity>> {
       | { $gte: Entity[key] }
       | { $beginsWith: Entity[key] };
   };
+  filter?: Record<keyof Entity, DFConditionValue>;
   limit?: number;
   consistentRead?: boolean;
   index?: string;
@@ -40,12 +45,6 @@ export type FullTableScan = {
   processBatch: (
     items: FullTableScanItem[]
   ) => Promise<void | typeof STOP_SCAN>;
+  filter?: Record<string, DFConditionValue>;
   maxBatchSize?: number;
-} & (
-  | Record<string, never>
-  | {
-      filterExpression?: ScanCommandInput["FilterExpression"];
-      filterExpressionAttributeNames?: ScanCommandInput["ExpressionAttributeNames"];
-      filterExpressionAttributeValues?: ScanCommandInput["ExpressionAttributeValues"];
-    }
-);
+};

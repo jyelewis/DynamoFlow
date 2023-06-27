@@ -227,41 +227,34 @@ describe("DFDB", () => {
       }
     );
 
-    it.concurrent(
-      "Applies filterExpression _collection = 'users'",
-      async () => {
-        const allItems = await allItemsProm;
+    it.concurrent("Applies filterExpression _c = 'users'", async () => {
+      const allItems = await allItemsProm;
 
-        let numBatchesReceived = 0;
-        let itemsReceived: Array<any> = [];
+      let numBatchesReceived = 0;
+      let itemsReceived: Array<any> = [];
 
-        await db.fullTableScan({
-          processBatch: async (items: FullTableScanItem[]) => {
-            itemsReceived = itemsReceived.concat(items);
-            numBatchesReceived += 1;
-          },
-          filterExpression: "#collection = :projects",
-          filterExpressionAttributeNames: {
-            "#collection": "_collection",
-          },
-          filterExpressionAttributeValues: {
-            ":projects": "users",
-          },
-        });
+      await db.fullTableScan({
+        processBatch: async (items: FullTableScanItem[]) => {
+          itemsReceived = itemsReceived.concat(items);
+          numBatchesReceived += 1;
+        },
+        filter: {
+          _c: "users",
+        },
+      });
 
-        expect(numBatchesReceived).toEqual(1);
+      expect(numBatchesReceived).toEqual(1);
 
-        // check we got all items once
-        expect(itemsReceived.length).toEqual(
-          allItems.filter((x) => "firstName" in x).length
-        );
-        expect(
-          itemsReceived.every((x) =>
-            allItems.some((item) => x.entity.id === item.id)
-          )
-        ).toEqual(true);
-      }
-    );
+      // check we got all items once
+      expect(itemsReceived.length).toEqual(
+        allItems.filter((x) => "firstName" in x).length
+      );
+      expect(
+        itemsReceived.every((x) =>
+          allItems.some((item) => x.entity.id === item.id)
+        )
+      ).toEqual(true);
+    });
 
     it.concurrent("Returns all items with a sparse filter", async () => {
       await allItemsProm;
@@ -274,12 +267,8 @@ describe("DFDB", () => {
           itemsReceived = itemsReceived.concat(items);
           numBatchesReceived += 1;
         },
-        filterExpression: "#firstName = :firstName",
-        filterExpressionAttributeNames: {
-          "#firstName": "firstName",
-        },
-        filterExpressionAttributeValues: {
-          ":firstName": "Gus",
+        filter: {
+          firstName: "Gus",
         },
       });
 
@@ -305,12 +294,8 @@ describe("DFDB", () => {
             itemsReceived = itemsReceived.concat(items);
             numBatchesReceived += 1;
           },
-          filterExpression: "#firstName = :firstName",
-          filterExpressionAttributeNames: {
-            "#firstName": "firstName",
-          },
-          filterExpressionAttributeValues: {
-            ":firstName": "Gus",
+          filter: {
+            firstName: "Gus",
           },
           maxBatchSize: 2,
         });

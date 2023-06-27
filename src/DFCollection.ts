@@ -12,6 +12,7 @@ import { PartialQueryExpression } from "./types/internalTypes.js";
 import { generateIndexStrings } from "./utils/generateIndexStrings.js";
 import { generateQueryExpression } from "./utils/generateQueryExpression.js";
 import { DFUpdateOperation } from "./types/operations.js";
+import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
 
 export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
   name: string;
@@ -48,7 +49,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     // without storing extra metadata properties themselves
     entityWithMetadata["_wc"] = 1;
 
-    const allowOverwrite = !options || !options.allowOverwrite;
+    const allowOverwrite = options && options.allowOverwrite;
 
     const [pk, sk] = generateIndexStrings(
       this.config.name,
@@ -57,20 +58,19 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       entityWithMetadata
     );
     const transaction = this.db.createTransaction({
+      // TODO: TS doesn't seem to warn about invalid properties here...
       type: "Update",
       key: {
         _PK: pk,
         _SK: sk,
       },
       updateValues: entityWithMetadata,
-      // ensure this entity doesn't already exist! We're creating it
-      // can we get away without using conditionExpressionAttributeNames??
-      conditionExpression: allowOverwrite
-        ? "attribute_not_exists(#PK)"
-        : undefined,
-      conditionExpressionAttributeNames: allowOverwrite
+      condition: !allowOverwrite
         ? {
-            "#PK": "_PK",
+            // if not allowing overwrite, ensure this item doesn't already exist
+            _PK: {
+              $exists: false,
+            },
           }
         : undefined,
       errorHandler: (e: any) => {
@@ -107,6 +107,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     return (await transaction.commit()) as Entity;
   }
 
+  // TODO: these don't need to be async anymore!
   public async updateTransaction(
     key: Partial<Entity>,
     updateFields: Partial<Record<keyof Entity, UpdateValue>>
@@ -136,9 +137,8 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       },
       updateValues: updateFieldsWithMetadata,
       // ensure this entity already exists, we're expecting this to be an update
-      conditionExpression: "attribute_exists(#PK)",
-      conditionExpressionAttributeNames: {
-        "#PK": "_PK",
+      condition: {
+        _PK: { $exists: true },
       },
       errorHandler: (e: any) => {
         if (e.Code === "ConditionalCheckFailedException") {
@@ -179,12 +179,19 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     // if this query is against the primary index, that will generate it locally
     // otherwise it will search for an extension to generate this expression for us
     const queryExpression = await this.expressionForQuery(query);
+    const filterExpression = conditionToConditionExpression(query.filter); // filters have the same interface as expressions
 
     const result = await this.db.client.query({
       TableName: this.db.tableName,
       KeyConditionExpression: queryExpression.keyConditionExpression,
-      ExpressionAttributeNames: queryExpression.expressionAttributeNames,
-      ExpressionAttributeValues: queryExpression.expressionAttributeValues,
+      ExpressionAttributeNames: {
+        ...queryExpression.expressionAttributeNames,
+        ...filterExpression.expressionAttributeNames,
+      },
+      ExpressionAttributeValues: {
+        ...queryExpression.expressionAttributeValues,
+        ...filterExpression.expressionAttributeValues,
+      },
       Limit: query.limit || undefined,
       ConsistentRead: query.consistentRead,
       IndexName: queryExpression.indexName,

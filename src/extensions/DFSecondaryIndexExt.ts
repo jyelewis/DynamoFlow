@@ -148,6 +148,7 @@ export class DFSecondaryIndexExt<
           );
         }
 
+        // TODO: aah! Must apply changes here first
         // convert our raw fetch into an entity
         entityWithSomeProperties =
           await this.collection.entityFromRawDynamoItem(
@@ -156,12 +157,14 @@ export class DFSecondaryIndexExt<
 
         // because we are reading before write, we need to add a condition expression
         // this allows us to optimistic lock the entity against our preFetched item
-        // if someone updates this item between our read & write, the write will fail and entire operation be re-tried
-        primaryUpdateOperation.conditionExpressionAttributeNames["#wc"] = "_wc";
-        primaryUpdateOperation.conditionExpressionAttributeValues[
-          `:${this.config.dynamoIndex}_lock`
-        ] = entityWithSomeProperties["_wc"];
-        primaryUpdateOperation.conditionExpression += ` AND #writeCount = :${this.config.dynamoIndex}_lock`;
+        // if someone updates this item between our read & write,
+        // the write will fail and entire operation be re-tried
+        const primaryCondition = primaryUpdateOperation.condition || {};
+        primaryUpdateOperation.condition = primaryCondition;
+
+        primaryCondition._wc = {
+          $eq: entityWithSomeProperties["_wc"],
+        };
 
         // TODO: umm one error handler?
         primaryUpdateOperation.errorHandler = (err) => {

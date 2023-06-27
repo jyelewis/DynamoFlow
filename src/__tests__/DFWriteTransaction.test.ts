@@ -204,9 +204,8 @@ describe("DFWriteTransaction", () => {
             lastName: "Lewis",
             age: { $inc: 1 },
           },
-          conditionExpression: "attribute_not_exists(#firstName)",
-          conditionExpressionAttributeNames: {
-            "#firstName": "firstName",
+          condition: {
+            firstName: { $exists: false },
           },
           successHandlers: [successHandler],
           errorHandler,
@@ -262,9 +261,8 @@ describe("DFWriteTransaction", () => {
             firstName: "Jye",
             lastName: "Lewis",
           },
-          conditionExpression: "attribute_exists(#firstName)",
-          conditionExpressionAttributeNames: {
-            "#firstName": "firstName",
+          condition: {
+            firstName: { $exists: true },
           },
           successHandlers: [successHandler],
           errorHandler,
@@ -362,12 +360,8 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
-          conditionExpression: "#firstName = :firstName",
-          conditionExpressionAttributeNames: {
-            "#firstName": "firstName",
-          },
-          conditionExpressionAttributeValues: {
-            ":firstName": "Joe",
+          condition: {
+            firstName: "Joe",
           },
         });
         await expect(transaction.commit()).rejects.toThrow(
@@ -533,9 +527,8 @@ describe("DFWriteTransaction", () => {
             lastName: "Bot",
           },
           // condition expression to ensure this item already exists (it doesn't, should fail)
-          conditionExpression: "attribute_exists(#PK)",
-          conditionExpressionAttributeNames: {
-            "#PK": "_PK",
+          condition: {
+            _PK: { $exists: true },
           },
         });
 
@@ -809,9 +802,8 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USER#user3`,
           _SK: "USER#user3",
         },
-        conditionExpression: "attribute_not_exists(#_PK)",
-        conditionExpressionAttributeNames: {
-          "#_PK": "_PK",
+        condition: {
+          _PK: { $exists: false },
         },
       });
 
@@ -876,9 +868,8 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user3`,
             _SK: "USER#user3",
           },
-          conditionExpression: "attribute_not_exists(#_PK)",
-          conditionExpressionAttributeNames: {
-            "#_PK": "_PK",
+          condition: {
+            _PK: { $exists: false },
           },
         });
 
@@ -928,9 +919,8 @@ describe("DFWriteTransaction", () => {
           },
           // this condition will never pass without something externally changing
           // should cause is to re-try indefinitely
-          conditionExpression: "attribute_exists(#PK)",
-          conditionExpressionAttributeNames: {
-            "#PK": "_PK",
+          condition: {
+            _PK: { $exists: true },
           },
           errorHandler: (() => {
             // do nothing
@@ -942,9 +932,8 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#user2`,
             _SK: "USER#user2",
           },
-          conditionExpression: "attribute_not_exists(#_PK)",
-          conditionExpressionAttributeNames: {
-            "#_PK": "_PK",
+          condition: {
+            _PK: { $exists: false },
           },
         });
 
@@ -975,9 +964,8 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USER#user2`,
           _SK: "USER#user2",
         },
-        conditionExpression: "attribute_not_exists(#_PK)",
-        conditionExpressionAttributeNames: {
-          "#_PK": "_PK",
+        condition: {
+          _PK: { $exists: false },
         },
       });
 
@@ -1103,9 +1091,8 @@ describe("DFWriteTransaction", () => {
             lastName: "Bot",
           },
           // only if this ID isn't taken
-          conditionExpression: "attribute_not_exists(#PK)",
-          conditionExpressionAttributeNames: {
-            "#PK": "_PK",
+          condition: {
+            _PK: { $exists: false },
           },
           errorHandler: (err: CancellationReason, op: DFUpdateOperation) => {
             const currentUserNum = parseInt(
@@ -1165,9 +1152,8 @@ describe("DFWriteTransaction", () => {
           },
           // this condition will never pass without something externally changing
           // should cause is to re-try indefinitely
-          conditionExpression: "attribute_exists(#PK)",
-          conditionExpressionAttributeNames: {
-            "#PK": "_PK",
+          condition: {
+            _PK: { $exists: true },
           },
           errorHandler: (() => {
             // do nothing
@@ -1196,9 +1182,8 @@ describe("DFWriteTransaction", () => {
         },
         // this condition will never pass without something externally changing
         // should cause is to re-try indefinitely
-        conditionExpression: "attribute_exists(#PK)",
-        conditionExpressionAttributeNames: {
-          "#PK": "_PK",
+        condition: {
+          _PK: { $exists: true },
         },
         errorHandler: () => {
           return RETRY_TRANSACTION;
@@ -1239,9 +1224,8 @@ describe("DFWriteTransaction", () => {
             lastName: "Bot",
           },
           // only if this ID isn't taken
-          conditionExpression: "attribute_not_exists(#PK)",
-          conditionExpressionAttributeNames: {
-            "#PK": "_PK",
+          condition: {
+            _PK: { $exists: false },
           },
           errorHandler: (err: CancellationReason, op: DFUpdateOperation) => {
             const currentUserNum = parseInt(
@@ -1264,9 +1248,8 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#not_legacy_user`,
             _SK: "USER#not_legacy_user",
           },
-          conditionExpression: "attribute_not_exists(#PK)",
-          conditionExpressionAttributeNames: {
-            "#PK": "_PK",
+          condition: {
+            _PK: { $exists: false },
           },
         });
 
@@ -1299,9 +1282,8 @@ describe("DFWriteTransaction", () => {
           },
           // this condition will never pass without something externally changing
           // should cause is to re-try indefinitely
-          conditionExpression: "attribute_exists(#PK)",
-          conditionExpressionAttributeNames: {
-            "#PK": "_PK",
+          condition: {
+            _PK: { $exists: true },
           },
           errorHandler: () => {
             return RETRY_TRANSACTION;
@@ -1314,9 +1296,8 @@ describe("DFWriteTransaction", () => {
             _PK: `${keyPrefix}USER#not_legacy_user`,
             _SK: "USER#not_legacy_user",
           },
-          conditionExpression: "attribute_not_exists(#PK)",
-          conditionExpressionAttributeNames: {
-            "#PK": "_PK",
+          condition: {
+            _PK: { $exists: false },
           },
         });
 
@@ -1349,9 +1330,8 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USEREMAIL#jye@gmail`,
           _SK: `USEREMAIL#jye@gmail`,
         },
-        conditionExpression: "attribute_not_exists(#PK)",
-        conditionExpressionAttributeNames: {
-          "#PK": "_PK",
+        condition: {
+          _PK: { $exists: false },
         },
       });
 
@@ -1372,9 +1352,8 @@ describe("DFWriteTransaction", () => {
           _PK: `${keyPrefix}USEREMAIL#joe@gmail`,
           _SK: `USEREMAIL#joe@gmail`,
         },
-        conditionExpression: "attribute_not_exists(#PK)",
-        conditionExpressionAttributeNames: {
-          "#PK": "_PK",
+        condition: {
+          _PK: { $exists: false },
         },
       });
 
