@@ -338,6 +338,7 @@ describe("E2E tests", () => {
       })
     ).resolves.toEqual([portal1]);
 
+    // search for items by location
     await expect(
       portalsCollection.retrieveMany({
         index: "byLocation",
@@ -348,6 +349,35 @@ describe("E2E tests", () => {
         },
       })
     ).resolves.toEqual([portal1]);
+
+    // search for items by location, with a filter
+    await expect(
+      portalsCollection.retrieveMany({
+        index: "byLocation",
+        where: {
+          country: "Australia",
+          state: "NSW",
+          postcode: { $betweenIncl: [2000, 2030] },
+        },
+        filter: {
+          name: { $contains: "construct" },
+        },
+      })
+    ).resolves.toEqual([portal1]);
+
+    await expect(
+      portalsCollection.retrieveMany({
+        index: "byLocation",
+        where: {
+          country: "Australia",
+          state: "NSW",
+          postcode: { $betweenIncl: [2000, 2030] },
+        },
+        filter: {
+          name: { $contains: "and sons" },
+        },
+      })
+    ).resolves.toEqual([]);
 
     await expect(
       portalsCollection.retrieveMany({

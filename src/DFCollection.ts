@@ -11,7 +11,7 @@ import {
 import { PartialQueryExpression } from "./types/internalTypes.js";
 import { generateIndexStrings } from "./utils/generateIndexStrings.js";
 import { generateQueryExpression } from "./utils/generateQueryExpression.js";
-import { DFUpdateOperation } from "./types/operations.js";
+import { DFCondition, DFUpdateOperation } from "./types/operations.js";
 import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
 
 export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
@@ -174,16 +174,22 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   // TODO: delete operations
 
   // TODO: pagination
+  // TODO: sort direction
   public async retrieveMany(query: Query<Entity>): Promise<Entity[]> {
     // generate an expression based off the query
     // if this query is against the primary index, that will generate it locally
     // otherwise it will search for an extension to generate this expression for us
     const queryExpression = await this.expressionForQuery(query);
-    const filterExpression = conditionToConditionExpression(query.filter); // filters have the same interface as expressions
+
+    // filters have the same interface as expressions
+    const filterExpression = conditionToConditionExpression(
+      query.filter as DFCondition
+    );
 
     const result = await this.db.client.query({
       TableName: this.db.tableName,
       KeyConditionExpression: queryExpression.keyConditionExpression,
+      FilterExpression: filterExpression.conditionExpression,
       ExpressionAttributeNames: {
         ...queryExpression.expressionAttributeNames,
         ...filterExpression.expressionAttributeNames,

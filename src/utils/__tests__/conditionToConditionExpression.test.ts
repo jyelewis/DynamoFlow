@@ -17,4 +17,20 @@ describe("conditionToConditionExpression", () => {
       },
     });
   });
+
+  it("$contains expression", () => {
+    expect(
+      conditionToConditionExpression({
+        name: { $contains: "and sons" },
+      })
+    ).toEqual({
+      conditionExpression: "(contains(#exp0, :exp0))",
+      expressionAttributeNames: {
+        "#exp0": "name",
+      },
+      expressionAttributeValues: {
+        ":exp0": "and sons",
+      },
+    });
+  });
 });

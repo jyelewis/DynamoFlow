@@ -31,7 +31,7 @@ export interface Query<Entity extends SafeEntity<Entity>> {
       | { $gte: Entity[key] }
       | { $beginsWith: Entity[key] };
   };
-  filter?: Record<keyof Entity, DFConditionValue>;
+  filter?: Partial<Record<keyof Entity, DFConditionValue>>;
   limit?: number;
   consistentRead?: boolean;
   index?: string;
