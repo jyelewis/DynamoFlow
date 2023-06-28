@@ -47,4 +47,6 @@ export type FullTableScan = {
   ) => Promise<void | typeof STOP_SCAN>;
   filter?: Record<string, DFConditionValue>;
   maxBatchSize?: number;
+  segment?: number;
+  totalSegments?: number;
 };

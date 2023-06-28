@@ -1,35 +1,57 @@
 import { generateQueryExpression } from "../generateQueryExpression.js";
 import { Query } from "../../types/types.js";
+import { DFDB } from "../../DFDB.js";
+import { testDbConfig } from "../../testHelpers/testDbConfigs.js";
+import { PartialQueryExpression } from "../../types/internalTypes.js";
 
 describe("generateQueryExpression", () => {
-  it("Generates query expressions for simple eq queries", () => {
+  const db = new DFDB(testDbConfig);
+
+  // both runs this expression against the database
+  // and asserts against the returned object
+  async function testExpression(
+    expression: PartialQueryExpression,
+    shouldEqual: PartialQueryExpression
+  ) {
+    expect(expression).toEqual(shouldEqual);
+
+    // run the expression against the database
+    // to verify it doesn't reject this expression
+    await db.client.query({
+      TableName: db.tableName,
+      KeyConditionExpression: expression.keyConditionExpression,
+
+      ExpressionAttributeNames: expression.expressionAttributeNames,
+      ExpressionAttributeValues: expression.expressionAttributeValues,
+    });
+  }
+
+  it.concurrent("Generates query expressions for simple eq queries", () => {
     const query = {
       where: {
         lastName: "Lewis",
         firstName: "Jye",
       },
     };
-    const queryExpression = generateQueryExpression(
-      "users",
-      ["lastName"],
-      ["firstName"],
-      query
+
+    return testExpression(
+      generateQueryExpression("users", ["lastName"], ["firstName"], query),
+      {
+        keyConditionExpression: "#PK = :pk AND begins_with(#SK, :value)",
+        expressionAttributeNames: {
+          "#PK": "_PK",
+          "#SK": "_SK",
+        },
+        expressionAttributeValues: {
+          ":pk": "users#lewis#",
+          ":value": "users#jye#",
+        },
+        indexName: undefined,
+      }
     );
-    expect(queryExpression).toEqual({
-      keyConditionExpression: "#PK = :pk AND begins_with(#SK, :value)",
-      expressionAttributeNames: {
-        "#PK": "_PK",
-        "#SK": "_SK",
-      },
-      expressionAttributeValues: {
-        ":pk": "users#lewis#",
-        ":value": "users#jye#",
-      },
-      indexName: undefined,
-    });
   });
 
-  it("Multiple eq values", () => {
+  it.concurrent("Multiple eq values", () => {
     const query = {
       where: {
         a: "aa",
@@ -37,35 +59,33 @@ describe("generateQueryExpression", () => {
         c: "cc",
       },
     };
-    const queryExpression = generateQueryExpression(
-      "things",
-      ["a", "b", "c"],
-      undefined,
-      query
+
+    return testExpression(
+      generateQueryExpression("things", ["a", "b", "c"], undefined, query),
+      {
+        keyConditionExpression: "#PK = :pk AND begins_with(#SK, :value)",
+        expressionAttributeNames: {
+          "#PK": "_PK",
+          "#SK": "_SK",
+        },
+        expressionAttributeValues: {
+          ":pk": "things#aa#bb#cc#",
+          ":value": "things#",
+        },
+        indexName: undefined,
+      }
     );
-    expect(queryExpression).toEqual({
-      keyConditionExpression: "#PK = :pk AND begins_with(#SK, :value)",
-      expressionAttributeNames: {
-        "#PK": "_PK",
-        "#SK": "_SK",
-      },
-      expressionAttributeValues: {
-        ":pk": "things#aa#bb#cc#",
-        ":value": "things#",
-      },
-      indexName: undefined,
-    });
   });
 
-  it("$gt", () => {
+  it.concurrent("$gt", () => {
     const query = {
       where: {
         a: "aa",
         b: { $gt: "b" },
       },
     };
-    const queryExpression = generateQueryExpression("things", "a", "b", query);
-    expect(queryExpression).toEqual({
+
+    return testExpression(generateQueryExpression("things", "a", "b", query), {
       keyConditionExpression: "#PK = :pk AND #SK > :value",
       expressionAttributeNames: {
         "#PK": "_PK",
@@ -79,15 +99,15 @@ describe("generateQueryExpression", () => {
     });
   });
 
-  it("$gte", () => {
+  it.concurrent("$gte", () => {
     const query = {
       where: {
         a: "aa",
         b: { $gte: "b" },
       },
     };
-    const queryExpression = generateQueryExpression("things", "a", "b", query);
-    expect(queryExpression).toEqual({
+
+    return testExpression(generateQueryExpression("things", "a", "b", query), {
       keyConditionExpression: "#PK = :pk AND #SK >= :value",
       expressionAttributeNames: {
         "#PK": "_PK",
@@ -101,15 +121,15 @@ describe("generateQueryExpression", () => {
     });
   });
 
-  it("$lt", () => {
+  it.concurrent("$lt", () => {
     const query = {
       where: {
         a: "aa",
         b: { $lt: "b" },
       },
     };
-    const queryExpression = generateQueryExpression("things", "a", "b", query);
-    expect(queryExpression).toEqual({
+
+    return testExpression(generateQueryExpression("things", "a", "b", query), {
       keyConditionExpression: "#PK = :pk AND #SK < :value",
       expressionAttributeNames: {
         "#PK": "_PK",
@@ -123,15 +143,15 @@ describe("generateQueryExpression", () => {
     });
   });
 
-  it("$lte", () => {
+  it.concurrent("$lte", () => {
     const query = {
       where: {
         a: "aa",
         b: { $lte: "b" },
       },
     };
-    const queryExpression = generateQueryExpression("things", "a", "b", query);
-    expect(queryExpression).toEqual({
+
+    return testExpression(generateQueryExpression("things", "a", "b", query), {
       keyConditionExpression: "#PK = :pk AND #SK <= :value",
       expressionAttributeNames: {
         "#PK": "_PK",
@@ -145,15 +165,15 @@ describe("generateQueryExpression", () => {
     });
   });
 
-  it("$betweenIncl", () => {
+  it.concurrent("$betweenIncl", () => {
     const query: Query<any> = {
       where: {
         a: "aa",
         b: { $betweenIncl: ["b", "z"] },
       },
     };
-    const queryExpression = generateQueryExpression("things", "a", "b", query);
-    expect(queryExpression).toEqual({
+
+    return testExpression(generateQueryExpression("things", "a", "b", query), {
       keyConditionExpression: "#PK = :pk AND #SK BETWEEN :gte AND :lte",
       expressionAttributeNames: {
         "#PK": "_PK",
@@ -168,15 +188,15 @@ describe("generateQueryExpression", () => {
     });
   });
 
-  it("$beginsWith", () => {
+  it.concurrent("$beginsWith", () => {
     const query: Query<any> = {
       where: {
         a: "aa",
         b: { $beginsWith: "bb" },
       },
     };
-    const queryExpression = generateQueryExpression("things", "a", "b", query);
-    expect(queryExpression).toEqual({
+
+    return testExpression(generateQueryExpression("things", "a", "b", query), {
       keyConditionExpression: "#PK = :pk AND begins_with(#SK, :value)",
       expressionAttributeNames: {
         "#PK": "_PK",
@@ -190,7 +210,7 @@ describe("generateQueryExpression", () => {
     });
   });
 
-  it("eq + $beginsWith", () => {
+  it.concurrent("eq + $beginsWith", () => {
     const query: Query<any> = {
       where: {
         a: "aa",
@@ -198,27 +218,25 @@ describe("generateQueryExpression", () => {
         c: { $beginsWith: "cc" },
       },
     };
-    const queryExpression = generateQueryExpression(
-      "things",
-      "a",
-      ["b", "c"],
-      query
+
+    return testExpression(
+      generateQueryExpression("things", "a", ["b", "c"], query),
+      {
+        keyConditionExpression: "#PK = :pk AND begins_with(#SK, :value)",
+        expressionAttributeNames: {
+          "#PK": "_PK",
+          "#SK": "_SK",
+        },
+        expressionAttributeValues: {
+          ":pk": "things#aa#",
+          ":value": "things#b#cc",
+        },
+        indexName: undefined,
+      }
     );
-    expect(queryExpression).toEqual({
-      keyConditionExpression: "#PK = :pk AND begins_with(#SK, :value)",
-      expressionAttributeNames: {
-        "#PK": "_PK",
-        "#SK": "_SK",
-      },
-      expressionAttributeValues: {
-        ":pk": "things#aa#",
-        ":value": "things#b#cc",
-      },
-      indexName: undefined,
-    });
   });
 
-  it("A filtering on the full key value", () => {
+  it.concurrent("A filtering on the full key value", () => {
     const query: Query<any> = {
       where: {
         a: "a",
@@ -226,24 +244,22 @@ describe("generateQueryExpression", () => {
         c: "c",
       },
     };
-    const queryExpression = generateQueryExpression(
-      "things",
-      "a",
-      ["b", "c"],
-      query
+
+    return testExpression(
+      generateQueryExpression("things", "a", ["b", "c"], query),
+      {
+        keyConditionExpression: "#PK = :pk AND begins_with(#SK, :value)",
+        expressionAttributeNames: {
+          "#PK": "_PK",
+          "#SK": "_SK",
+        },
+        expressionAttributeValues: {
+          ":pk": "things#a#",
+          ":value": "things#b#c#",
+        },
+        indexName: undefined,
+      }
     );
-    expect(queryExpression).toEqual({
-      keyConditionExpression: "#PK = :pk AND begins_with(#SK, :value)",
-      expressionAttributeNames: {
-        "#PK": "_PK",
-        "#SK": "_SK",
-      },
-      expressionAttributeValues: {
-        ":pk": "things#a#",
-        ":value": "things#b#c#",
-      },
-      indexName: undefined,
-    });
   });
 
   it("Throws if any partition key values are missing", () => {

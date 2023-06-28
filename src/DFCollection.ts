@@ -18,6 +18,7 @@ export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
   name: string;
   partitionKey: (string & keyof Entity) | Array<string & keyof Entity>;
   sortKey?: (string & keyof Entity) | Array<string & keyof Entity>;
+  // TODO: can this be optional?
   extensions: DFBaseExtension<Entity>[];
 }
 

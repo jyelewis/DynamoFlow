@@ -39,7 +39,7 @@ export function conditionToConditionExpression(
         return;
       }
       if ("$exists" in conditionValue) {
-        if (conditionValue["$exists"]) {
+        if (conditionValue["$exists"] === true) {
           expressionParts.push(`attribute_exists(#exp${index})`);
         } else {
           expressionParts.push(`attribute_not_exists(#exp${index})`);
@@ -72,24 +72,24 @@ export function conditionToConditionExpression(
         return;
       }
       if ("$betweenIncl" in conditionValue) {
-        expressionAttributeValues[`:exp${index}-lte`] =
+        expressionAttributeValues[`:exp${index}_gte`] =
           conditionValue.$betweenIncl[0];
-        expressionAttributeValues[`:exp${index}-gte`] =
+        expressionAttributeValues[`:exp${index}_lte`] =
           conditionValue.$betweenIncl[1];
         expressionParts.push(
-          `#exp${index} BETWEEN :exp${index}-lte AND :exp${index}-gte`
+          `#exp${index} BETWEEN :exp${index}_gte AND :exp${index}_lte`
         );
         return;
       }
       if ("$in" in conditionValue) {
         const inValues = conditionValue.$in;
         const expressionItems: string[] = [];
-        inValues.forEach((inValue, index) => {
-          expressionAttributeValues[`:exp${index}-${index}`] = inValue;
-          expressionItems.push(`:exp${index}-${index}`);
+        inValues.forEach((inValue, inValueIndex) => {
+          expressionAttributeValues[`:exp${index}_${inValueIndex}`] = inValue;
+          expressionItems.push(`:exp${index}_${inValueIndex}`);
         });
 
-        expressionParts.push(`#exp${index} IN ${expressionItems.join(",")}`);
+        expressionParts.push(`#exp${index} IN (${expressionItems.join(",")})`);
         return;
       }
       if ("$contains" in conditionValue) {

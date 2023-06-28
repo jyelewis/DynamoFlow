@@ -92,6 +92,9 @@ export class DFDB {
         FilterExpression: conditionExpression,
         ExpressionAttributeNames: expressionAttributeNames,
         ExpressionAttributeValues: expressionAttributeValues,
+        Segment: scanParams.segment,
+        TotalSegments: scanParams.totalSegments,
+        ReturnConsumedCapacity: "TOTAL",
       });
       lastEvaluatedKey = scanRes.LastEvaluatedKey;
       if (lastEvaluatedKey === undefined) {
