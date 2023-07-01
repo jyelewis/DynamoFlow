@@ -27,6 +27,7 @@ export abstract class DFBaseExtension<Entity extends SafeEntity<Entity>> {
     this._collection = collection;
   }
 
+  // TODO: can we make these not async anymore?
   public onInsert(
     entity: EntityWithMetadata,
     transaction: DFWriteTransaction

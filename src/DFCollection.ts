@@ -27,10 +27,15 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     public readonly db: DFDB,
     public readonly config: DFCollectionConfig<Entity>
   ) {
+    if (this.config.name in this.db.collections) {
+      // TODO: test me
+      throw new Error(
+        `Collection '${this.config.name}' already exists in this DB`
+      );
+    }
+
     // init extensions
     config.extensions.forEach((extension) => extension.init(this));
-
-    // TODO: validate this DB doesn't have any collections wth a conflicting name
   }
 
   // TODO: do these need to be async anymore?
