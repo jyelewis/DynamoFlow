@@ -584,6 +584,25 @@ describe("DFWriteTransaction", () => {
       });
       expect(preTestGet.Item).toBeUndefined();
 
+      // create item
+      await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            address: {
+              city: "Faketown",
+              postcode: 5222,
+            },
+          },
+        })
+        .commit();
+
       const transaction = db.createTransaction({
         type: "Update",
         key: {
@@ -591,12 +610,10 @@ describe("DFWriteTransaction", () => {
           _SK: "USER#user1",
         },
         updateValues: {
-          firstName: "Jye",
-          lastName: "Lewis",
           // replace address
           address: {
-            city: "Faketown",
-            postcode: 5222,
+            city: "Fakevile",
+            postcode: 6543,
           },
         },
       });
@@ -607,8 +624,8 @@ describe("DFWriteTransaction", () => {
         firstName: "Jye",
         lastName: "Lewis",
         address: {
-          city: "Faketown",
-          postcode: 5222,
+          city: "Fakevile",
+          postcode: 6543,
         },
       });
 
@@ -625,8 +642,8 @@ describe("DFWriteTransaction", () => {
         firstName: "Jye",
         lastName: "Lewis",
         address: {
-          city: "Faketown",
-          postcode: 5222,
+          city: "Fakevile",
+          postcode: 6543,
         },
       });
     });
@@ -846,9 +863,8 @@ describe("DFWriteTransaction", () => {
         updateValues: {
           firstName: "Jye",
           lastName: "Lewis",
-          addresses: {
-            $removeItemsFromList: [0, 2],
-          },
+          "addresses[0]": { $remove: true },
+          "addresses[2]": { $remove: true },
         },
       });
       const updatedEntity = await transaction.commit();
@@ -968,12 +984,15 @@ describe("DFWriteTransaction", () => {
         updateValues: {
           firstName: "Jye",
           lastName: "Lewis",
-          favouriteNumbers: {
-            $replaceListItems: {
-              0: 0, // replace 2
-              2: 12, // replace 6
-            },
-          },
+          // legacy API
+          // favouriteNumbers: {
+          //   $replaceListItems: {
+          //     0: 0, // replace 2
+          //     2: 12, // replace 6
+          //   },
+          // },
+          "favouriteNumbers[0]": 0, // replace 2
+          "favouriteNumbers[2]": 12, // replace 6
         },
       });
       const updatedEntity = await transaction.commit();
@@ -1036,11 +1055,7 @@ describe("DFWriteTransaction", () => {
         updateValues: {
           firstName: "Jye",
           lastName: "Lewis",
-          addresses: {
-            $replaceListItems: {
-              1: { street: "Other street 2 modified" },
-            },
-          },
+          "addresses[1].street": "Other street 2 modified",
         },
       });
       const updatedEntity = await transaction.commit();
@@ -1052,7 +1067,7 @@ describe("DFWriteTransaction", () => {
         lastName: "Lewis",
         addresses: [
           { street: "Other street 1", city: "Mo town" },
-          { street: "Other street 2 modified" },
+          { street: "Other street 2 modified", city: "Mo town" },
           { street: "Other street 3", city: "Mo town" },
         ],
       });
@@ -1071,7 +1086,7 @@ describe("DFWriteTransaction", () => {
         lastName: "Lewis",
         addresses: [
           { street: "Other street 1", city: "Mo town" },
-          { street: "Other street 2 modified" },
+          { street: "Other street 2 modified", city: "Mo town" },
           { street: "Other street 3", city: "Mo town" },
         ],
       });
@@ -1152,7 +1167,7 @@ describe("DFWriteTransaction", () => {
             firstName: "Jye",
             lastName: "Lewis",
             favouriteNumbers: {
-              $addToSet: new Set([100, 128, 6]),
+              $addItemsToSet: new Set([100, 128, 6]),
             },
           },
         })
@@ -1213,7 +1228,7 @@ describe("DFWriteTransaction", () => {
             firstName: "Jye",
             lastName: "Lewis",
             favouriteNumbers: {
-              $removeFromSet: new Set([100, 128, 6]),
+              $removeItemsFromSet: new Set([100, 128, 6]),
             },
           },
         })
@@ -1332,6 +1347,249 @@ describe("DFWriteTransaction", () => {
         ],
       });
     });
+  });
+
+  describe("dot notation operations", () => {
+    it.concurrent("Sets value of nested object", async () => {
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      const preTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(preTestGet.Item).toBeUndefined();
+
+      // create item
+      await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            address: {
+              city: "Faketown",
+            },
+          },
+        })
+        .commit();
+
+      const transaction = db.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          lastName: "Lewis",
+          // update city
+          "address.city": "Fakeville",
+          // add postcode
+          "address.postcode": 3241,
+        },
+      });
+      const updatedEntity = await transaction.commit();
+      expect(updatedEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        address: {
+          city: "Fakeville",
+          postcode: 3241,
+        },
+      });
+
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        address: {
+          city: "Fakeville",
+          postcode: 3241,
+        },
+      });
+    });
+
+    it.concurrent("Sets value of nested list entry", async () => {
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      const preTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(preTestGet.Item).toBeUndefined();
+
+      // create item
+      await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            favouriteNumbers: [1, 2, 3],
+          },
+        })
+        .commit();
+
+      const transaction = db.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          lastName: "Lewis",
+          // Update item at index 1
+          "favouriteNumbers[1]": 6,
+        },
+      });
+      const updatedEntity = await transaction.commit();
+      expect(updatedEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        favouriteNumbers: [1, 6, 3],
+      });
+
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        favouriteNumbers: [1, 6, 3],
+      });
+    });
+
+    it.concurrent(
+      "Performs operations on complex object properties",
+      async () => {
+        const db = new DFDB(testDbConfig);
+        const keyPrefix = genTestPrefix();
+
+        const preTestGet = await db.client.get({
+          TableName: db.tableName,
+          Key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+        });
+        expect(preTestGet.Item).toBeUndefined();
+
+        // create item
+        await db
+          .createTransaction({
+            type: "Update",
+            key: {
+              _PK: `${keyPrefix}USER#user1`,
+              _SK: "USER#user1",
+            },
+            updateValues: {
+              firstName: "Jye",
+              lastName: "Lewis",
+              details: {
+                address: {
+                  // @ts-ignore
+                  city: "Faketown",
+                  postcode: 3241,
+                  deliveryDays: new Set(["Monday", "Tuesday"]),
+                  listOfNumbers: [1, 2, 3],
+                },
+              },
+            },
+          })
+          .commit();
+
+        const transaction = db.createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            lastName: "Lewis",
+            // update city
+            "details.address.city": "Fakeville",
+            // inc postcode
+            "details.address.postcode": { $inc: 5 },
+            "details.address.listOfNumbers[1]": { $inc: 5 },
+            "details.address.deliveryDays": {
+              $addItemsToSet: new Set(["Thursday"]),
+            },
+          },
+        });
+        const updatedEntity = await transaction.commit();
+        expect(updatedEntity).toEqual({
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+          firstName: "Jye",
+          lastName: "Lewis",
+          details: {
+            address: {
+              // @ts-ignore
+              city: "Fakeville",
+              postcode: 3246,
+              deliveryDays: new Set(["Monday", "Tuesday", "Thursday"]),
+              listOfNumbers: [1, 7, 3],
+            },
+          },
+        });
+
+        const postTestGet = await db.client.get({
+          TableName: db.tableName,
+          Key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+        });
+        expect(postTestGet.Item).toEqual({
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+          firstName: "Jye",
+          lastName: "Lewis",
+          details: {
+            address: {
+              // @ts-ignore
+              city: "Fakeville",
+              postcode: 3246,
+              deliveryDays: new Set(["Monday", "Tuesday", "Thursday"]),
+              listOfNumbers: [1, 7, 3],
+            },
+          },
+        });
+      }
+    );
   });
 
   describe("Basic multiple operations", () => {

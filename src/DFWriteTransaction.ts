@@ -323,8 +323,36 @@ export class DFWriteTransaction {
       REMOVE: [],
       DELETE: [],
     };
-    Object.keys(op.updateValues).forEach((key, index) => {
-      expressionAttributeNames[`#update_key${index}`] = key;
+    let index = 0;
+    Object.keys(op.updateValues).forEach((key) => {
+      // process keys into a format we can use in the expression
+      // this is mostly for dot or array notation for updating sub items
+      const keyAttributeParts: string[] = [];
+      key.split(/[\.\[]/g).forEach((subKey) => {
+        if (subKey.endsWith("]")) {
+          if (keyAttributeParts.length === 0) {
+            throw new Error("Invalid key, cannot start index lookup");
+          }
+
+          // index notation [1] - extract integer
+          const indexValue = parseInt(subKey.replace("]", ""), 10);
+
+          // cheaper to inline the index value into the expression string
+          keyAttributeParts.push(`[${indexValue}]`);
+          return;
+        }
+
+        // object property notation
+        keyAttributeParts.push(`.#update_key${index}`);
+        expressionAttributeNames[`#update_key${index}`] = subKey;
+        index++;
+      });
+
+      // may be a complex string for nested objects
+      // i.e "#update_key_0.#update_key_1[4].#update_key_2"
+      // all names have already been populated in expressionAttributeNames
+      // need to chop the '.' at the start from the first attribute name
+      const keyAttributeStr = keyAttributeParts.join("").substring(1);
 
       const updateValue = op.updateValues[key];
 
@@ -333,7 +361,7 @@ export class DFWriteTransaction {
         expressionAttributeValues[`:update_value${index}`] =
           op.updateValues[key];
 
-        operations.SET.push(`#update_key${index}=:update_value${index}`);
+        operations.SET.push(`${keyAttributeStr}=:update_value${index}`);
         return;
       }
 
@@ -344,7 +372,7 @@ export class DFWriteTransaction {
         expressionAttributeValues[`:zero`] = 0;
 
         operations.SET.push(
-          `#update_key${index}=if_not_exists(#update_key${index}, :zero) + :update_value${index}`
+          `${keyAttributeStr}=if_not_exists(${keyAttributeStr}, :zero) + :update_value${index}`
         );
 
         return;
@@ -356,7 +384,7 @@ export class DFWriteTransaction {
           updateValue["$setIfNotExists"];
 
         operations.SET.push(
-          `#update_key${index}=if_not_exists(#update_key${index}, :update_value${index})`
+          `${keyAttributeStr}=if_not_exists(${keyAttributeStr}, :update_value${index})`
         );
 
         return;
@@ -364,27 +392,27 @@ export class DFWriteTransaction {
 
       if ("$remove" in updateValue) {
         // "REMOVE #age"
-        operations.REMOVE.push(`#update_key${index}`);
+        operations.REMOVE.push(`${keyAttributeStr}`);
 
         return;
       }
 
-      if ("$addToSet" in updateValue) {
+      if ("$addItemsToSet" in updateValue) {
         // "ADD #set :new_value"
         expressionAttributeValues[`:update_value${index}`] =
-          updateValue["$addToSet"];
+          updateValue["$addItemsToSet"];
 
-        operations.ADD.push(`#update_key${index} :update_value${index}`);
+        operations.ADD.push(`${keyAttributeStr} :update_value${index}`);
 
         return;
       }
 
-      if ("$removeFromSet" in updateValue) {
+      if ("$removeItemsFromSet" in updateValue) {
         // "DELETE #set :value"
         expressionAttributeValues[`:update_value${index}`] =
-          updateValue["$removeFromSet"];
+          updateValue["$removeItemsFromSet"];
 
-        operations.DELETE.push(`#update_key${index} :update_value${index}`);
+        operations.DELETE.push(`${keyAttributeStr} :update_value${index}`);
 
         return;
       }
@@ -395,31 +423,8 @@ export class DFWriteTransaction {
           updateValue["$appendItemsToList"];
 
         operations.SET.push(
-          `#update_key${index}=list_append(#update_key${index}, :update_value${index})`
+          `${keyAttributeStr}=list_append(${keyAttributeStr}, :update_value${index})`
         );
-
-        return;
-      }
-
-      if ("$removeItemsFromList" in updateValue) {
-        // "REMOVE #list[0], #list[1]"
-        for (const indexToRemove of updateValue.$removeItemsFromList) {
-          operations.REMOVE.push(`#update_key${index}[${indexToRemove}]`);
-        }
-
-        return;
-      }
-
-      if ("$replaceListItems" in updateValue) {
-        // "SET #list[0] = :new_value0, #list[1] = :new_value1"
-        for (const indexToReplace in updateValue.$replaceListItems) {
-          expressionAttributeValues[`:update_value${index}_${indexToReplace}`] =
-            updateValue.$replaceListItems[indexToReplace];
-
-          operations.SET.push(
-            `#update_key${index}[${indexToReplace}] = :update_value${index}_${indexToReplace}`
-          );
-        }
 
         return;
       }
@@ -442,6 +447,7 @@ export class DFWriteTransaction {
     if (operations.DELETE.length > 0) {
       updateExpressions.push(`DELETE ${operations.DELETE.join(", ")}`);
     }
+    // console.log("updateExpressions", updateExpressions);
     const fullUpdateExpression = updateExpressions.join(" ");
 
     const {

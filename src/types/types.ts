@@ -27,17 +27,10 @@ export type UpdateValue =
   | { $remove: true }
   | { $setIfNotExists: DynamoValue }
   // TODO: make sure GSIs handle this gracefully
-  | { $addToSet: string[] | number[] }
-  | { $removeFromSet: string[] | number[] }
+  | { $addItemsToSet: Set<string> | Set<number> }
+  | { $removeItemsFromSet: Set<string> | Set<number> }
   | {
       $appendItemsToList: Array<
-        Record<string, SimpleDynamoValue> | SimpleDynamoValue
-      >;
-    }
-  | { $removeItemsFromList: number[] } // indexes to remove
-  | {
-      $replaceListItems: Record<
-        number,
         Record<string, SimpleDynamoValue> | SimpleDynamoValue
       >;
     };
