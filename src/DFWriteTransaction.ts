@@ -15,6 +15,7 @@ import {
 } from "./types/operations.js";
 import assert from "assert";
 import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
+import { isDynamoValue } from "./utils/isDynamoValue.js";
 
 const MAX_TRANSACTION_RETRIES = 5;
 
@@ -305,66 +306,141 @@ export class DFWriteTransaction {
     });
   }
 
+  // TODO: should this become a util function and be tested like the others (check expected output + execute)
   private updateExpressionToParams(op: DFUpdateOperation): UpdateCommandInput {
     const expressionAttributeNames: Record<string, any> = {};
     const expressionAttributeValues: Record<string, any> = {};
 
-    // TODO: keys need to be smarter if we're allowing nested updates on objects (maybe recurse?)
-
     // generate an update expression & add the values to the expressionAttributes
-    const operations: { SET: string[]; REMOVE: string[] } = {
+    const operations: {
+      SET: string[];
+      ADD: string[];
+      REMOVE: string[];
+      DELETE: string[];
+    } = {
       SET: [],
+      ADD: [],
       REMOVE: [],
+      DELETE: [],
     };
     Object.keys(op.updateValues).forEach((key, index) => {
       expressionAttributeNames[`#update_key${index}`] = key;
 
       const updateValue = op.updateValues[key];
-      if (typeof updateValue === "object" && updateValue !== null) {
-        if ("$inc" in updateValue) {
-          // "SET #age = if_not_exists(#age, :zero) + :inc"
-          expressionAttributeValues[`:update_value${index}`] =
-            updateValue["$inc"];
-          expressionAttributeValues[`:zero`] = 0;
 
-          operations.SET.push(
-            `#update_key${index}=if_not_exists(#update_key${index}, :zero) + :update_value${index}`
-          );
-          return;
-        }
+      // literal value update
+      if (isDynamoValue(updateValue)) {
+        expressionAttributeValues[`:update_value${index}`] =
+          op.updateValues[key];
 
-        // TODO: test me
-        if ("$setIfNotExists" in updateValue) {
-          // "SET #name = if_not_exists(#name, :new_value)"
-          expressionAttributeValues[`:update_value${index}`] =
-            updateValue["$setIfNotExists"];
-
-          operations.SET.push(
-            `#update_key${index}=if_not_exists(#update_key${index}, :update_value${index})`
-          );
-          return;
-        }
-
-        if ("$remove" in updateValue) {
-          // "REMOVE #age"
-          operations.REMOVE.push(`#update_key${index}`);
-          return;
-        }
-
-        // TODO: should probs throw here if we couldn't make sense of the set obj
+        operations.SET.push(`#update_key${index}=:update_value${index}`);
+        return;
       }
 
-      expressionAttributeValues[`:update_value${index}`] = op.updateValues[key];
+      if ("$inc" in updateValue) {
+        // "SET #age = if_not_exists(#age, :zero) + :inc"
+        expressionAttributeValues[`:update_value${index}`] =
+          updateValue["$inc"];
+        expressionAttributeValues[`:zero`] = 0;
 
-      operations.SET.push(`#update_key${index}=:update_value${index}`);
+        operations.SET.push(
+          `#update_key${index}=if_not_exists(#update_key${index}, :zero) + :update_value${index}`
+        );
+
+        return;
+      }
+
+      if ("$setIfNotExists" in updateValue) {
+        // "SET #name = if_not_exists(#name, :new_value)"
+        expressionAttributeValues[`:update_value${index}`] =
+          updateValue["$setIfNotExists"];
+
+        operations.SET.push(
+          `#update_key${index}=if_not_exists(#update_key${index}, :update_value${index})`
+        );
+
+        return;
+      }
+
+      if ("$remove" in updateValue) {
+        // "REMOVE #age"
+        operations.REMOVE.push(`#update_key${index}`);
+
+        return;
+      }
+
+      if ("$addToSet" in updateValue) {
+        // "ADD #set :new_value"
+        expressionAttributeValues[`:update_value${index}`] =
+          updateValue["$addToSet"];
+
+        operations.ADD.push(`#update_key${index} :update_value${index}`);
+
+        return;
+      }
+
+      if ("$removeFromSet" in updateValue) {
+        // "DELETE #set :value"
+        expressionAttributeValues[`:update_value${index}`] =
+          updateValue["$removeFromSet"];
+
+        operations.DELETE.push(`#update_key${index} :update_value${index}`);
+
+        return;
+      }
+
+      if ("$appendItemsToList" in updateValue) {
+        // "SET #list = list_append(#list, :new_items)"
+        expressionAttributeValues[`:update_value${index}`] =
+          updateValue["$appendItemsToList"];
+
+        operations.SET.push(
+          `#update_key${index}=list_append(#update_key${index}, :update_value${index})`
+        );
+
+        return;
+      }
+
+      if ("$removeItemsFromList" in updateValue) {
+        // "REMOVE #list[0], #list[1]"
+        for (const indexToRemove of updateValue.$removeItemsFromList) {
+          operations.REMOVE.push(`#update_key${index}[${indexToRemove}]`);
+        }
+
+        return;
+      }
+
+      if ("$replaceListItems" in updateValue) {
+        // "SET #list[0] = :new_value0, #list[1] = :new_value1"
+        for (const indexToReplace in updateValue.$replaceListItems) {
+          expressionAttributeValues[`:update_value${index}_${indexToReplace}`] =
+            updateValue.$replaceListItems[indexToReplace];
+
+          operations.SET.push(
+            `#update_key${index}[${indexToReplace}] = :update_value${index}_${indexToReplace}`
+          );
+        }
+
+        return;
+      }
+
+      throw new Error(
+        `Invalid update operation: ${JSON.stringify(updateValue)}`
+      );
     });
 
     const updateExpressions = [];
     if (operations.SET.length > 0) {
       updateExpressions.push(`SET ${operations.SET.join(", ")}`);
     }
+    if (operations.ADD.length > 0) {
+      updateExpressions.push(`ADD ${operations.ADD.join(", ")}`);
+    }
     if (operations.REMOVE.length > 0) {
       updateExpressions.push(`REMOVE ${operations.REMOVE.join(", ")}`);
+    }
+    if (operations.DELETE.length > 0) {
+      updateExpressions.push(`DELETE ${operations.DELETE.join(", ")}`);
     }
     const fullUpdateExpression = updateExpressions.join(" ");
 

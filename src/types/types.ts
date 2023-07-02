@@ -1,4 +1,3 @@
-// TODO: support set & dict operations
 import { DFCollection } from "../DFCollection.js";
 import { DFConditionValue } from "./operations.js";
 
@@ -16,21 +15,32 @@ export type DynamoValue =
   | boolean
   | null // literal or set
   | SimpleDynamoValue[] // list
-  // TODO: start with support for these
   | Record<string, SimpleDynamoValue> // dict
-  | Record<string, SimpleDynamoValue>[]; // list of dicts
+  | Record<string, SimpleDynamoValue>[] // list of dicts
+  | Set<string>
+  | Set<number>;
 
 export type DynamoItem = Record<string, DynamoValue>;
 export type UpdateValue =
   | DynamoValue
   | { $inc: number }
   | { $remove: true }
-  | { $setIfNotExists: DynamoValue };
-// TODO: implement me (don't forget GSIs!)
-// | { $addToSet: string[] | number[] }
-// | { $removeFromSet: string[] | number[] }
-// | { $addToList: SimpleDynamoValue[] }
-// | { $removeFromList: number[] }; // indexes to remove
+  | { $setIfNotExists: DynamoValue }
+  // TODO: make sure GSIs handle this gracefully
+  | { $addToSet: string[] | number[] }
+  | { $removeFromSet: string[] | number[] }
+  | {
+      $appendItemsToList: Array<
+        Record<string, SimpleDynamoValue> | SimpleDynamoValue
+      >;
+    }
+  | { $removeItemsFromList: number[] } // indexes to remove
+  | {
+      $replaceListItems: Record<
+        number,
+        Record<string, SimpleDynamoValue> | SimpleDynamoValue
+      >;
+    };
 
 export const RETRY_TRANSACTION = Symbol("RETRY_TRANSACTION");
 export const STOP_SCAN = Symbol("STOP_SCAN");

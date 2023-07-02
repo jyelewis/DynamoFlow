@@ -112,6 +112,115 @@ describe("DFWriteTransaction", () => {
     );
 
     it.concurrent(
+      "Executes single write transaction (with $setIfNotExists operation - doesn't exist)",
+      async () => {
+        const db = new DFDB(testDbConfig);
+        const keyPrefix = genTestPrefix();
+
+        await db.client.put({
+          TableName: db.tableName,
+          Item: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+            firstName: "Jye",
+            lastName: "Lewis",
+          },
+        });
+
+        const transaction = db.createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye 2",
+            lastName: "Lewis 2",
+            age: { $setIfNotExists: 11 },
+          },
+        });
+        const updatedEntity = await transaction.commit();
+        expect(updatedEntity).toEqual({
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+          firstName: "Jye 2",
+          lastName: "Lewis 2",
+          age: 11,
+        });
+
+        const postTestGet = await db.client.get({
+          TableName: db.tableName,
+          Key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+        });
+        expect(postTestGet.Item).toEqual({
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+          firstName: "Jye 2",
+          lastName: "Lewis 2",
+          age: 11,
+        });
+      }
+    );
+
+    it.concurrent(
+      "Executes single write transaction (with $setIfNotExists operation - already exists)",
+      async () => {
+        const db = new DFDB(testDbConfig);
+        const keyPrefix = genTestPrefix();
+
+        await db.client.put({
+          TableName: db.tableName,
+          Item: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+            firstName: "Jye",
+            lastName: "Lewis",
+            age: 10,
+          },
+        });
+
+        const transaction = db.createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye 2",
+            lastName: "Lewis 2",
+            age: { $setIfNotExists: 11 },
+          },
+        });
+        const updatedEntity = await transaction.commit();
+        expect(updatedEntity).toEqual({
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+          firstName: "Jye 2",
+          lastName: "Lewis 2",
+          age: 10, // shouldn't update, already exists
+        });
+
+        const postTestGet = await db.client.get({
+          TableName: db.tableName,
+          Key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+        });
+        expect(postTestGet.Item).toEqual({
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+          firstName: "Jye 2",
+          lastName: "Lewis 2",
+          age: 10,
+        });
+      }
+    );
+
+    it.concurrent(
       "Executes single write transaction (with $inc + $remove operation)",
       async () => {
         const db = new DFDB(testDbConfig);
@@ -484,9 +593,10 @@ describe("DFWriteTransaction", () => {
         updateValues: {
           firstName: "Jye",
           lastName: "Lewis",
+          // replace address
           address: {
-            city: "Faketown", // update existing property
-            postcode: 5222, // add new property
+            city: "Faketown",
+            postcode: 5222,
           },
         },
       });
@@ -497,30 +607,641 @@ describe("DFWriteTransaction", () => {
         firstName: "Jye",
         lastName: "Lewis",
         address: {
-          street: "123 Fake St",
+          city: "Faketown",
+          postcode: 5222,
+        },
+      });
+
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        address: {
           city: "Faketown",
           postcode: 5222,
         },
       });
     });
 
-    it.todo("Applies smart updates to object properties"); // $inc, $delete
+    it.concurrent("Stores list", async () => {
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
 
-    it.todo("Stores list");
+      const transaction = db.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          firstName: "Jye",
+          lastName: "Lewis",
+          addresses: [{ street: "123 Fake St", city: "Fakeville" }],
+        },
+      });
+      const updatedEntity = await transaction.commit();
+      expect(updatedEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        addresses: [{ street: "123 Fake St", city: "Fakeville" }],
+      });
 
-    it.todo("Appends to list");
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        addresses: [{ street: "123 Fake St", city: "Fakeville" }],
+      });
+    });
 
-    it.todo("Deletes from list");
+    it.concurrent("Replaces list", async () => {
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
 
-    it.todo("Stores list of objects");
+      // create document with list
+      await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            addresses: [{ street: "123 Fake St", city: "Fakeville" }],
+          },
+        })
+        .commit();
 
-    it.todo("Updates object property within list");
+      // replace list
+      const transaction = db.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          firstName: "Jye",
+          lastName: "Lewis",
+          addresses: [
+            { street: "Other street 1", city: "Mo town" },
+            { street: "Other street 2", city: "Mo town" },
+          ],
+        },
+      });
+      const updatedEntity = await transaction.commit();
 
-    it.todo("Stores set");
+      expect(updatedEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        addresses: [
+          { street: "Other street 1", city: "Mo town" },
+          { street: "Other street 2", city: "Mo town" },
+        ],
+      });
 
-    it.todo("Adds to set (exists and not exists)");
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        addresses: [
+          { street: "Other street 1", city: "Mo town" },
+          { street: "Other street 2", city: "Mo town" },
+        ],
+      });
+    });
 
-    it.todo("Removes from set (exists and not exists)");
+    it.concurrent("Appends to list", async () => {
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      // create document with list
+      await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            addresses: [{ street: "123 Fake St", city: "Fakeville" }],
+          },
+        })
+        .commit();
+
+      // replace list
+      const transaction = db.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          firstName: "Jye",
+          lastName: "Lewis",
+          addresses: {
+            $appendItemsToList: [
+              { street: "Other street 1", city: "Mo town" },
+              { street: "Other street 2", city: "Mo town" },
+            ],
+          },
+        },
+      });
+      const updatedEntity = await transaction.commit();
+
+      expect(updatedEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        addresses: [
+          { street: "123 Fake St", city: "Fakeville" },
+          { street: "Other street 1", city: "Mo town" },
+          { street: "Other street 2", city: "Mo town" },
+        ],
+      });
+
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        addresses: [
+          { street: "123 Fake St", city: "Fakeville" },
+          { street: "Other street 1", city: "Mo town" },
+          { street: "Other street 2", city: "Mo town" },
+        ],
+      });
+    });
+
+    it.concurrent("Deletes from list", async () => {
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      // create document with list
+      await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            addresses: [
+              { street: "Other street 1", city: "Mo town" },
+              { street: "Other street 2", city: "Mo town" },
+              { street: "Other street 3", city: "Mo town" },
+            ],
+          },
+        })
+        .commit();
+
+      // replace list
+      const transaction = db.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          firstName: "Jye",
+          lastName: "Lewis",
+          addresses: {
+            $removeItemsFromList: [0, 2],
+          },
+        },
+      });
+      const updatedEntity = await transaction.commit();
+
+      expect(updatedEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        addresses: [{ street: "Other street 2", city: "Mo town" }],
+      });
+
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        addresses: [{ street: "Other street 2", city: "Mo town" }],
+      });
+    });
+
+    it.concurrent("Creates & modifies lists literals", async () => {
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      // create document with list
+      await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            favouriteNumbers: [2, 4, 6, 8, 28],
+          },
+        })
+        .commit();
+
+      // replace list
+      const transaction = db.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          firstName: "Jye",
+          lastName: "Lewis",
+          favouriteNumbers: {
+            $appendItemsToList: [23, 100],
+          },
+        },
+      });
+      const updatedEntity = await transaction.commit();
+
+      expect(updatedEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        favouriteNumbers: [2, 4, 6, 8, 28, 23, 100],
+      });
+
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        favouriteNumbers: [2, 4, 6, 8, 28, 23, 100],
+      });
+    });
+
+    it.concurrent("Updates literal within list", async () => {
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      // create document with list
+      await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            favouriteNumbers: [2, 4, 6, 8, 28],
+          },
+        })
+        .commit();
+
+      // replace list
+      const transaction = db.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          firstName: "Jye",
+          lastName: "Lewis",
+          favouriteNumbers: {
+            $replaceListItems: {
+              0: 0, // replace 2
+              2: 12, // replace 6
+            },
+          },
+        },
+      });
+      const updatedEntity = await transaction.commit();
+
+      expect(updatedEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        favouriteNumbers: [0, 4, 12, 8, 28],
+      });
+
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        favouriteNumbers: [0, 4, 12, 8, 28],
+      });
+    });
+
+    it.concurrent("Updates object within list", async () => {
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      // create document with list
+      await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            addresses: [
+              { street: "Other street 1", city: "Mo town" },
+              { street: "Other street 2", city: "Mo town" },
+              { street: "Other street 3", city: "Mo town" },
+            ],
+          },
+        })
+        .commit();
+
+      // replace list
+      const transaction = db.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          firstName: "Jye",
+          lastName: "Lewis",
+          addresses: {
+            $replaceListItems: {
+              1: { street: "Other street 2 modified" },
+            },
+          },
+        },
+      });
+      const updatedEntity = await transaction.commit();
+
+      expect(updatedEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        addresses: [
+          { street: "Other street 1", city: "Mo town" },
+          { street: "Other street 2 modified" },
+          { street: "Other street 3", city: "Mo town" },
+        ],
+      });
+
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        addresses: [
+          { street: "Other street 1", city: "Mo town" },
+          { street: "Other street 2 modified" },
+          { street: "Other street 3", city: "Mo town" },
+        ],
+      });
+    });
+
+    it.concurrent("Stores set", async () => {
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      // create document with set
+      const createdEntity = await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            favouriteNumbers: new Set([2, 4, 6, 8, 28]),
+          },
+        })
+        .commit();
+
+      expect(createdEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        favouriteNumbers: new Set([2, 4, 6, 8, 28]),
+      });
+
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        favouriteNumbers: new Set([2, 4, 6, 8, 28]),
+      });
+    });
+
+    it.concurrent("Adds to set (exists and not exists)", async () => {
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      // create document with set
+      await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            favouriteNumbers: new Set([2, 4, 6, 8, 28]),
+          },
+        })
+        .commit();
+
+      const createdEntity = await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            favouriteNumbers: {
+              $addToSet: new Set([100, 128, 6]),
+            },
+          },
+        })
+        .commit();
+
+      expect(createdEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        favouriteNumbers: new Set([2, 4, 6, 8, 28, 100, 128]),
+      });
+
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        favouriteNumbers: new Set([2, 4, 6, 8, 28, 100, 128]),
+      });
+    });
+
+    it.concurrent("Removes from set (exists and not exists)", async () => {
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      // create document with set
+      await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            favouriteNumbers: new Set([2, 4, 6, 8, 28]),
+          },
+        })
+        .commit();
+
+      const createdEntity = await db
+        .createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+            favouriteNumbers: {
+              $removeFromSet: new Set([100, 128, 6]),
+            },
+          },
+        })
+        .commit();
+
+      expect(createdEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        favouriteNumbers: new Set([2, 4, 8, 28]),
+      });
+
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        favouriteNumbers: new Set([2, 4, 8, 28]),
+      });
+    });
   });
 
   describe("Basic multiple operations", () => {
