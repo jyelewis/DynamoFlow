@@ -1242,6 +1242,96 @@ describe("DFWriteTransaction", () => {
         favouriteNumbers: new Set([2, 4, 8, 28]),
       });
     });
+
+    it.concurrent("Stores list with complex properties", async () => {
+      // TODO: types prevent this, although the code will handle it
+      const db = new DFDB(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      const transaction = db.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          firstName: "Jye",
+          lastName: "Lewis",
+          addresses: [
+            {
+              street: "123 Fake St",
+              city: "Fakeville",
+              postcode: 1234,
+              deliveryDays: new Set(["MON", "WED", "THURS"]),
+              // @ts-ignore
+              occupantNames: ["Jane Doe", "John Smith"],
+              // @ts-ignore
+              occupantAges: [30, 32],
+              driverRatings: {
+                // @ts-ignore
+                sam: 5,
+                blake: 4.5,
+              },
+            },
+          ],
+        },
+      });
+      const updatedEntity = await transaction.commit();
+      expect(updatedEntity).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        addresses: [
+          {
+            street: "123 Fake St",
+            city: "Fakeville",
+            postcode: 1234,
+            deliveryDays: new Set(["MON", "WED", "THURS"]),
+            // @ts-ignore
+            occupantNames: ["Jane Doe", "John Smith"],
+            // @ts-ignore
+            occupantAges: [30, 32],
+            driverRatings: {
+              // @ts-ignore
+              sam: 5,
+              blake: 4.5,
+            },
+          },
+        ],
+      });
+
+      const postTestGet = await db.client.get({
+        TableName: db.tableName,
+        Key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+      });
+      expect(postTestGet.Item).toEqual({
+        _PK: `${keyPrefix}USER#user1`,
+        _SK: "USER#user1",
+        firstName: "Jye",
+        lastName: "Lewis",
+        addresses: [
+          {
+            street: "123 Fake St",
+            city: "Fakeville",
+            postcode: 1234,
+            deliveryDays: new Set(["MON", "WED", "THURS"]),
+            // @ts-ignore
+            occupantNames: ["Jane Doe", "John Smith"],
+            // @ts-ignore
+            occupantAges: [30, 32],
+            driverRatings: {
+              // @ts-ignore
+              sam: 5,
+              blake: 4.5,
+            },
+          },
+        ],
+      });
+    });
   });
 
   describe("Basic multiple operations", () => {
