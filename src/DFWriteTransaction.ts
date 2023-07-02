@@ -309,6 +309,8 @@ export class DFWriteTransaction {
     const expressionAttributeNames: Record<string, any> = {};
     const expressionAttributeValues: Record<string, any> = {};
 
+    // TODO: keys need to be smarter if we're allowing nested updates on objects (maybe recurse?)
+
     // generate an update expression & add the values to the expressionAttributes
     const operations: { SET: string[]; REMOVE: string[] } = {
       SET: [],
@@ -348,6 +350,8 @@ export class DFWriteTransaction {
           operations.REMOVE.push(`#update_key${index}`);
           return;
         }
+
+        // TODO: should probs throw here if we couldn't make sense of the set obj
       }
 
       expressionAttributeValues[`:update_value${index}`] = op.updateValues[key];

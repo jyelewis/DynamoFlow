@@ -2,6 +2,7 @@ import { Query, SafeEntity } from "../types/types.js";
 import { generateKeyString } from "./generateKeyString.js";
 import { valueToSortableString } from "./valueToSortableString.js";
 import { PartialQueryExpression } from "../types/internalTypes.js";
+import { isDynamoValue } from "./isDynamoValue.js";
 
 export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
   collectionName: string,
@@ -68,7 +69,7 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
     }
 
     // non-literal, query values
-    if (typeof sortValue !== "object") {
+    if (isDynamoValue(sortValue)) {
       throw new Error(
         `Invalid query where filter provided "${sortKey}": ${sortValue}`
       );

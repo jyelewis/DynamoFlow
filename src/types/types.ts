@@ -2,13 +2,35 @@
 import { DFCollection } from "../DFCollection.js";
 import { DFConditionValue } from "./operations.js";
 
-export type DynamoValue = string | number | boolean | null;
+export type SimpleDynamoValue =
+  | string
+  | number
+  | boolean
+  | null
+  | Set<string>
+  | Set<number>;
+
+export type DynamoValue =
+  | string
+  | number
+  | boolean
+  | null // literal or set
+  | SimpleDynamoValue[] // list
+  // TODO: start with support for these
+  | Record<string, SimpleDynamoValue> // dict
+  | Record<string, SimpleDynamoValue>[]; // list of dicts
+
 export type DynamoItem = Record<string, DynamoValue>;
 export type UpdateValue =
   | DynamoValue
   | { $inc: number }
   | { $remove: true }
   | { $setIfNotExists: DynamoValue };
+// TODO: implement me (don't forget GSIs!)
+// | { $addToSet: string[] | number[] }
+// | { $removeFromSet: string[] | number[] }
+// | { $addToList: SimpleDynamoValue[] }
+// | { $removeFromList: number[] }; // indexes to remove
 
 export const RETRY_TRANSACTION = Symbol("RETRY_TRANSACTION");
 export const STOP_SCAN = Symbol("STOP_SCAN");

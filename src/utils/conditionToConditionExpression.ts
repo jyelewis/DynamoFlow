@@ -3,6 +3,7 @@ import {
   DFCondition,
 } from "../types/operations.js";
 import { DynamoValue } from "../types/types.js";
+import { isDynamoValue } from "./isDynamoValue.js";
 
 // TODO: test me (+ query, insert, update, scan)
 // converts our DFCondition interface to Dynamo conditions
@@ -27,7 +28,7 @@ export function conditionToConditionExpression(
     expressionAttributeNames[`#exp${index}`] = key;
     // process special ($blah) values first
 
-    if (typeof conditionValue === "object" && conditionValue !== null) {
+    if (!isDynamoValue(conditionValue)) {
       if ("$eq" in conditionValue) {
         expressionAttributeValues[`:exp${index}`] = conditionValue.$eq;
         expressionParts.push(`#exp${index} = :exp${index}`);
