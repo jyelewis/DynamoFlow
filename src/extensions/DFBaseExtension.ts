@@ -50,7 +50,14 @@ export abstract class DFBaseExtension<Entity extends SafeEntity<Entity>> {
     return undefined;
   }
 
-  public postRetrieve(
-    entity: Partial<EntityWithMetadata>
+  public entityRequiresMigration(entity: EntityWithMetadata): boolean {
+    return false;
+  }
+
+  public migrateEntity(
+    entity: EntityWithMetadata,
+    transaction: DFWriteTransaction
   ): void | Promise<void> {}
+
+  public postRetrieve(entity: EntityWithMetadata): void | Promise<void> {}
 }

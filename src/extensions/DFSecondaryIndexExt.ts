@@ -12,6 +12,7 @@ import { PartialQueryExpression } from "../types/internalTypes.js";
 import { generateQueryExpression } from "../utils/generateQueryExpression.js";
 import { DFCollection } from "../DFCollection.js";
 import { DFUpdateOperation } from "../types/operations.js";
+import { isDynamoValue } from "../utils/isDynamoValue.js";
 
 interface DFSecondaryIndexExtConfig<Entity extends SafeEntity<Entity>> {
   indexName: string;
@@ -100,6 +101,21 @@ export class DFSecondaryIndexExt<
       ...entityUpdate,
     } as EntityWithMetadata;
 
+    [...this.pkKeys, ...this.skKeys, ...this.includeInIndexKeys].forEach(
+      (key) => {
+        if (
+          key in entityWithSomeProperties &&
+          !isDynamoValue(entityWithSomeProperties[key])
+        ) {
+          // we could support this if needed
+          // we'd just need to implement emulateDDBUpdate() ourselves, with all possible updates
+          throw new Error(
+            `Secondary index key '${key}' cannot accept dynamic updates`
+          );
+        }
+      }
+    );
+
     // janky API, but this allows us to append a condition expression to the update
     // validating no one has written to the entity since we read it
     // if they have, our transaction will be rejected and we can re-try
@@ -109,6 +125,7 @@ export class DFSecondaryIndexExt<
     // boolean: 'key' has changed, and therefore requires we update the GSI
     // specifically, we check the entityUpdate - not the key, they key never changes
     const requiredValueChanged = (key: string) => key in entityUpdate;
+
     const mustUpdateGSI =
       this.pkKeys.some(requiredValueChanged) ||
       this.skKeys.some(requiredValueChanged) ||
@@ -137,23 +154,17 @@ export class DFSecondaryIndexExt<
     transaction.addPreCommitHandler(async () => {
       // on re-try this will always be true
       if (mustPreFetchEntity) {
-        // TODO: all of this could be provided by the DB and include auto batching / request deduping
-        const existingItemResponse = await this.collection.db.client.get({
-          TableName: this.collection.db.tableName,
-          Key: key,
-        });
-        if (!existingItemResponse.Item) {
+        // TODO: auto batching / request deduping
+        // TODO: we need the raw metadata which is being stripped here..
+        const existingItem = (await this.collection.retrieveOne({
+          where: key,
+          returnRaw: true,
+        })) as EntityWithMetadata;
+        if (existingItem === null) {
           throw new Error(
             `Could not find entity with key ${JSON.stringify(key)}`
           );
         }
-
-        // TODO: aah! Must apply changes here first
-        // convert our raw fetch into an entity
-        entityWithSomeProperties =
-          await this.collection.entityFromRawDynamoItem(
-            existingItemResponse.Item
-          );
 
         // because we are reading before write, we need to add a condition expression
         // this allows us to optimistic lock the entity against our preFetched item
@@ -163,8 +174,14 @@ export class DFSecondaryIndexExt<
         primaryUpdateOperation.condition = primaryCondition;
 
         primaryCondition._wc = {
-          $eq: entityWithSomeProperties["_wc"],
+          $eq: existingItem["_wc"],
         };
+
+        // apply any changes from the update before we generate the new GSI keys
+        entityWithSomeProperties = {
+          ...existingItem,
+          ...entityUpdate,
+        } as EntityWithMetadata;
 
         // TODO: umm one error handler?
         primaryUpdateOperation.errorHandler = (err) => {
@@ -182,29 +199,8 @@ export class DFSecondaryIndexExt<
       // either we already had them, or we fetched them from Dynamo
       const entityWithRequiredProperties = entityWithSomeProperties;
 
-      // call our includeInIndex function if provided
-      const includeInIndex =
-        !this.config.includeInIndex ||
-        this.config.includeInIndex[0](entityWithRequiredProperties as Entity);
-
-      // update the GSI keys
-      if (includeInIndex) {
-        // compute our new keys & write
-        primaryUpdateOperation.updateValues[this.indexPartitionKey] =
-          `${this.collection.config.name}#` +
-          generateKeyString(this.skKeys, entityWithRequiredProperties);
-        primaryUpdateOperation.updateValues[this.indexPartitionKey] =
-          `${this.collection.config.name}#` +
-          generateKeyString(this.pkKeys, entityWithRequiredProperties);
-      } else {
-        // removing the key values on our GSI will remove this item from the index
-        primaryUpdateOperation.updateValues[this.indexPartitionKey] = {
-          $remove: true,
-        };
-        primaryUpdateOperation.updateValues[this.indexSortKey] = {
-          $remove: true,
-        };
-      }
+      // once we have all the data we do our migration function can compute required properties
+      this.migrateEntity(entityWithRequiredProperties, transaction);
     });
   }
 
@@ -232,12 +228,73 @@ export class DFSecondaryIndexExt<
     return queryExpression;
   }
 
-  public postRetrieve(
-    entity: Partial<EntityWithMetadata>
-  ): void | Promise<void> {
-    // TODO: validate our key and call should exist in index check
-    // we may want to migrate the entity if things are corrupt
-    // TODO: should this return a symbol so we can exclude items from the results?
+  // TODO: test me
+  public entityRequiresMigration(entity: EntityWithMetadata): boolean {
+    const shouldBeIncludedInIndex =
+      !this.config.includeInIndex ||
+      this.config.includeInIndex[0](entity as Entity);
+
+    const isIncludedInIndex = entity[this.indexPartitionKey] !== undefined;
+
+    if (shouldBeIncludedInIndex === false && isIncludedInIndex === false) {
+      // not included in index, no need to migrate
+      return false;
+    }
+
+    if (shouldBeIncludedInIndex !== isIncludedInIndex) {
+      // included in index mismatch
+      return true;
+    }
+
+    if (
+      entity[this.indexPartitionKey] !==
+      `${this.collection.config.name}#${generateKeyString(this.pkKeys, entity)}`
+    ) {
+      // partition key mismatch
+      return true;
+    }
+
+    if (
+      entity[this.indexSortKey] !==
+      `${this.collection.config.name}#${generateKeyString(this.skKeys, entity)}`
+    ) {
+      // sort key mismatch
+      return true;
+    }
+
+    return false;
+  }
+
+  public migrateEntity(
+    entity: EntityWithMetadata,
+    transaction: DFWriteTransaction
+  ) {
+    // call our includeInIndex function if provided
+    const includeInIndex =
+      !this.config.includeInIndex ||
+      this.config.includeInIndex[0](entity as Entity);
+
+    const primaryUpdateOperation =
+      transaction.primaryOperation as DFUpdateOperation;
+
+    // update the GSI keys
+    if (includeInIndex) {
+      // compute our new keys & write
+      primaryUpdateOperation.updateValues[this.indexPartitionKey] =
+        `${this.collection.config.name}#` +
+        generateKeyString(this.pkKeys, entity);
+      primaryUpdateOperation.updateValues[this.indexSortKey] =
+        `${this.collection.config.name}#` +
+        generateKeyString(this.skKeys, entity);
+    } else {
+      // removing the key values on our GSI will remove this item from the index
+      primaryUpdateOperation.updateValues[this.indexPartitionKey] = {
+        $remove: true,
+      };
+      primaryUpdateOperation.updateValues[this.indexSortKey] = {
+        $remove: true,
+      };
+    }
   }
 
   private get indexPartitionKey(): string {

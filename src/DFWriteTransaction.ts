@@ -102,7 +102,7 @@ export class DFWriteTransaction {
           throw new WriteTransactionFailedError(e as Error);
         }
 
-        const errorHandlerResponse = this.primaryOperation.errorHandler(
+        const errorHandlerResponse = await this.primaryOperation.errorHandler(
           cancellationReason,
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore: intentionally didn't want to type PrimaryOperation down to the op type - too much complexity
@@ -328,7 +328,7 @@ export class DFWriteTransaction {
       // process keys into a format we can use in the expression
       // this is mostly for dot or array notation for updating sub items
       const keyAttributeParts: string[] = [];
-      key.split(/[\.\[]/g).forEach((subKey) => {
+      key.split(/[.[]/g).forEach((subKey) => {
         if (subKey.endsWith("]")) {
           if (keyAttributeParts.length === 0) {
             throw new Error("Invalid key, cannot start index lookup");
@@ -447,7 +447,6 @@ export class DFWriteTransaction {
     if (operations.DELETE.length > 0) {
       updateExpressions.push(`DELETE ${operations.DELETE.join(", ")}`);
     }
-    // console.log("updateExpressions", updateExpressions);
     const fullUpdateExpression = updateExpressions.join(" ");
 
     const {

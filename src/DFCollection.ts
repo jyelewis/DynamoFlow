@@ -5,13 +5,18 @@ import {
   DynamoItem,
   EntityWithMetadata,
   Query,
+  RETRY_TRANSACTION,
   SafeEntity,
   UpdateValue,
 } from "./types/types.js";
 import { PartialQueryExpression } from "./types/internalTypes.js";
 import { generateIndexStrings } from "./utils/generateIndexStrings.js";
 import { generateQueryExpression } from "./utils/generateQueryExpression.js";
-import { DFCondition, DFUpdateOperation } from "./types/operations.js";
+import {
+  DFCondition,
+  DFUpdateOperation,
+  DFWritePrimaryOperation,
+} from "./types/operations.js";
 import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
 
 export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
@@ -47,7 +52,6 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   ): Promise<DFWriteTransaction> {
     const entityWithMetadata: EntityWithMetadata = { ...newEntity };
 
-    // TODO: make these smaller?
     // TODO: test this
     // used for table scans so we can call the appropriate collection to handle this entity
     entityWithMetadata["_c"] = this.config.name;
@@ -91,7 +95,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
     // run extensions
     await Promise.all(
-      Object.values(this.config.extensions).map((extension) =>
+      this.config.extensions.map((extension) =>
         extension.onInsert(entityWithMetadata, transaction)
       )
     );
@@ -158,7 +162,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
     // run extensions
     await Promise.all(
-      Object.values(this.config.extensions).map((extension) =>
+      this.config.extensions.map((extension) =>
         extension.onUpdate(key, updateFieldsWithMetadata, transaction)
       )
     );
@@ -173,6 +177,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     keys: Partial<Entity>,
     updatedEntity: Partial<Record<keyof Entity, UpdateValue>>
   ): Promise<Entity> {
+    // TODO: is it dangerous to perform migrations after an update? What if we write to a new field then a migration takes the old field value
     const transaction = await this.updateTransaction(keys, updatedEntity);
     return (await transaction.commit()) as Entity;
   }
@@ -211,8 +216,15 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     const entities = result.Items as EntityWithMetadata[];
 
     // run extensions on all items & strip metadata
+    if (query.returnRaw) {
+      return entities as Entity[];
+    }
+
     return await Promise.all(
-      entities.map((x) => this.entityFromRawDynamoItem(x))
+      entities.map((x) =>
+        // TODO: test me
+        this.entityFromRawDynamoItem(x)
+      )
     );
   }
 
@@ -228,16 +240,114 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     return items[0];
   }
 
+  // TODO: test me
+  public async migrateEntity(entityWithMetadata: DynamoItem): Promise<Entity> {
+    const createPrimaryOperation: () => DFWritePrimaryOperation = () => {
+      const { _PK, _SK, ...nonKeyProperties } = entityWithMetadata;
+      return {
+        type: "Update",
+        key: {
+          _PK,
+          _SK,
+        },
+        updateValues: {
+          ...nonKeyProperties,
+          _wc: { $inc: 1 },
+        },
+        // ensure this entity already exists, we're expecting this to be an update
+        condition: {
+          _PK: { $exists: true },
+          _wc: { $eq: entityWithMetadata._wc },
+        },
+        // the _wc check above provides an optimistic lock for our migration
+        // if someone updates this entity while we are migrating, we will fail
+        // and this error handler will be run
+        // the error-handler re-reads from the DB and tries the migration again
+        errorHandler: async (e: any) => {
+          if (e.Code === "ConditionalCheckFailedException") {
+            // re-fetch the full entity from the database
+            const res = await this.db.client.get({
+              TableName: this.db.tableName,
+              Key: {
+                _PK: nonKeyProperties,
+                _SK: nonKeyProperties,
+              },
+            });
+
+            if (res.Item === undefined) {
+              throw new Error(
+                "Item was deleted while migration was in progress, migration cancelled"
+              );
+            }
+
+            // store the latest version of this entity
+            entityWithMetadata = res.Item;
+
+            // reset Transaction state
+            transaction.primaryOperation = createPrimaryOperation();
+
+            // request a retry
+            return RETRY_TRANSACTION;
+          }
+
+          /* istanbul ignore next */
+          throw e;
+        },
+      };
+    };
+
+    // create write transaction
+    const transaction = this.db.createTransaction(createPrimaryOperation());
+
+    // ask all our extensions to migrate this item
+    // we can commit all migrates in one go
+    transaction.addPreCommitHandler(async () => {
+      await Promise.all(
+        this.config.extensions.map((extension) =>
+          extension.migrateEntity(entityWithMetadata, transaction)
+        )
+      );
+    });
+
+    const migratedEntity = await transaction.commitWithReturn();
+
+    // check our migration was successful
+    // if this returns false, it's possible we are stuck in a loop with an extension
+    // that will never be happy with this entity
+    for (const ext of this.config.extensions) {
+      if (ext.entityRequiresMigration(migratedEntity)) {
+        throw new Error(
+          `Extension ${ext.constructor.name} still requires migration after migration was run`
+        );
+      }
+    }
+
+    return this.entityFromRawDynamoItem(migratedEntity);
+  }
+
+  // TODO: test me with migrations
   // runs postRetrieve hooks for all extensions & strip metadata
   public async entityFromRawDynamoItem(
     entityWithMetadata: DynamoItem
   ): Promise<Entity> {
     // TODO: this is often run in a loop, if many items need updating it would be more efficient to batch write them
 
+    // check with all extensions to see if any think the entity needs to be migrated
+    const entityRequiresMigration = this.config.extensions.some((extension) =>
+      extension.entityRequiresMigration(
+        entityWithMetadata as EntityWithMetadata
+      )
+    );
+
+    if (entityRequiresMigration) {
+      // run migrations
+      entityWithMetadata = await this.migrateEntity(entityWithMetadata);
+    }
+
     // run postRetrieve hooks
     await Promise.all(
-      Object.values(this.config.extensions).map((extension) =>
-        extension.postRetrieve(entityWithMetadata as EntityWithMetadata)
+      this.config.extensions.map((extension) =>
+        extension.postRetrieve(entityWithMetadata)
       )
     );
 

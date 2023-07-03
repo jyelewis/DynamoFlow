@@ -60,6 +60,7 @@ export interface Query<Entity extends SafeEntity<Entity>> {
   limit?: number;
   consistentRead?: boolean;
   index?: string;
+  returnRaw?: boolean;
 }
 
 export interface FullTableScanItem {

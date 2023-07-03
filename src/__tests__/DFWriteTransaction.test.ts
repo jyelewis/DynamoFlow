@@ -1347,9 +1347,7 @@ describe("DFWriteTransaction", () => {
         ],
       });
     });
-  });
 
-  describe("dot notation operations", () => {
     it.concurrent("Sets value of nested object", async () => {
       const db = new DFDB(testDbConfig);
       const keyPrefix = genTestPrefix();
