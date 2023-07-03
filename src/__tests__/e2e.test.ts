@@ -125,16 +125,14 @@ describe("E2E tests", () => {
     });
 
     // insert some projects for this user
-    const projectInsertTransaction = await projectsCollection.insertTransaction(
-      {
-        id: 1,
-        ownerUserId: 1,
-        projectName: "My projectttt",
-      }
-    );
+    const projectInsertTransaction = projectsCollection.insertTransaction({
+      id: 1,
+      ownerUserId: 1,
+      projectName: "My projectttt",
+    });
 
     projectInsertTransaction.addSecondaryTransaction(
-      await userCollection.updateTransaction(
+      userCollection.updateTransaction(
         {
           id: 1,
         },

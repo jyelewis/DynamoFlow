@@ -43,13 +43,12 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     config.extensions.forEach((extension) => extension.init(this));
   }
 
-  // TODO: do these need to be async anymore?
-  public async insertTransaction(
+  public insertTransaction(
     newEntity: Entity,
     options?: {
       allowOverwrite?: boolean;
     }
-  ): Promise<DFWriteTransaction> {
+  ): DFWriteTransaction {
     const entityWithMetadata: EntityWithMetadata = { ...newEntity };
 
     // TODO: test this
@@ -111,15 +110,14 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       allowOverwrite?: boolean;
     }
   ): Promise<Entity> {
-    const transaction = await this.insertTransaction(newEntity, options);
+    const transaction = this.insertTransaction(newEntity, options);
     return (await transaction.commit()) as Entity;
   }
 
-  // TODO: these don't need to be async anymore!
-  public async updateTransaction(
+  public updateTransaction(
     key: Partial<Entity>,
     updateFields: Partial<Record<keyof Entity, UpdateValue>>
-  ): Promise<DFWriteTransaction> {
+  ): DFWriteTransaction {
     const updateFieldsWithMetadata = {
       ...updateFields,
     } as Record<string, UpdateValue>;
@@ -174,7 +172,8 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     updatedEntity: Partial<Record<keyof Entity, UpdateValue>>
   ): Promise<Entity> {
     // TODO: is it dangerous to perform migrations after an update? What if we write to a new field then a migration takes the old field value
-    const transaction = await this.updateTransaction(keys, updatedEntity);
+
+    const transaction = this.updateTransaction(keys, updatedEntity);
     return (await transaction.commit()) as Entity;
   }
 

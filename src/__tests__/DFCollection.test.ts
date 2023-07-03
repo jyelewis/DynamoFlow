@@ -82,14 +82,14 @@ describe("DFCollection", () => {
           extensions: [],
         });
 
-        const transaction = await usersCollection.insertTransaction({
+        const transaction = usersCollection.insertTransaction({
           id: 1,
           firstName: "Jye",
           lastName: "Lewis",
           isActivated: true,
         });
         transaction.addSecondaryTransaction(
-          await usersCollection.insertTransaction({
+          usersCollection.insertTransaction({
             id: 2,
             firstName: "Joe",
             lastName: "Bot",
@@ -202,7 +202,7 @@ describe("DFCollection", () => {
         isActivated: false,
       });
 
-      const transaction = await usersCollection.updateTransaction(
+      const transaction = usersCollection.updateTransaction(
         { id: 1 },
         {
           firstName: "Jye 2",
@@ -210,7 +210,7 @@ describe("DFCollection", () => {
         }
       );
       transaction.addSecondaryTransaction(
-        await usersCollection.updateTransaction(
+        usersCollection.updateTransaction(
           {
             id: 2,
           },
