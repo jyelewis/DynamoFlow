@@ -1,4 +1,4 @@
-import { DFDB } from "../DFDB.js";
+import { DFTable } from "../DFTable.js";
 import { testDbConfig } from "../testHelpers/testDbConfigs.js";
 import { genTestPrefix } from "../testHelpers/genTestPrefix.js";
 import { DFSecondaryIndexExt } from "../extensions/DFSecondaryIndexExt.js";
@@ -19,9 +19,9 @@ interface Thing {
 describe("DFCollection", () => {
   describe("Insert", () => {
     it.concurrent("Can insert items", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
 
-      const usersCollection = db.createCollection<User>({
+      const usersCollection = table.createCollection<User>({
         name: `${genTestPrefix()}-user`,
         partitionKey: "id",
         extensions: [],
@@ -44,9 +44,9 @@ describe("DFCollection", () => {
     it.concurrent(
       "Throws if inserting an item that already exists",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
 
-        const usersCollection = db.createCollection<User>({
+        const usersCollection = table.createCollection<User>({
           name: `${genTestPrefix()}-user`,
           partitionKey: "id",
           extensions: [],
@@ -74,9 +74,9 @@ describe("DFCollection", () => {
     it.concurrent(
       "Can insert multiple items within a transaction",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
 
-        const usersCollection = db.createCollection<User>({
+        const usersCollection = table.createCollection<User>({
           name: `${genTestPrefix()}-user`,
           partitionKey: "id",
           extensions: [],
@@ -124,9 +124,9 @@ describe("DFCollection", () => {
 
   describe("Update", () => {
     it.concurrent("Can update items", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
 
-      const usersCollection = db.createCollection<User>({
+      const usersCollection = table.createCollection<User>({
         name: `${genTestPrefix()}-user`,
         partitionKey: "id",
         extensions: [],
@@ -159,9 +159,9 @@ describe("DFCollection", () => {
     it.concurrent(
       "Throws if updating an item that already exists",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
 
-        const usersCollection = db.createCollection<User>({
+        const usersCollection = table.createCollection<User>({
           name: `${genTestPrefix()}-user`,
           partitionKey: "id",
           extensions: [],
@@ -180,9 +180,9 @@ describe("DFCollection", () => {
     );
 
     it("Can update multiple items within a transaction", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
 
-      const usersCollection = db.createCollection<User>({
+      const usersCollection = table.createCollection<User>({
         name: `${genTestPrefix()}-user`,
         partitionKey: "id",
         extensions: [],
@@ -248,8 +248,8 @@ describe("DFCollection", () => {
   describe("Retrieve", () => {
     // annoying trick for prepping concurrent tests
     const thingsCollectionProm = (async () => {
-      const db = new DFDB(testDbConfig);
-      const thingsCollection = db.createCollection<Thing>({
+      const table = new DFTable(testDbConfig);
+      const thingsCollection = table.createCollection<Thing>({
         name: `${genTestPrefix()}-things`,
         partitionKey: "groupId",
         sortKey: "thingId",

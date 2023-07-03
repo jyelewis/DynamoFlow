@@ -56,12 +56,12 @@ export class DFSecondaryIndexExt<
     super.init(collection);
 
     // ensure this DB supports GSIs
-    if (!this.collection.db.config.GSIs) {
+    if (!this.collection.table.config.GSIs) {
       throw new Error(`DB does not have any GSIs defined`);
     }
 
     // validate the index being used here exists on the database
-    if (!this.collection.db.config.GSIs.includes(this.config.dynamoIndex)) {
+    if (!this.collection.table.config.GSIs.includes(this.config.dynamoIndex)) {
       throw new Error(
         `GSI '${this.config.dynamoIndex}' not defined for this DB`
       );

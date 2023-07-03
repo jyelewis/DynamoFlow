@@ -1,4 +1,4 @@
-import { DFDB } from "../../DFDB.js";
+import { DFTable } from "../../DFTable.js";
 import { testDbConfig } from "../../testHelpers/testDbConfigs.js";
 import { genTestPrefix } from "../../testHelpers/genTestPrefix.js";
 import { DFSecondaryIndexExt } from "../DFSecondaryIndexExt.js";
@@ -15,13 +15,13 @@ interface User {
 
 describe("DFSecondaryIndexExt", () => {
   it("Throws if the DB has no GSIs", () => {
-    const db = new DFDB({
+    const table = new DFTable({
       ...testDbConfig,
       GSIs: undefined,
     });
 
     expect(() => {
-      db.createCollection<User>({
+      table.createCollection<User>({
         name: `${genTestPrefix()}-user`,
         partitionKey: "id",
         extensions: [
@@ -37,13 +37,13 @@ describe("DFSecondaryIndexExt", () => {
   });
 
   it("Throws if the DB does not have the required GSI defined", () => {
-    const db = new DFDB({
+    const table = new DFTable({
       ...testDbConfig,
       GSIs: ["GSI1", "GSI2"],
     });
 
     expect(() => {
-      db.createCollection<User>({
+      table.createCollection<User>({
         name: `${genTestPrefix()}-user`,
         partitionKey: "id",
         extensions: [
@@ -59,9 +59,9 @@ describe("DFSecondaryIndexExt", () => {
   });
 
   it.concurrent("Writes & retrieves from secondary index", async () => {
-    const db = new DFDB(testDbConfig);
+    const table = new DFTable(testDbConfig);
 
-    const usersCollection = db.createCollection<User>({
+    const usersCollection = table.createCollection<User>({
       name: `${genTestPrefix()}-user`,
       partitionKey: "id",
       extensions: [
@@ -161,9 +161,9 @@ describe("DFSecondaryIndexExt", () => {
   it.concurrent(
     "Writes & retrieves from secondary index with a composite key",
     async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
 
-      const usersCollection = db.createCollection<User>({
+      const usersCollection = table.createCollection<User>({
         name: `${genTestPrefix()}-user`,
         partitionKey: "id",
         extensions: [
@@ -288,16 +288,16 @@ describe("DFSecondaryIndexExt", () => {
   it.concurrent(
     "Migrates entities to new index schemas on read if needed",
     async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
 
       const userCollectionName = `${genTestPrefix()}-user`;
-      const usersCollectionPreIndex = db.createCollection<User>({
+      const usersCollectionPreIndex = table.createCollection<User>({
         name: userCollectionName,
         partitionKey: "id",
         extensions: [],
       });
 
-      const usersCollection = db.createCollection<User>({
+      const usersCollection = table.createCollection<User>({
         ...usersCollectionPreIndex.config,
         name: userCollectionName + "-2",
         extensions: [

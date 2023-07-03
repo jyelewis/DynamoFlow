@@ -2,7 +2,7 @@ import {
   testDbConfig,
   testFullTableScanDbConfig,
 } from "./src/testHelpers/testDbConfigs.js";
-import { DFDB } from "./src/DFDB.js";
+import { DFTable } from "./src/DFTable.js";
 
 async function jestGlobalSetup() {
   // use mock AWS keys (required present for DDB Local)
@@ -13,8 +13,8 @@ async function jestGlobalSetup() {
   // create required test tables
   // stupid trick to ensure all our test threads don't race this and try to create the table twice
   await Promise.all([
-    new DFDB(testDbConfig).createTableIfNotExists(),
-    new DFDB(testFullTableScanDbConfig).createTableIfNotExists(),
+    new DFTable(testDbConfig).createTableIfNotExists(),
+    new DFTable(testFullTableScanDbConfig).createTableIfNotExists(),
   ]);
 }
 module.exports = jestGlobalSetup;

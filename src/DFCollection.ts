@@ -1,5 +1,5 @@
 import { DFBaseExtension } from "./extensions/DFBaseExtension.js";
-import { DFDB } from "./DFDB.js";
+import { DFTable } from "./DFTable.js";
 import { DFWriteTransaction } from "./DFWriteTransaction.js";
 import {
   DynamoItem,
@@ -29,10 +29,10 @@ export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
 
 export class DFCollection<Entity extends SafeEntity<Entity>> {
   constructor(
-    public readonly db: DFDB,
+    public readonly table: DFTable,
     public readonly config: DFCollectionConfig<Entity>
   ) {
-    if (this.config.name in this.db.collections) {
+    if (this.config.name in this.table.collections) {
       // TODO: test me
       throw new Error(
         `Collection '${this.config.name}' already exists in this DB`
@@ -67,7 +67,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       this.config.sortKey,
       entityWithMetadata
     );
-    const transaction = this.db.createTransaction({
+    const transaction = this.table.createTransaction({
       // TODO: TS doesn't seem to warn about invalid properties here...
       type: "Update",
       key: {
@@ -137,7 +137,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       this.config.sortKey,
       key
     );
-    const transaction = this.db.createTransaction({
+    const transaction = this.table.createTransaction({
       type: "Update",
       key: {
         _PK: pk,
@@ -193,8 +193,8 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       query.filter as DFCondition
     );
 
-    const result = await this.db.client.query({
-      TableName: this.db.tableName,
+    const result = await this.table.client.query({
+      TableName: this.table.tableName,
       KeyConditionExpression: queryExpression.keyConditionExpression,
       FilterExpression: filterExpression.conditionExpression,
       ExpressionAttributeNames: {
@@ -263,8 +263,8 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
         errorHandler: async (e: any) => {
           if (e.Code === "ConditionalCheckFailedException") {
             // re-fetch the full entity from the database
-            const res = await this.db.client.get({
-              TableName: this.db.tableName,
+            const res = await this.table.client.get({
+              TableName: this.table.tableName,
               Key: {
                 _PK,
                 _SK,
@@ -294,7 +294,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     };
 
     // create write transaction
-    const transaction = this.db.createTransaction(createPrimaryOperation());
+    const transaction = this.table.createTransaction(createPrimaryOperation());
 
     // ask all our extensions to migrate this item
     // we can commit all migrates in one go

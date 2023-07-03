@@ -1,10 +1,10 @@
 import { conditionToConditionExpression } from "../conditionToConditionExpression.js";
 import { ConditionExpressionProperties } from "../../types/operations.js";
-import { DFDB } from "../../DFDB.js";
+import { DFTable } from "../../DFTable.js";
 import { testDbConfig } from "../../testHelpers/testDbConfigs.js";
 
 describe("conditionToConditionExpression", () => {
-  const db = new DFDB(testDbConfig);
+  const table = new DFTable(testDbConfig);
 
   // both runs this expression against the database
   // and asserts against the returned object
@@ -16,8 +16,8 @@ describe("conditionToConditionExpression", () => {
 
     // run the expression against the database
     // to verify it doesn't reject this expression
-    await db.client.query({
-      TableName: db.tableName,
+    await table.client.query({
+      TableName: table.tableName,
       KeyConditionExpression: "#pk = :pk AND #sk = :sk",
       FilterExpression: conditionExpression.conditionExpression,
 

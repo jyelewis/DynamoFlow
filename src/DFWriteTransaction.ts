@@ -1,4 +1,4 @@
-import { DFDB } from "./DFDB.js";
+import { DFTable } from "./DFTable.js";
 import { UpdateCommandInput, DeleteCommandInput } from "@aws-sdk/lib-dynamodb";
 import {
   CancellationReason,
@@ -41,7 +41,7 @@ export class DFWriteTransaction {
   ) => Promise<DynamoItem> | DynamoItem;
 
   public constructor(
-    public db: DFDB,
+    public table: DFTable,
     public primaryOperation: DFWritePrimaryOperation
   ) {}
 
@@ -220,8 +220,8 @@ export class DFWriteTransaction {
             ? this.primaryOperation
             : this.secondaryOperations[index - 1];
 
-        const res = await this.db.client.get({
-          TableName: this.db.tableName,
+        const res = await this.table.client.get({
+          TableName: this.table.tableName,
           Key: op.key,
           // want to grab a consistent read so we are sure to read at least past our write
           ConsistentRead: true,
@@ -268,13 +268,13 @@ export class DFWriteTransaction {
 
     switch (op.type) {
       case "Update": {
-        const updateRes = await this.db.client.update(
+        const updateRes = await this.table.client.update(
           this.updateExpressionToParams(op)
         );
         return updateRes.Attributes as DynamoItem;
       }
       case "Delete": {
-        await this.db.client.delete(this.deleteExpressionToParams(op));
+        await this.table.client.delete(this.deleteExpressionToParams(op));
         return null;
       }
       default:
@@ -307,7 +307,7 @@ export class DFWriteTransaction {
       }
     }
 
-    await this.db.client.transactWrite({
+    await this.table.client.transactWrite({
       TransactItems: transactionItems,
     });
   }
@@ -468,7 +468,7 @@ export class DFWriteTransaction {
     );
 
     return {
-      TableName: this.db.tableName,
+      TableName: this.table.tableName,
       Key: op.key,
       UpdateExpression: fullUpdateExpression,
       ConditionExpression: conditionExpression,
@@ -486,7 +486,7 @@ export class DFWriteTransaction {
     } = conditionToConditionExpression(op.condition);
 
     return {
-      TableName: this.db.tableName,
+      TableName: this.table.tableName,
       Key: op.key,
       ConditionExpression: conditionExpression!,
       ExpressionAttributeNames: expressionAttributeNames!,
@@ -504,7 +504,7 @@ export class DFWriteTransaction {
     } = conditionToConditionExpression(op.condition);
 
     return {
-      TableName: this.db.tableName,
+      TableName: this.table.tableName,
       Key: op.key,
       ConditionExpression: conditionExpression!,
       ExpressionAttributeNames: expressionAttributeNames!,

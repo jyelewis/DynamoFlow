@@ -1,5 +1,5 @@
 import { testDbConfig } from "../../testHelpers/testDbConfigs.js";
-import { DFDB } from "../../DFDB.js";
+import { DFTable } from "../../DFTable.js";
 import { genTestPrefix } from "../../testHelpers/genTestPrefix.js";
 import { DFMigrationExt } from "../DFMigrationExt.js";
 
@@ -7,7 +7,7 @@ describe("DFMigrationExt", () => {
   const collectionName = `${genTestPrefix()}-users`;
 
   it("Creates & populates a table of entities without extension enabled", async () => {
-    const db = new DFDB(testDbConfig);
+    const table = new DFTable(testDbConfig);
 
     interface User {
       id: number;
@@ -15,7 +15,7 @@ describe("DFMigrationExt", () => {
       lastName: string;
     }
 
-    const usersCollection = db.createCollection<User>({
+    const usersCollection = table.createCollection<User>({
       name: collectionName, // re-use the same collection name as if this application is restarting with new code each test
       partitionKey: "id",
       extensions: [],
@@ -43,7 +43,7 @@ describe("DFMigrationExt", () => {
   });
 
   it("Can introduce new migration extension", async () => {
-    const db = new DFDB(testDbConfig);
+    const table = new DFTable(testDbConfig);
 
     interface User {
       id: number;
@@ -54,7 +54,7 @@ describe("DFMigrationExt", () => {
 
     let migrationCount = 0;
 
-    const usersCollection = db.createCollection<User>({
+    const usersCollection = table.createCollection<User>({
       name: collectionName, // re-use the same collection name as if this application is restarting with new code each test
       partitionKey: "id",
       extensions: [
@@ -106,7 +106,7 @@ describe("DFMigrationExt", () => {
   });
 
   it("Stores new entities with the appropriate version information", async () => {
-    const db = new DFDB(testDbConfig);
+    const table = new DFTable(testDbConfig);
 
     interface User {
       id: number;
@@ -117,7 +117,7 @@ describe("DFMigrationExt", () => {
 
     let migrationCount = 0;
 
-    const usersCollection = db.createCollection<User>({
+    const usersCollection = table.createCollection<User>({
       name: collectionName, // re-use the same collection name as if this application is restarting with new code each test
       partitionKey: "id",
       extensions: [
@@ -161,7 +161,7 @@ describe("DFMigrationExt", () => {
   });
 
   it("Re-migrates if the version number changes", async () => {
-    const db = new DFDB(testDbConfig);
+    const table = new DFTable(testDbConfig);
 
     interface User {
       id: number;
@@ -173,7 +173,7 @@ describe("DFMigrationExt", () => {
 
     let migrationCount = 0;
 
-    const usersCollection = db.createCollection<User>({
+    const usersCollection = table.createCollection<User>({
       name: collectionName, // re-use the same collection name as if this application is restarting with new code each test
       partitionKey: "id",
       extensions: [

@@ -4,7 +4,7 @@ import {
   testDbConfig,
   testFullTableScanDbConfig,
 } from "../testHelpers/testDbConfigs.js";
-import { DFDB } from "../DFDB.js";
+import { DFTable } from "../DFTable.js";
 import { FullTableScanItem, STOP_SCAN } from "../types/types.js";
 import { setTimeout } from "timers/promises";
 import {
@@ -12,23 +12,23 @@ import {
   ListTablesCommand,
 } from "@aws-sdk/client-dynamodb";
 
-describe("DFDB", () => {
+describe("DFTable", () => {
   describe("Basics", () => {
     it("Constructs", () => {
-      const db = new DFDB(testDbConfig);
-      expect(db.config).toEqual(testDbConfig);
-      expect(db.client).not.toBeUndefined();
+      const table = new DFTable(testDbConfig);
+      expect(table.config).toEqual(testDbConfig);
+      expect(table.client).not.toBeUndefined();
     });
 
     it("Creates transaction", () => {
-      const db = new DFDB(testDbConfig);
-      const transaction = db.createTransaction({
+      const table = new DFTable(testDbConfig);
+      const transaction = table.createTransaction({
         type: "Update",
         key: { id: 1 },
         updateValues: { name: "Joe" },
       });
 
-      expect(transaction.db).toStrictEqual(db);
+      expect(transaction.table).toStrictEqual(table);
       expect(transaction.primaryOperation).toEqual({
         type: "Update",
         key: { id: 1 },
@@ -37,27 +37,27 @@ describe("DFDB", () => {
     });
 
     it("Creates a collection", () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
 
       interface MyEntity {
         id: number;
       }
 
-      const collection = db.createCollection<MyEntity>({
+      const collection = table.createCollection<MyEntity>({
         name: "MyCollection",
         partitionKey: "id",
         extensions: [],
       });
 
-      expect(collection.db).toStrictEqual(db);
-      expect(Object.keys(db.collections)).toEqual(["MyCollection"]);
-      expect(db.collections["MyCollection"]).toStrictEqual(collection);
+      expect(collection.table).toStrictEqual(table);
+      expect(Object.keys(table.collections)).toEqual(["MyCollection"]);
+      expect(table.collections["MyCollection"]).toStrictEqual(collection);
       expect(collection.config.name).toEqual("MyCollection");
     });
   });
 
   describe("fullTableScan", () => {
-    const db = new DFDB(testFullTableScanDbConfig);
+    const table = new DFTable(testFullTableScanDbConfig);
 
     interface User {
       id: number;
@@ -71,12 +71,12 @@ describe("DFDB", () => {
       name: string;
     }
 
-    const usersCollection = db.createCollection<User>({
+    const usersCollection = table.createCollection<User>({
       name: "users",
       partitionKey: "id",
       extensions: [],
     });
-    const projectsCollection = db.createCollection<Project>({
+    const projectsCollection = table.createCollection<Project>({
       name: "projects",
       partitionKey: "id",
       extensions: [],
@@ -112,8 +112,8 @@ describe("DFDB", () => {
       };
 
       // insert raw item without a collection
-      await db.client.put({
-        TableName: db.tableName,
+      await table.client.put({
+        TableName: table.tableName,
         Item: {
           _PK: "no-collection",
           _SK: "no-collection",
@@ -146,7 +146,7 @@ describe("DFDB", () => {
 
         let itemsReceived: Array<any> = [];
 
-        await db.fullTableScan({
+        await table.fullTableScan({
           processBatch: async (items: FullTableScanItem[]) => {
             expect(items.length).toBeLessThanOrEqual(maxBatchSize);
 
@@ -173,7 +173,7 @@ describe("DFDB", () => {
         let numBatchesReceived = 0;
         let itemsReceived: Array<any> = [];
 
-        await db.fullTableScan({
+        await table.fullTableScan({
           processBatch: async (items: FullTableScanItem[]) => {
             itemsReceived = itemsReceived.concat(items);
             numBatchesReceived += 1;
@@ -204,7 +204,7 @@ describe("DFDB", () => {
         let numBatchesReceived = 0;
         let itemsReceived: Array<any> = [];
 
-        await db.fullTableScan({
+        await table.fullTableScan({
           processBatch: async (items: FullTableScanItem[]) => {
             itemsReceived = itemsReceived.concat(items);
             numBatchesReceived += 1;
@@ -234,7 +234,7 @@ describe("DFDB", () => {
       let numBatchesReceived = 0;
       let itemsReceived: Array<any> = [];
 
-      await db.fullTableScan({
+      await table.fullTableScan({
         processBatch: async (items: FullTableScanItem[]) => {
           itemsReceived = itemsReceived.concat(items);
           numBatchesReceived += 1;
@@ -263,7 +263,7 @@ describe("DFDB", () => {
       let numBatchesReceived = 0;
       let itemsReceived: Array<any> = [];
 
-      await db.fullTableScan({
+      await table.fullTableScan({
         processBatch: async (items: FullTableScanItem[]) => {
           itemsReceived = itemsReceived.concat(items);
           numBatchesReceived += 1;
@@ -290,7 +290,7 @@ describe("DFDB", () => {
         let numBatchesReceived = 0;
         let itemsReceived: Array<any> = [];
 
-        await db.fullTableScan({
+        await table.fullTableScan({
           processBatch: async (items: FullTableScanItem[]) => {
             itemsReceived = itemsReceived.concat(items);
             numBatchesReceived += 1;
@@ -320,7 +320,7 @@ describe("DFDB", () => {
       let numBatchesReceived = 0;
       let itemsReceived: Array<any> = [];
 
-      await db.fullTableScan({
+      await table.fullTableScan({
         processBatch: async (items: FullTableScanItem[]) => {
           itemsReceived = itemsReceived.concat(items);
           numBatchesReceived += 1;
@@ -341,7 +341,7 @@ describe("DFDB", () => {
       let numItemsWithCollectionReturned = 0;
       let numItemsWithoutCollectionReturned = 0;
 
-      await db.fullTableScan({
+      await table.fullTableScan({
         processBatch: async (items: FullTableScanItem[]) => {
           for (const item of items) {
             if (item.collection) {
@@ -359,7 +359,7 @@ describe("DFDB", () => {
 
     it.concurrent("Can migrate data during scan", async () => {
       // run our migration
-      await db.fullTableScan({
+      await table.fullTableScan({
         processBatch: async (items: FullTableScanItem[]) => {
           await Promise.all(
             items.map(async ({ collection, entity }) => {
@@ -392,7 +392,7 @@ describe("DFDB", () => {
 
       // we pretty much just expect this to not crash as it is a common pattern
       // this also checks our optimistic locking works - we are performing another scan & update in the concurrent test above
-      await db.fullTableScan({
+      await table.fullTableScan({
         returnRaw: true, // so we can trigger manual migrations
         processBatch: async (items: FullTableScanItem[]) => {
           await Promise.all(
@@ -407,70 +407,74 @@ describe("DFDB", () => {
 
   describe("createTableIfNotExists", () => {
     it.concurrent("Works with existing table", async () => {
-      const existingDB = new DFDB(testDbConfig);
+      const existingTable = new DFTable(testDbConfig);
 
       // should exist both before and after this function is called
-      const tablesBeforeCreate = await existingDB.client.send(
+      const tablesBeforeCreate = await existingTable.client.send(
         new ListTablesCommand({})
       );
-      expect(tablesBeforeCreate.TableNames).toContain(existingDB.tableName);
+      expect(tablesBeforeCreate.TableNames).toContain(existingTable.tableName);
 
-      await existingDB.createTableIfNotExists();
+      await existingTable.createTableIfNotExists();
 
-      const tablesAfterCreate = await existingDB.client.send(
+      const tablesAfterCreate = await existingTable.client.send(
         new ListTablesCommand({})
       );
-      expect(tablesAfterCreate.TableNames).toContain(existingDB.tableName);
+      expect(tablesAfterCreate.TableNames).toContain(existingTable.tableName);
     });
 
     it.concurrent("Works with non-existent table (no GSIs)", async () => {
-      const createdInTestDB = new DFDB(testCreatedInTestDbConfig);
+      const createdInTestTable = new DFTable(testCreatedInTestDbConfig);
 
       // should exist both before and after this function is called
-      const tablesBeforeCreate = await createdInTestDB.client.send(
+      const tablesBeforeCreate = await createdInTestTable.client.send(
         new ListTablesCommand({})
       );
       expect(tablesBeforeCreate.TableNames).not.toContain(
-        createdInTestDB.tableName
+        createdInTestTable.tableName
       );
 
-      await createdInTestDB.createTableIfNotExists();
+      await createdInTestTable.createTableIfNotExists();
 
-      const tablesAfterCreate = await createdInTestDB.client.send(
+      const tablesAfterCreate = await createdInTestTable.client.send(
         new ListTablesCommand({})
       );
-      expect(tablesAfterCreate.TableNames).toContain(createdInTestDB.tableName);
+      expect(tablesAfterCreate.TableNames).toContain(
+        createdInTestTable.tableName
+      );
 
       // delete the table so tests can run again
-      await createdInTestDB.client.send(
+      await createdInTestTable.client.send(
         new DeleteTableCommand({
-          TableName: createdInTestDB.tableName,
+          TableName: createdInTestTable.tableName,
         })
       );
     });
 
     it.concurrent("Works with non-existent table (with GSIs)", async () => {
-      const createdInTestDB = new DFDB(testCreatedInTestGSIsDbConfig);
+      const createdInTestTable = new DFTable(testCreatedInTestGSIsDbConfig);
 
       // should exist both before and after this function is called
-      const tablesBeforeCreate = await createdInTestDB.client.send(
+      const tablesBeforeCreate = await createdInTestTable.client.send(
         new ListTablesCommand({})
       );
       expect(tablesBeforeCreate.TableNames).not.toContain(
-        createdInTestDB.tableName
+        createdInTestTable.tableName
       );
 
-      await createdInTestDB.createTableIfNotExists();
+      await createdInTestTable.createTableIfNotExists();
 
-      const tablesAfterCreate = await createdInTestDB.client.send(
+      const tablesAfterCreate = await createdInTestTable.client.send(
         new ListTablesCommand({})
       );
-      expect(tablesAfterCreate.TableNames).toContain(createdInTestDB.tableName);
+      expect(tablesAfterCreate.TableNames).toContain(
+        createdInTestTable.tableName
+      );
 
       // delete the table so tests can run again
-      await createdInTestDB.client.send(
+      await createdInTestTable.client.send(
         new DeleteTableCommand({
-          TableName: createdInTestDB.tableName,
+          TableName: createdInTestTable.tableName,
         })
       );
     });

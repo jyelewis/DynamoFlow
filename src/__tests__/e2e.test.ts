@@ -1,4 +1,4 @@
-import { DFDB } from "../DFDB.js";
+import { DFTable } from "../DFTable.js";
 import { DFLastUpdatedExt } from "../extensions/DFLastUpdatedExt.js";
 import { DFSecondaryIndexExt } from "../extensions/DFSecondaryIndexExt.js";
 
@@ -23,9 +23,9 @@ describe("E2E tests", () => {
       lastUpdated?: string;
     }
 
-    const db = new DFDB(testDbConfig);
+    const table = new DFTable(testDbConfig);
 
-    const userCollection = db.createCollection<User>({
+    const userCollection = table.createCollection<User>({
       name: `${genTestPrefix()}-user`,
       partitionKey: "id",
       extensions: [
@@ -57,7 +57,7 @@ describe("E2E tests", () => {
       ],
     });
 
-    const projectsCollection = db.createCollection<Project>({
+    const projectsCollection = table.createCollection<Project>({
       name: `${genTestPrefix()}-project`,
       partitionKey: "ownerUserId",
       sortKey: "id",
@@ -200,10 +200,10 @@ describe("E2E tests", () => {
       isReleased: boolean;
     }
 
-    const db = new DFDB(testDbConfig);
+    const table = new DFTable(testDbConfig);
 
     // set up our collections (effectively tables) --------------------------------------------------------
-    const portalsCollection = db.createCollection<Portal>({
+    const portalsCollection = table.createCollection<Portal>({
       name: `${genTestPrefix()}-portal`,
       partitionKey: "id",
       extensions: [
@@ -215,7 +215,7 @@ describe("E2E tests", () => {
         }),
       ],
     });
-    const usersCollection = db.createCollection<User>({
+    const usersCollection = table.createCollection<User>({
       name: `${genTestPrefix()}-user`,
       partitionKey: "id",
       extensions: [
@@ -227,13 +227,13 @@ describe("E2E tests", () => {
         }),
       ],
     });
-    const sitesCollection = db.createCollection<Site>({
+    const sitesCollection = table.createCollection<Site>({
       name: `${genTestPrefix()}-site`,
       partitionKey: "portalId",
       sortKey: "id",
       extensions: [],
     });
-    const surveysCollection = db.createCollection<Survey>({
+    const surveysCollection = table.createCollection<Survey>({
       name: `${genTestPrefix()}-survey`,
       partitionKey: "siteId",
       sortKey: "id",

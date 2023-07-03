@@ -1,4 +1,4 @@
-import { DFDB } from "../DFDB.js";
+import { DFTable } from "../DFTable.js";
 import { CancellationReason } from "@aws-sdk/client-dynamodb";
 import { ScanCommandOutput } from "@aws-sdk/lib-dynamodb/dist-types/commands/ScanCommand.js";
 import { testDbConfig } from "../testHelpers/testDbConfigs.js";
@@ -10,11 +10,11 @@ import { setTimeout } from "timers/promises";
 describe("DFWriteTransaction", () => {
   describe("Basic single operations", () => {
     it.concurrent("Executes single write transaction", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
-      const preTestGet = await db.client.get({
-        TableName: db.tableName,
+      const preTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -22,7 +22,7 @@ describe("DFWriteTransaction", () => {
       });
       expect(preTestGet.Item).toBeUndefined();
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -41,8 +41,8 @@ describe("DFWriteTransaction", () => {
         lastName: "Lewis",
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -59,11 +59,11 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single write transaction (with inc operation)",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        await db.client.put({
-          TableName: db.tableName,
+        await table.client.put({
+          TableName: table.tableName,
           Item: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -73,7 +73,7 @@ describe("DFWriteTransaction", () => {
           },
         });
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -94,8 +94,8 @@ describe("DFWriteTransaction", () => {
           age: 11,
         });
 
-        const postTestGet = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -114,11 +114,11 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single write transaction (with $setIfNotExists operation - doesn't exist)",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        await db.client.put({
-          TableName: db.tableName,
+        await table.client.put({
+          TableName: table.tableName,
           Item: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -127,7 +127,7 @@ describe("DFWriteTransaction", () => {
           },
         });
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -148,8 +148,8 @@ describe("DFWriteTransaction", () => {
           age: 11,
         });
 
-        const postTestGet = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -168,11 +168,11 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single write transaction (with $setIfNotExists operation - already exists)",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        await db.client.put({
-          TableName: db.tableName,
+        await table.client.put({
+          TableName: table.tableName,
           Item: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -182,7 +182,7 @@ describe("DFWriteTransaction", () => {
           },
         });
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -203,8 +203,8 @@ describe("DFWriteTransaction", () => {
           age: 10, // shouldn't update, already exists
         });
 
-        const postTestGet = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -223,11 +223,11 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single write transaction (with $inc + $remove operation)",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        await db.client.put({
-          TableName: db.tableName,
+        await table.client.put({
+          TableName: table.tableName,
           Item: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -238,7 +238,7 @@ describe("DFWriteTransaction", () => {
           },
         });
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -260,8 +260,8 @@ describe("DFWriteTransaction", () => {
           age: 11,
         });
 
-        const postTestGet = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -280,11 +280,11 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single write transaction with condition + success handler (condition passes)",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        const preTestGet = await db.client.get({
-          TableName: db.tableName,
+        const preTestGet = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -302,7 +302,7 @@ describe("DFWriteTransaction", () => {
           });
         });
         const errorHandler = jest.fn();
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -324,8 +324,8 @@ describe("DFWriteTransaction", () => {
         expect(successHandler).toHaveBeenCalled();
         expect(errorHandler).not.toHaveBeenCalled();
 
-        const postTestGet = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -344,11 +344,11 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single write transaction with condition + error handler (condition fails)",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        const preTestGet = await db.client.get({
-          TableName: db.tableName,
+        const preTestGet = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -360,7 +360,7 @@ describe("DFWriteTransaction", () => {
         const errorHandler = jest.fn(() => {
           throw new Error("Custom message from error handler");
         });
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -384,8 +384,8 @@ describe("DFWriteTransaction", () => {
         expect(successHandler).not.toHaveBeenCalled();
         expect(errorHandler).toHaveBeenCalled();
 
-        const postTestGet = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -396,11 +396,11 @@ describe("DFWriteTransaction", () => {
     );
 
     it.concurrent("Executes single delete transaction", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
-      await db.client.put({
-        TableName: db.tableName,
+      await table.client.put({
+        TableName: table.tableName,
         Item: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -409,8 +409,8 @@ describe("DFWriteTransaction", () => {
         },
       });
 
-      const preTestGet = await db.client.get({
-        TableName: db.tableName,
+      const preTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -418,7 +418,7 @@ describe("DFWriteTransaction", () => {
       });
       expect(preTestGet.Item).not.toBeUndefined();
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Delete",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -428,8 +428,8 @@ describe("DFWriteTransaction", () => {
       const transRes = await transaction.commit();
       expect(transRes).toEqual(null);
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -441,11 +441,11 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single delete transaction with condition (condition fails)",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        await db.client.put({
-          TableName: db.tableName,
+        await table.client.put({
+          TableName: table.tableName,
           Item: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -454,8 +454,8 @@ describe("DFWriteTransaction", () => {
           },
         });
 
-        const preTestGet = await db.client.get({
-          TableName: db.tableName,
+        const preTestGet = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -463,7 +463,7 @@ describe("DFWriteTransaction", () => {
         });
         expect(preTestGet.Item).not.toBeUndefined();
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Delete",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -477,8 +477,8 @@ describe("DFWriteTransaction", () => {
           "The conditional request failed"
         );
 
-        const postTestGet = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -490,10 +490,10 @@ describe("DFWriteTransaction", () => {
     );
 
     it.concurrent("Throws if operation type is unknown", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "UnknownThing" as any,
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -513,11 +513,11 @@ describe("DFWriteTransaction", () => {
 
   describe("set/list/map single operations", () => {
     it.concurrent("Stores object", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
-      const preTestGet = await db.client.get({
-        TableName: db.tableName,
+      const preTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -525,7 +525,7 @@ describe("DFWriteTransaction", () => {
       });
       expect(preTestGet.Item).toBeUndefined();
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -552,8 +552,8 @@ describe("DFWriteTransaction", () => {
         },
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -572,11 +572,11 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Updates object properties", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
-      const preTestGet = await db.client.get({
-        TableName: db.tableName,
+      const preTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -585,7 +585,7 @@ describe("DFWriteTransaction", () => {
       expect(preTestGet.Item).toBeUndefined();
 
       // create item
-      await db
+      await table
         .createTransaction({
           type: "Update",
           key: {
@@ -603,7 +603,7 @@ describe("DFWriteTransaction", () => {
         })
         .commit();
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -629,8 +629,8 @@ describe("DFWriteTransaction", () => {
         },
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -649,10 +649,10 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Stores list", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -673,8 +673,8 @@ describe("DFWriteTransaction", () => {
         addresses: [{ street: "123 Fake St", city: "Fakeville" }],
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -690,11 +690,11 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Replaces list", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
       // create document with list
-      await db
+      await table
         .createTransaction({
           type: "Update",
           key: {
@@ -710,7 +710,7 @@ describe("DFWriteTransaction", () => {
         .commit();
 
       // replace list
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -738,8 +738,8 @@ describe("DFWriteTransaction", () => {
         ],
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -758,11 +758,11 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Appends to list", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
       // create document with list
-      await db
+      await table
         .createTransaction({
           type: "Update",
           key: {
@@ -778,7 +778,7 @@ describe("DFWriteTransaction", () => {
         .commit();
 
       // replace list
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -809,8 +809,8 @@ describe("DFWriteTransaction", () => {
         ],
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -830,11 +830,11 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Deletes from list", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
       // create document with list
-      await db
+      await table
         .createTransaction({
           type: "Update",
           key: {
@@ -854,7 +854,7 @@ describe("DFWriteTransaction", () => {
         .commit();
 
       // replace list
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -877,8 +877,8 @@ describe("DFWriteTransaction", () => {
         addresses: [{ street: "Other street 2", city: "Mo town" }],
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -894,11 +894,11 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Creates & modifies lists literals", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
       // create document with list
-      await db
+      await table
         .createTransaction({
           type: "Update",
           key: {
@@ -914,7 +914,7 @@ describe("DFWriteTransaction", () => {
         .commit();
 
       // replace list
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -938,8 +938,8 @@ describe("DFWriteTransaction", () => {
         favouriteNumbers: [2, 4, 6, 8, 28, 23, 100],
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -955,11 +955,11 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Updates literal within list", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
       // create document with list
-      await db
+      await table
         .createTransaction({
           type: "Update",
           key: {
@@ -975,7 +975,7 @@ describe("DFWriteTransaction", () => {
         .commit();
 
       // replace list
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -1005,8 +1005,8 @@ describe("DFWriteTransaction", () => {
         favouriteNumbers: [0, 4, 12, 8, 28],
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -1022,11 +1022,11 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Updates object within list", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
       // create document with list
-      await db
+      await table
         .createTransaction({
           type: "Update",
           key: {
@@ -1046,7 +1046,7 @@ describe("DFWriteTransaction", () => {
         .commit();
 
       // replace list
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -1072,8 +1072,8 @@ describe("DFWriteTransaction", () => {
         ],
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -1093,11 +1093,11 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Stores set", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
       // create document with set
-      const createdEntity = await db
+      const createdEntity = await table
         .createTransaction({
           type: "Update",
           key: {
@@ -1120,8 +1120,8 @@ describe("DFWriteTransaction", () => {
         favouriteNumbers: new Set([2, 4, 6, 8, 28]),
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -1137,11 +1137,11 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Adds to set (exists and not exists)", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
       // create document with set
-      await db
+      await table
         .createTransaction({
           type: "Update",
           key: {
@@ -1156,7 +1156,7 @@ describe("DFWriteTransaction", () => {
         })
         .commit();
 
-      const createdEntity = await db
+      const createdEntity = await table
         .createTransaction({
           type: "Update",
           key: {
@@ -1181,8 +1181,8 @@ describe("DFWriteTransaction", () => {
         favouriteNumbers: new Set([2, 4, 6, 8, 28, 100, 128]),
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -1198,11 +1198,11 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Removes from set (exists and not exists)", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
       // create document with set
-      await db
+      await table
         .createTransaction({
           type: "Update",
           key: {
@@ -1217,7 +1217,7 @@ describe("DFWriteTransaction", () => {
         })
         .commit();
 
-      const createdEntity = await db
+      const createdEntity = await table
         .createTransaction({
           type: "Update",
           key: {
@@ -1242,8 +1242,8 @@ describe("DFWriteTransaction", () => {
         favouriteNumbers: new Set([2, 4, 8, 28]),
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -1260,10 +1260,10 @@ describe("DFWriteTransaction", () => {
 
     it.concurrent("Stores list with complex properties", async () => {
       // TODO: types prevent this, although the code will handle it
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -1316,8 +1316,8 @@ describe("DFWriteTransaction", () => {
         ],
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -1349,11 +1349,11 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Sets value of nested object", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
-      const preTestGet = await db.client.get({
-        TableName: db.tableName,
+      const preTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -1362,7 +1362,7 @@ describe("DFWriteTransaction", () => {
       expect(preTestGet.Item).toBeUndefined();
 
       // create item
-      await db
+      await table
         .createTransaction({
           type: "Update",
           key: {
@@ -1379,7 +1379,7 @@ describe("DFWriteTransaction", () => {
         })
         .commit();
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -1405,8 +1405,8 @@ describe("DFWriteTransaction", () => {
         },
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -1425,11 +1425,11 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Sets value of nested list entry", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
-      const preTestGet = await db.client.get({
-        TableName: db.tableName,
+      const preTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -1438,7 +1438,7 @@ describe("DFWriteTransaction", () => {
       expect(preTestGet.Item).toBeUndefined();
 
       // create item
-      await db
+      await table
         .createTransaction({
           type: "Update",
           key: {
@@ -1453,7 +1453,7 @@ describe("DFWriteTransaction", () => {
         })
         .commit();
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -1474,8 +1474,8 @@ describe("DFWriteTransaction", () => {
         favouriteNumbers: [1, 6, 3],
       });
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -1493,11 +1493,11 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Performs operations on complex object properties",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        const preTestGet = await db.client.get({
-          TableName: db.tableName,
+        const preTestGet = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -1506,7 +1506,7 @@ describe("DFWriteTransaction", () => {
         expect(preTestGet.Item).toBeUndefined();
 
         // create item
-        await db
+        await table
           .createTransaction({
             type: "Update",
             key: {
@@ -1529,7 +1529,7 @@ describe("DFWriteTransaction", () => {
           })
           .commit();
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -1564,8 +1564,8 @@ describe("DFWriteTransaction", () => {
           },
         });
 
-        const postTestGet = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -1592,18 +1592,18 @@ describe("DFWriteTransaction", () => {
 
   describe("Basic multiple operations", () => {
     it.concurrent("Executes write+write transaction", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
-      const preTestGet1 = await db.client.get({
-        TableName: db.tableName,
+      const preTestGet1 = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
         },
       });
-      const preTestGet2 = await db.client.get({
-        TableName: db.tableName,
+      const preTestGet2 = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user2`,
           _SK: "USER#user2",
@@ -1612,7 +1612,7 @@ describe("DFWriteTransaction", () => {
       expect(preTestGet1.Item).toBeUndefined();
       expect(preTestGet2.Item).toBeUndefined();
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -1642,15 +1642,15 @@ describe("DFWriteTransaction", () => {
         lastName: "Lewis",
       });
 
-      const postTestGet1 = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet1 = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
         },
       });
-      const postTestGet2 = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet2 = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user2`,
           _SK: "USER#user2",
@@ -1673,18 +1673,18 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes write+write with embedded condition transaction (condition fails)",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        const preTestGet1 = await db.client.get({
-          TableName: db.tableName,
+        const preTestGet1 = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
         });
-        const preTestGet2 = await db.client.get({
-          TableName: db.tableName,
+        const preTestGet2 = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user2`,
             _SK: "USER#user2",
@@ -1693,7 +1693,7 @@ describe("DFWriteTransaction", () => {
         expect(preTestGet1.Item).toBeUndefined();
         expect(preTestGet2.Item).toBeUndefined();
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -1724,15 +1724,15 @@ describe("DFWriteTransaction", () => {
           "ConditionalCheckFailed"
         );
 
-        const postTestGet1 = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet1 = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
         });
-        const postTestGet2 = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet2 = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user2`,
             _SK: "USER#user2",
@@ -1746,18 +1746,18 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes write+write and retrieves value for both return handlers",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        const preTestGet1 = await db.client.get({
-          TableName: db.tableName,
+        const preTestGet1 = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
         });
-        const preTestGet2 = await db.client.get({
-          TableName: db.tableName,
+        const preTestGet2 = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user2`,
             _SK: "USER#user2",
@@ -1770,7 +1770,7 @@ describe("DFWriteTransaction", () => {
         const successHandler2 = jest.fn();
         const successHandler3 = jest.fn();
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -1819,15 +1819,15 @@ describe("DFWriteTransaction", () => {
           successHandler2.mock.calls[0][0] === successHandler3.mock.calls[0][0]
         ).toBe(true);
 
-        const postTestGet1 = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet1 = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
         });
-        const postTestGet2 = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet2 = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user2`,
             _SK: "USER#user2",
@@ -1839,13 +1839,13 @@ describe("DFWriteTransaction", () => {
     );
 
     it.concurrent("Executes delete+delete transaction", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
       // add some test data
-      await db.client.batchWrite({
+      await table.client.batchWrite({
         RequestItems: {
-          [db.tableName]: [
+          [table.tableName]: [
             {
               PutRequest: {
                 Item: {
@@ -1870,7 +1870,7 @@ describe("DFWriteTransaction", () => {
         },
       });
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Delete",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -1888,15 +1888,15 @@ describe("DFWriteTransaction", () => {
       await transaction.commit();
 
       // check both items were deleted
-      const postTestGet1 = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet1 = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
         },
       });
-      const postTestGet2 = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet2 = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user2`,
           _SK: "USER#user2",
@@ -1907,12 +1907,12 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Executes write+delete transaction", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
       // add some test data
-      await db.client.put({
-        TableName: db.tableName,
+      await table.client.put({
+        TableName: table.tableName,
         Item: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -1922,7 +1922,7 @@ describe("DFWriteTransaction", () => {
       });
 
       // swap out user 1 for user 2, as a transaction
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user2`,
@@ -1950,15 +1950,15 @@ describe("DFWriteTransaction", () => {
       });
 
       // check user 1 was deleted & user 2 was created
-      const postTestGet1 = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet1 = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
         },
       });
-      const postTestGet2 = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet2 = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user2`,
           _SK: "USER#user2",
@@ -1969,11 +1969,11 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Executes write+conditionCheck transaction", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
       // update user 2 (primary) delete user 1 (secondary) and condition check user 3 (secondary)
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user2`,
@@ -2004,8 +2004,8 @@ describe("DFWriteTransaction", () => {
       });
 
       // check user 1 was deleted & user 2 was created
-      const postTestGet1 = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet1 = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user3`,
           _SK: "USER#user3",
@@ -2017,12 +2017,12 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes write+delete+conditionCheck transaction",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
         // add some test data
-        await db.client.put({
-          TableName: db.tableName,
+        await table.client.put({
+          TableName: table.tableName,
           Item: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -2032,7 +2032,7 @@ describe("DFWriteTransaction", () => {
         });
 
         // update user 2 (primary) delete user 1 (secondary) and condition check user 3 (secondary)
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user2`,
@@ -2070,15 +2070,15 @@ describe("DFWriteTransaction", () => {
         });
 
         // check user 1 was deleted & user 2 was created
-        const postTestGet1 = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet1 = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
           },
         });
-        const postTestGet2 = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet2 = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user3`,
             _SK: "USER#user3",
@@ -2092,10 +2092,10 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Throws if error handler doesn't throw or request a re-try (multiple items)",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -2132,10 +2132,10 @@ describe("DFWriteTransaction", () => {
     );
 
     it.concurrent("Throws if operation type is unknown", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -2165,10 +2165,10 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Throws if .commitWithReturn() is called on a transaction where the primary operation is not 'update'",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Delete",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -2184,12 +2184,12 @@ describe("DFWriteTransaction", () => {
 
   describe("Pre-commit handlers", () => {
     it.concurrent("Runs pre-commit handlers for single operation", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
       const eventLog: string[] = [];
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -2228,8 +2228,8 @@ describe("DFWriteTransaction", () => {
         "post-commit",
       ]);
 
-      const postTestGet = await db.client.get({
-        TableName: db.tableName,
+      const postTestGet = await table.client.get({
+        TableName: table.tableName,
         Key: {
           _PK: `${keyPrefix}USER#user1`,
           _SK: "USER#user1",
@@ -2252,13 +2252,13 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Re-tries transaction if error handler returns RETRY_TRANSACTION (single item)",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
         // set up some data
         // this will mean we need to label our user "user2" with a transaction auto retry
-        await db.client.put({
-          TableName: db.tableName,
+        await table.client.put({
+          TableName: table.tableName,
           Item: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -2267,7 +2267,7 @@ describe("DFWriteTransaction", () => {
           },
         });
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -2305,8 +2305,8 @@ describe("DFWriteTransaction", () => {
           lastName: "Bot",
         });
 
-        const postTestGet = await db.client.get({
-          TableName: db.tableName,
+        const postTestGet = await table.client.get({
+          TableName: table.tableName,
           Key: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -2324,10 +2324,10 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Throws if error handler doesn't throw or request a re-try",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -2354,10 +2354,10 @@ describe("DFWriteTransaction", () => {
     );
 
     it.concurrent("Throws if too many re-tries are attempted", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
-      const transaction = db.createTransaction({
+      const transaction = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -2385,13 +2385,13 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Re-tries transaction if error handler returns RETRY_TRANSACTION (with secondary ops)",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
         // set up some data
         // this will mean we need to label our user "user2" with a transaction auto retry
-        await db.client.put({
-          TableName: db.tableName,
+        await table.client.put({
+          TableName: table.tableName,
           Item: {
             _PK: `${keyPrefix}USER#user1`,
             _SK: "USER#user1",
@@ -2400,7 +2400,7 @@ describe("DFWriteTransaction", () => {
           },
         });
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -2454,10 +2454,10 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Throws if too many re-tries are attempted (with secondaryOps)",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
-        const transaction = db.createTransaction({
+        const transaction = table.createTransaction({
           type: "Update",
           key: {
             _PK: `${keyPrefix}USER#user1`,
@@ -2497,10 +2497,10 @@ describe("DFWriteTransaction", () => {
 
   describe("Merging transactions", () => {
     it.concurrent("Merges transactions", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
-      const transaction1 = db.createTransaction({
+      const transaction1 = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user1`,
@@ -2522,7 +2522,7 @@ describe("DFWriteTransaction", () => {
         },
       });
 
-      const transaction2 = db.createTransaction({
+      const transaction2 = table.createTransaction({
         type: "Update",
         key: {
           _PK: `${keyPrefix}USER#user2`,
@@ -2566,7 +2566,7 @@ describe("DFWriteTransaction", () => {
     it.skip(
       "Loads a bunch of data",
       async () => {
-        const db = new DFDB(testDbConfig);
+        const table = new DFTable(testDbConfig);
         const keyPrefix = genTestPrefix();
 
         const itemsToInsert = 10 * 1000;
@@ -2582,7 +2582,7 @@ describe("DFWriteTransaction", () => {
             // run 3 streams in parallel
             putRequests1.push({
               PutRequest: {
-                TableName: db.tableName,
+                TableName: table.tableName,
                 Item: {
                   _PK: `${keyPrefix}MOCKDATA#DATAITEM${batch * 25 + i}`,
                   _SK: `MOCKDATA#DATAITEM${batch * 25 + i}`,
@@ -2595,7 +2595,7 @@ describe("DFWriteTransaction", () => {
             });
             putRequests2.push({
               PutRequest: {
-                TableName: db.tableName,
+                TableName: table.tableName,
                 Item: {
                   _PK: `${keyPrefix}MOCKDATA#DATAITEM${batch * 25 + i + 1}`,
                   _SK: `MOCKDATA#DATAITEM${batch * 25 + i + 2}`,
@@ -2608,7 +2608,7 @@ describe("DFWriteTransaction", () => {
             });
             putRequests3.push({
               PutRequest: {
-                TableName: db.tableName,
+                TableName: table.tableName,
                 Item: {
                   _PK: `${keyPrefix}MOCKDATA#DATAITEM${batch * 25 + i + 2}`,
                   _SK: `MOCKDATA#DATAITEM${batch * 25 + i + 2}`,
@@ -2623,19 +2623,19 @@ describe("DFWriteTransaction", () => {
 
           console.time("Writing 3 batches");
           await Promise.all([
-            db.client.batchWrite({
+            table.client.batchWrite({
               RequestItems: {
-                [db.tableName]: putRequests1,
+                [table.tableName]: putRequests1,
               },
             }),
-            db.client.batchWrite({
+            table.client.batchWrite({
               RequestItems: {
-                [db.tableName]: putRequests2,
+                [table.tableName]: putRequests2,
               },
             }),
-            db.client.batchWrite({
+            table.client.batchWrite({
               RequestItems: {
-                [db.tableName]: putRequests3,
+                [table.tableName]: putRequests3,
               },
             }),
           ]);
@@ -2651,7 +2651,7 @@ describe("DFWriteTransaction", () => {
     );
 
     it.skip("Scans all items", async () => {
-      const db = new DFDB(testDbConfig);
+      const table = new DFTable(testDbConfig);
 
       let items: DynamoItem[] = [];
 
@@ -2660,8 +2660,8 @@ describe("DFWriteTransaction", () => {
       let lastEvaluatedKey: undefined | DynamoItem = undefined;
       let numPages: number;
       for (numPages = 1; numPages <= PAGE_LIMIT; numPages++) {
-        const scanRes: ScanCommandOutput = await db.client.scan({
-          TableName: db.tableName,
+        const scanRes: ScanCommandOutput = await table.client.scan({
+          TableName: table.tableName,
           // Limit: 5,
           ExclusiveStartKey: lastEvaluatedKey,
           ReturnConsumedCapacity: "TOTAL",

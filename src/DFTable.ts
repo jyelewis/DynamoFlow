@@ -18,18 +18,18 @@ import {
 import { DFWritePrimaryOperation } from "./types/operations.js";
 import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
 
-export interface DFDBConfig {
+export interface DFTableConfig {
   tableName: string;
   region?: string;
   endpoint?: string;
   GSIs?: string[];
 }
 
-export class DFDB {
+export class DFTable {
   public readonly client: DynamoDBDocument;
   public readonly collections: Record<string, DFCollection<any>> = {};
 
-  constructor(public readonly config: DFDBConfig) {
+  constructor(public readonly config: DFTableConfig) {
     const rawDbClient = new DynamoDBClient({
       region: config.region,
       endpoint: config.endpoint,

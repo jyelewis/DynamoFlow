@@ -1,4 +1,4 @@
-import { DFDB } from "../../DFDB.js";
+import { DFTable } from "../../DFTable.js";
 import { testDbConfig } from "../../testHelpers/testDbConfigs.js";
 import { genTestPrefix } from "../../testHelpers/genTestPrefix.js";
 import { DFLastUpdatedExt } from "../DFLastUpdatedExt.js";
@@ -13,9 +13,9 @@ interface User {
 }
 describe("DFLastUpdatedExt", () => {
   it.concurrent("Populates last updated field on insert", async () => {
-    const db = new DFDB(testDbConfig);
+    const table = new DFTable(testDbConfig);
 
-    const usersCollection = db.createCollection<User>({
+    const usersCollection = table.createCollection<User>({
       name: `${genTestPrefix()}-user`,
       partitionKey: "id",
       extensions: [new DFLastUpdatedExt("lastUpdated")],
