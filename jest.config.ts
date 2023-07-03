@@ -8,5 +8,5 @@ module.exports = {
     "(.*)\\.js$": "$1",
   },
   setupFiles: ["<rootDir>/jest.globalSetup.ts"],
-  maxWorkers: 3
+  maxWorkers: 4,
 };

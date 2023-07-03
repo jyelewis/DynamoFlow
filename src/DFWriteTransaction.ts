@@ -1,7 +1,7 @@
 import { DFTable } from "./DFTable.js";
 import { UpdateCommandInput, DeleteCommandInput } from "@aws-sdk/lib-dynamodb";
 import { TransactionCanceledException } from "@aws-sdk/client-dynamodb";
-import { WriteTransactionFailedError } from "./errors/WriteTransactionFailedError.js";
+import { DFWriteTransactionFailedError } from "./errors/DFWriteTransactionFailedError.js";
 import { DynamoItem, DynamoValue, RETRY_TRANSACTION } from "./types/types.js";
 import {
   DFConditionCheckOperation,
@@ -99,7 +99,7 @@ export class DFWriteTransaction {
         // make Dynamo errors consistent with multi-op error handling
         let userFacingError = e;
         if (e.name === "ConditionalCheckFailedException") {
-          userFacingError = new DFConditionalCheckFailedException();
+          userFacingError = new DFConditionalCheckFailedException(this);
         }
 
         if (!this.primaryOperation.errorHandler) {
@@ -116,7 +116,10 @@ export class DFWriteTransaction {
         switch (errorHandlerResponse) {
           case RETRY_TRANSACTION: {
             if (this.retryCount >= MAX_TRANSACTION_RETRIES) {
-              throw new WriteTransactionFailedError("Max retries exceeded");
+              throw new DFWriteTransactionFailedError(
+                this,
+                "Max retries exceeded"
+              );
             }
             this.retryCount += 1;
 
@@ -140,7 +143,8 @@ export class DFWriteTransaction {
 
       /* istanbul ignore next */
       if (!e.CancellationReasons) {
-        throw new WriteTransactionFailedError(
+        throw new DFWriteTransactionFailedError(
+          this,
           `Transaction failed, but no CancellationReasons were provided: ${e}`
         );
       }
@@ -152,9 +156,8 @@ export class DFWriteTransaction {
 
         // make errors consistent between multi and single transactions
         let userFacingError: any = reason;
-        if (reason.Code === "ConditionalCheckFailedException") {
-          // TODO: test me :)
-          userFacingError = new DFConditionalCheckFailedException();
+        if (reason.Code === "ConditionalCheckFailed") {
+          userFacingError = new DFConditionalCheckFailedException(this);
         }
 
         const op =
@@ -171,7 +174,10 @@ export class DFWriteTransaction {
           switch (errorHandlerResponse) {
             case RETRY_TRANSACTION: {
               if (this.retryCount >= MAX_TRANSACTION_RETRIES) {
-                throw new WriteTransactionFailedError("Max retries exceeded");
+                throw new DFWriteTransactionFailedError(
+                  this,
+                  "Max retries exceeded"
+                );
               }
               this.retryCount += 1;
 
@@ -186,7 +192,7 @@ export class DFWriteTransaction {
       }
 
       // we'd generally expect an errorHandler to exist, but it's possible to add an operation that can fail with no handler
-      throw new WriteTransactionFailedError(e);
+      throw new DFWriteTransactionFailedError(this, e);
     }
 
     // everything below here is to support onSuccess handlers & return value
@@ -269,6 +275,23 @@ export class DFWriteTransaction {
     }
 
     return (await this.commit()) as DynamoItem;
+  }
+
+  public toString(): string {
+    let retStr = `Primary operation: ${JSON.stringify(
+      this.primaryOperation,
+      null,
+      2
+    )}\n\n`;
+    if (this.secondaryOperations.length > 0) {
+      retStr += `Secondary operations: ${JSON.stringify(
+        this.secondaryOperations,
+        null,
+        2
+      )}\n`;
+    }
+
+    return retStr;
   }
 
   private async executeSingle(): Promise<DynamoItem | null> {

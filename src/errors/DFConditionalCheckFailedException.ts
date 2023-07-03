@@ -1,7 +1,8 @@
+import { DFWriteTransaction } from "../DFWriteTransaction.js";
+
 export class DFConditionalCheckFailedException extends Error {
-  constructor() {
-    // TODO: could this take and print the transaction it was trying to commit?
+  constructor(transaction: DFWriteTransaction) {
     // TODO: Similar error class for malformed requests
-    super(`Conditional check failed`);
+    super(`Conditional check failed!\n${transaction.toString()}`);
   }
 }

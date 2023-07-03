@@ -5,6 +5,7 @@ import { genTestPrefix } from "../testHelpers/genTestPrefix.js";
 import { DFUpdateOperation } from "../types/operations.js";
 import { RETRY_TRANSACTION } from "../types/types.js";
 import { setTimeout } from "timers/promises";
+import { DFConditionalCheckFailedException } from "../errors/DFConditionalCheckFailedException.js";
 
 describe("DFWriteTransaction", () => {
   describe("Basic single operations", () => {
@@ -2057,6 +2058,46 @@ describe("DFWriteTransaction", () => {
       });
       expect(postTestGet1.Item).toEqual(undefined);
     });
+
+    it.concurrent(
+      "Executes write+conditionCheck transaction (condition check fails)",
+      async () => {
+        const table = new DFTable(testDbConfig);
+        const keyPrefix = genTestPrefix();
+
+        // update user 2 (primary) delete user 1 (secondary) and condition check user 3 (secondary)
+        const transaction = table.createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user2`,
+            _SK: "USER#user2",
+          },
+          updateValues: {
+            firstName: "Joe",
+            lastName: "Bot",
+          },
+        });
+        transaction.addSecondaryOperation({
+          type: "ConditionCheck",
+          key: {
+            _PK: `${keyPrefix}USER#user3`,
+            _SK: "USER#user3",
+          },
+          condition: {
+            _PK: { $exists: true },
+          },
+          errorHandler: (e) => {
+            expect(e).toBeInstanceOf(DFConditionalCheckFailedException);
+
+            throw new Error("Conditional check caught and re-thrown");
+          },
+        });
+
+        await expect(transaction.commit()).rejects.toThrow(
+          "Conditional check caught and re-thrown"
+        );
+      }
+    );
 
     it.concurrent(
       "Executes write+delete+conditionCheck transaction",
