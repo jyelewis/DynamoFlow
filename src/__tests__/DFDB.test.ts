@@ -91,6 +91,7 @@ describe("DFDB", () => {
             id: ++lastId,
             firstName,
             lastName,
+            fullName: "",
           },
           {
             allowOverwrite: true,
@@ -384,6 +385,23 @@ describe("DFDB", () => {
         },
       });
       expect(user1?.fullName).toEqual("Walter White");
+    });
+
+    it.concurrent("Can run a full table migration", async () => {
+      await allItemsProm;
+
+      // we pretty much just expect this to not crash as it is a common pattern
+      // this also checks our optimistic locking works - we are performing another scan & update in the concurrent test above
+      await db.fullTableScan({
+        returnRaw: true, // so we can trigger manual migrations
+        processBatch: async (items: FullTableScanItem[]) => {
+          await Promise.all(
+            items.map(({ entity, collection }) =>
+              collection?.migrateEntityWithMetadata(entity)
+            )
+          );
+        },
+      });
     });
   });
 

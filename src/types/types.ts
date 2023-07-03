@@ -73,6 +73,8 @@ export type FullTableScan = {
   ) => Promise<void | typeof STOP_SCAN>;
   filter?: Record<string, DFConditionValue>;
   maxBatchSize?: number;
+  dynamoIndex?: string;
+  returnRaw?: boolean; // useful for forcing migrations
   segment?: number;
   totalSegments?: number;
 };

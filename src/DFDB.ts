@@ -95,6 +95,8 @@ export class DFDB {
         Segment: scanParams.segment,
         TotalSegments: scanParams.totalSegments,
         ReturnConsumedCapacity: "TOTAL",
+        // TODO: test
+        IndexName: scanParams.dynamoIndex,
       });
       lastEvaluatedKey = scanRes.LastEvaluatedKey;
       if (lastEvaluatedKey === undefined) {
@@ -121,6 +123,13 @@ export class DFDB {
               // return the raw item if we don't know whats going on with it
               collection: undefined,
               entity: item,
+            };
+          }
+
+          if (scanParams.returnRaw) {
+            return {
+              collection: collectionForItem,
+              entity: item as SafeEntity<any>,
             };
           }
 

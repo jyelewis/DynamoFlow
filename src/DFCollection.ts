@@ -241,7 +241,9 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   }
 
   // TODO: test me
-  public async migrateEntity(entityWithMetadata: DynamoItem): Promise<Entity> {
+  public async migrateEntityWithMetadata(
+    entityWithMetadata: DynamoItem
+  ): Promise<Entity> {
     const createPrimaryOperation: () => DFWritePrimaryOperation = () => {
       const { _PK, _SK, ...nonKeyProperties } = entityWithMetadata;
       return {
@@ -269,8 +271,8 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
             const res = await this.db.client.get({
               TableName: this.db.tableName,
               Key: {
-                _PK: nonKeyProperties,
-                _SK: nonKeyProperties,
+                _PK,
+                _SK,
               },
             });
 
@@ -341,7 +343,9 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
     if (entityRequiresMigration) {
       // run migrations
-      entityWithMetadata = await this.migrateEntity(entityWithMetadata);
+      entityWithMetadata = await this.migrateEntityWithMetadata(
+        entityWithMetadata
+      );
     }
 
     // run postRetrieve hooks
