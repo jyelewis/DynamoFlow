@@ -14,6 +14,7 @@ export const testFullTableScanDbConfig: DFTableConfig = {
   region: "ap-southeast-2",
   tableName: "DynamoFlow-tests-full-table-scan",
   endpoint: "http://localhost:8000",
+  GSIs: ["GSI1"],
 };
 
 export const testCreatedInTestDbConfig: DFTableConfig = {

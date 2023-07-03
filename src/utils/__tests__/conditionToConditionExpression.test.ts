@@ -274,4 +274,37 @@ describe("conditionToConditionExpression", () => {
       }
     );
   });
+
+  it.concurrent("$raw", () => {
+    return testExpression(
+      conditionToConditionExpression({
+        name: {
+          $raw: {
+            conditionExpression: "contains(#name, :name)",
+            expressionAttributeNames: {
+              "#name": "name",
+            },
+            expressionAttributeValues: {
+              ":name": "and sons",
+            },
+          },
+        },
+      }),
+      {
+        conditionExpression: "(contains(#name, :name))",
+        expressionAttributeNames: {
+          "#name": "name",
+        },
+        expressionAttributeValues: {
+          ":name": "and sons",
+        },
+      }
+    );
+  });
+
+  it("Throws if condition is not recognised", () => {
+    expect(() =>
+      conditionToConditionExpression({ name: { $foo: "bar" } })
+    ).toThrowError(`Unknown filter/condition 'name: {"$foo":"bar"}'`);
+  });
 });

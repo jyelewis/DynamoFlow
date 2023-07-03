@@ -7,6 +7,6 @@ export function isDynamoValue(x: any): x is DynamoValue {
     typeof x === "object" &&
     x !== null &&
     Object.keys(x).length > 0 &&
-    Object.keys(x)[0]?.startsWith("$")
+    Object.keys(x)[0]!.startsWith("$")
   );
 }

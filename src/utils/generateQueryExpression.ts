@@ -152,7 +152,9 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
 
     // how'd they get here?
     throw new Error(
-      `Invalid query where filter provided "${sortKey}": ${sortValue}`
+      `Invalid query where filter provided "${sortKey}": ${JSON.stringify(
+        sortValue
+      )}`
     );
   }
 

@@ -1,9 +1,6 @@
 import { DFTable } from "./DFTable.js";
 import { UpdateCommandInput, DeleteCommandInput } from "@aws-sdk/lib-dynamodb";
-import {
-  CancellationReason,
-  TransactionCanceledException,
-} from "@aws-sdk/client-dynamodb";
+import { TransactionCanceledException } from "@aws-sdk/client-dynamodb";
 import { WriteTransactionFailedError } from "./errors/WriteTransactionFailedError.js";
 import { DynamoItem, DynamoValue, RETRY_TRANSACTION } from "./types/types.js";
 import {
@@ -16,6 +13,7 @@ import {
 import assert from "assert";
 import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
 import { isDynamoValue } from "./utils/isDynamoValue.js";
+import { DFConditionalCheckFailedException } from "./errors/DFConditionalCheckFailedException.js";
 
 const MAX_TRANSACTION_RETRIES = 5;
 
@@ -98,18 +96,18 @@ export class DFWriteTransaction {
           ? await this.resultTransformer(item)
           : item;
       } catch (e: any) {
-        // make errors all look like CancellationReasons so we are consistent with multi-op error handling
-        const cancellationReason: CancellationReason = {
-          Code: e.name,
-          Message: e.name,
-        };
+        // make Dynamo errors consistent with multi-op error handling
+        let userFacingError = e;
+        if (e.name === "ConditionalCheckFailedException") {
+          userFacingError = new DFConditionalCheckFailedException();
+        }
 
         if (!this.primaryOperation.errorHandler) {
-          throw new WriteTransactionFailedError(e as Error);
+          throw userFacingError;
         }
 
         const errorHandlerResponse = await this.primaryOperation.errorHandler(
-          cancellationReason,
+          userFacingError,
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore: intentionally didn't want to type PrimaryOperation down to the op type - too much complexity
           this.primaryOperation
@@ -134,7 +132,7 @@ export class DFWriteTransaction {
 
     try {
       await this.executeMany();
-    } catch (e: unknown) {
+    } catch (e: any) {
       /* istanbul ignore next */
       if (!(e instanceof TransactionCanceledException)) {
         throw e;
@@ -152,13 +150,23 @@ export class DFWriteTransaction {
           continue; // no errors here
         }
 
+        // make errors consistent between multi and single transactions
+        let userFacingError: any = reason;
+        if (reason.Code === "ConditionalCheckFailedException") {
+          // TODO: test me :)
+          userFacingError = new DFConditionalCheckFailedException();
+        }
+
         const op =
           index === 0
             ? this.primaryOperation
             : this.secondaryOperations[index - 1];
 
         if (op.errorHandler) {
-          const errorHandlerResponse = op.errorHandler(e, op as any);
+          const errorHandlerResponse = op.errorHandler(
+            userFacingError,
+            op as any
+          );
 
           switch (errorHandlerResponse) {
             case RETRY_TRANSACTION: {
@@ -333,13 +341,14 @@ export class DFWriteTransaction {
     Object.keys(op.updateValues).forEach((key) => {
       // process keys into a format we can use in the expression
       // this is mostly for dot or array notation for updating sub items
+
+      // [0] is not a valid expression on its own, index lookups must be part of a larger expression
+      if (key.startsWith("[")) {
+        throw new Error("Invalid key, cannot start index lookup");
+      }
       const keyAttributeParts: string[] = [];
       key.split(/[.[]/g).forEach((subKey) => {
         if (subKey.endsWith("]")) {
-          if (keyAttributeParts.length === 0) {
-            throw new Error("Invalid key, cannot start index lookup");
-          }
-
           // index notation [1] - extract integer
           const indexValue = parseInt(subKey.replace("]", ""), 10);
 

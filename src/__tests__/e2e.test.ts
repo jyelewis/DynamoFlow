@@ -61,7 +61,6 @@ describe("E2E tests", () => {
       name: `${genTestPrefix()}-project`,
       partitionKey: "ownerUserId",
       sortKey: "id",
-      extensions: [],
     });
 
     // insert a user
@@ -229,7 +228,6 @@ describe("E2E tests", () => {
       name: `${genTestPrefix()}-site`,
       partitionKey: "portalId",
       sortKey: "id",
-      extensions: [],
     });
     const surveysCollection = table.createCollection<Survey>({
       name: `${genTestPrefix()}-survey`,

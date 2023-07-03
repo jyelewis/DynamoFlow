@@ -11,6 +11,7 @@ import {
   DeleteTableCommand,
   ListTablesCommand,
 } from "@aws-sdk/client-dynamodb";
+import { DFSecondaryIndexExt } from "../extensions/DFSecondaryIndexExt.js";
 
 describe("DFTable", () => {
   describe("Basics", () => {
@@ -46,7 +47,6 @@ describe("DFTable", () => {
       const collection = table.createCollection<MyEntity>({
         name: "MyCollection",
         partitionKey: "id",
-        extensions: [],
       });
 
       expect(collection.table).toStrictEqual(table);
@@ -74,12 +74,18 @@ describe("DFTable", () => {
     const usersCollection = table.createCollection<User>({
       name: "users",
       partitionKey: "id",
-      extensions: [],
+      extensions: [
+        new DFSecondaryIndexExt({
+          indexName: "usersByLastName",
+          partitionKey: "lastName",
+          sortKey: "id",
+          dynamoIndex: "GSI1",
+        }),
+      ],
     });
     const projectsCollection = table.createCollection<Project>({
       name: "projects",
       partitionKey: "id",
-      extensions: [],
     });
 
     // annoying trick to get 'beforeAll' behaviour from jest.concurrent
@@ -402,6 +408,31 @@ describe("DFTable", () => {
           );
         },
       });
+    });
+
+    it.concurrent("Runs a scan on a secondary index", async () => {
+      await allItemsProm;
+
+      let numBatchesReceived = 0;
+      let itemsReceived: Array<any> = [];
+
+      await table.fullTableScan({
+        dynamoIndex: "GSI1",
+        processBatch: async (items: FullTableScanItem[]) => {
+          itemsReceived = itemsReceived.concat(items);
+          numBatchesReceived += 1;
+        },
+      });
+
+      expect(numBatchesReceived).toEqual(1);
+
+      // check we got all items once
+      expect(itemsReceived.length).toEqual(10); // should only get items included in the sparse index
+      expect(
+        // should only get things from the users collection
+        // as that is the only thing that writes to this index
+        itemsReceived.every((x) => x.collection === usersCollection)
+      ).toEqual(true);
     });
   });
 

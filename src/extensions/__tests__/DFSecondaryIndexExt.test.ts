@@ -294,7 +294,6 @@ describe("DFSecondaryIndexExt", () => {
       const usersCollectionPreIndex = table.createCollection<User>({
         name: userCollectionName,
         partitionKey: "id",
-        extensions: [],
       });
 
       const usersCollection = table.createCollection<User>({

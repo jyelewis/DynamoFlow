@@ -115,7 +115,9 @@ export function conditionToConditionExpression(
         return;
       }
 
-      throw new Error(`Unknown filter/condition '${key}: ${conditionValue}'`);
+      throw new Error(
+        `Unknown filter/condition '${key}: ${JSON.stringify(conditionValue)}'`
+      );
     }
 
     // raw value, default to $eq

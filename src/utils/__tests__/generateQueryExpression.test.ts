@@ -373,4 +373,19 @@ describe("generateQueryExpression", () => {
       generateQueryExpression("things", ["a"], ["b", "c"], query)
     ).toThrowError(`Invalid query where filter provided "c": function () { }`);
   });
+
+  it("Throws if the where clause contains an invalid expression", () => {
+    const query: Query<any> = {
+      where: {
+        a: "a",
+        b: "b",
+        c: { $unknownOperation: true },
+      },
+    };
+    expect(() =>
+      generateQueryExpression("things", ["a"], ["b", "c"], query)
+    ).toThrowError(
+      `Invalid query where filter provided "c": {"$unknownOperation":true}`
+    );
+  });
 });

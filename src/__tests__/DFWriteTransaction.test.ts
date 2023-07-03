@@ -1,10 +1,9 @@
 import { DFTable } from "../DFTable.js";
 import { CancellationReason } from "@aws-sdk/client-dynamodb";
-import { ScanCommandOutput } from "@aws-sdk/lib-dynamodb/dist-types/commands/ScanCommand.js";
 import { testDbConfig } from "../testHelpers/testDbConfigs.js";
 import { genTestPrefix } from "../testHelpers/genTestPrefix.js";
 import { DFUpdateOperation } from "../types/operations.js";
-import { DynamoItem, RETRY_TRANSACTION } from "../types/types.js";
+import { RETRY_TRANSACTION } from "../types/types.js";
 import { setTimeout } from "timers/promises";
 
 describe("DFWriteTransaction", () => {
@@ -474,7 +473,7 @@ describe("DFWriteTransaction", () => {
           },
         });
         await expect(transaction.commit()).rejects.toThrow(
-          "The conditional request failed"
+          "Conditional check failed"
         );
 
         const postTestGet = await table.client.get({
@@ -1588,6 +1587,51 @@ describe("DFWriteTransaction", () => {
         });
       }
     );
+
+    it.concurrent(
+      "Throws if trying to use an update key starting with an index expression",
+      async () => {
+        const table = new DFTable(testDbConfig);
+        const keyPrefix = genTestPrefix();
+
+        const transaction = table.createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            lastName: "Lewis",
+            // invalid update expression
+            "[0]": "test",
+          },
+        });
+
+        await expect(transaction.commit()).rejects.toThrow(
+          "Invalid key, cannot start index lookup"
+        );
+      }
+    );
+
+    it.concurrent("Throws if update expression is not recognised", async () => {
+      const table = new DFTable(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          lastName: { $unknownOperation: 123 },
+        },
+      });
+
+      await expect(transaction.commit()).rejects.toThrow(
+        `Invalid update operation: {"$unknownOperation":123}`
+      );
+    });
   });
 
   describe("Basic multiple operations", () => {
@@ -2560,129 +2604,5 @@ describe("DFWriteTransaction", () => {
     });
 
     it.todo("Runs pre-commit for all items in merged transaction");
-  });
-
-  describe("Just for fun: scans", () => {
-    it.skip(
-      "Loads a bunch of data",
-      async () => {
-        const table = new DFTable(testDbConfig);
-        const keyPrefix = genTestPrefix();
-
-        const itemsToInsert = 10 * 1000;
-
-        for (let batch = 0; batch < itemsToInsert / 25; batch += 3) {
-          const putRequests1: any[] = [];
-          const putRequests2: any[] = [];
-          const putRequests3: any[] = [];
-
-          for (let i = 0; i < 25; i++) {
-            // can only write 25 items at a time (totaling a max of ~16mb)
-            // ~<4kb per item
-            // run 3 streams in parallel
-            putRequests1.push({
-              PutRequest: {
-                TableName: table.tableName,
-                Item: {
-                  _PK: `${keyPrefix}MOCKDATA#DATAITEM${batch * 25 + i}`,
-                  _SK: `MOCKDATA#DATAITEM${batch * 25 + i}`,
-                  hello: "world",
-                  // largerString: "this is a larger string. ".repeat(150),
-                  smallString: "this is a smaller string".repeat(5),
-                  i,
-                },
-              },
-            });
-            putRequests2.push({
-              PutRequest: {
-                TableName: table.tableName,
-                Item: {
-                  _PK: `${keyPrefix}MOCKDATA#DATAITEM${batch * 25 + i + 1}`,
-                  _SK: `MOCKDATA#DATAITEM${batch * 25 + i + 2}`,
-                  hello: "world",
-                  // largerString: "this is a larger string. ".repeat(150),
-                  smallString: "this is a smaller string".repeat(5),
-                  i,
-                },
-              },
-            });
-            putRequests3.push({
-              PutRequest: {
-                TableName: table.tableName,
-                Item: {
-                  _PK: `${keyPrefix}MOCKDATA#DATAITEM${batch * 25 + i + 2}`,
-                  _SK: `MOCKDATA#DATAITEM${batch * 25 + i + 2}`,
-                  hello: "world",
-                  // largerString: "this is a larger string. ".repeat(150),
-                  smallString: "this is a smaller string".repeat(5),
-                  i,
-                },
-              },
-            });
-          }
-
-          console.time("Writing 3 batches");
-          await Promise.all([
-            table.client.batchWrite({
-              RequestItems: {
-                [table.tableName]: putRequests1,
-              },
-            }),
-            table.client.batchWrite({
-              RequestItems: {
-                [table.tableName]: putRequests2,
-              },
-            }),
-            table.client.batchWrite({
-              RequestItems: {
-                [table.tableName]: putRequests3,
-              },
-            }),
-          ]);
-          console.time("Writing batch");
-
-          if (batch % 30 === 0) {
-            console.log(`Wrote ${batch}/${itemsToInsert / 25} batches`);
-          }
-        }
-        // 10 min timeout
-      },
-      1000 * 60 * 10
-    );
-
-    it.skip("Scans all items", async () => {
-      const table = new DFTable(testDbConfig);
-
-      let items: DynamoItem[] = [];
-
-      const PAGE_LIMIT = 100;
-      let rcusUsed = 0;
-      let lastEvaluatedKey: undefined | DynamoItem = undefined;
-      let numPages: number;
-      for (numPages = 1; numPages <= PAGE_LIMIT; numPages++) {
-        const scanRes: ScanCommandOutput = await table.client.scan({
-          TableName: table.tableName,
-          // Limit: 5,
-          ExclusiveStartKey: lastEvaluatedKey,
-          ReturnConsumedCapacity: "TOTAL",
-          // Segment: 1,
-          // TotalSegments: 5,
-        });
-        items = items.concat(scanRes.Items as DynamoItem[]);
-        rcusUsed += scanRes.ConsumedCapacity?.CapacityUnits || 0;
-
-        lastEvaluatedKey = scanRes.LastEvaluatedKey;
-        if (!lastEvaluatedKey) {
-          break;
-        }
-      }
-      if (lastEvaluatedKey) {
-        throw new Error("Too many pages");
-      }
-
-      console.log(
-        `Scanned ${items.length} items; over ${numPages} pages; consuming ${rcusUsed} RCUs`
-      );
-    });
   });
 });

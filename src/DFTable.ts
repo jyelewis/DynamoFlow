@@ -95,7 +95,6 @@ export class DFTable {
         Segment: scanParams.segment,
         TotalSegments: scanParams.totalSegments,
         ReturnConsumedCapacity: "TOTAL",
-        // TODO: test
         IndexName: scanParams.dynamoIndex,
       });
       lastEvaluatedKey = scanRes.LastEvaluatedKey;

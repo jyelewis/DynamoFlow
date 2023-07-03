@@ -12,35 +12,32 @@ import {
 import { PartialQueryExpression } from "./types/internalTypes.js";
 import { generateIndexStrings } from "./utils/generateIndexStrings.js";
 import { generateQueryExpression } from "./utils/generateQueryExpression.js";
-import {
-  DFCondition,
-  DFUpdateOperation,
-  DFWritePrimaryOperation,
-} from "./types/operations.js";
+import { DFCondition, DFWritePrimaryOperation } from "./types/operations.js";
 import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
+import { DFConditionalCheckFailedException } from "./errors/DFConditionalCheckFailedException.js";
 
 export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
   name: string;
   partitionKey: (string & keyof Entity) | Array<string & keyof Entity>;
   sortKey?: (string & keyof Entity) | Array<string & keyof Entity>;
-  // TODO: can this be optional?
-  extensions: DFBaseExtension<Entity>[];
+  extensions?: DFBaseExtension<Entity>[];
 }
 
 export class DFCollection<Entity extends SafeEntity<Entity>> {
+  public extensions: DFBaseExtension<Entity>[];
   constructor(
     public readonly table: DFTable,
     public readonly config: DFCollectionConfig<Entity>
   ) {
     if (this.config.name in this.table.collections) {
-      // TODO: test me
       throw new Error(
-        `Collection '${this.config.name}' already exists in this DB`
+        `Collection '${this.config.name}' already exists in this table`
       );
     }
 
     // init extensions
-    config.extensions.forEach((extension) => extension.init(this));
+    this.extensions = config.extensions || [];
+    this.extensions.forEach((extension) => extension.init(this));
   }
 
   public insertTransaction(
@@ -51,7 +48,6 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   ): DFWriteTransaction {
     const entityWithMetadata: EntityWithMetadata = { ...newEntity };
 
-    // TODO: test this
     // used for table scans so we can call the appropriate collection to handle this entity
     entityWithMetadata["_c"] = this.config.name;
     // allows extensions to perform optimistic locking on entities
@@ -67,7 +63,6 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       entityWithMetadata
     );
     const transaction = this.table.createTransaction({
-      // TODO: TS doesn't seem to warn about invalid properties here...
       type: "Update",
       key: {
         _PK: pk,
@@ -83,17 +78,17 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
           }
         : undefined,
       errorHandler: (e: any) => {
-        if (e.Code === "ConditionalCheckFailedException") {
+        if (e instanceof DFConditionalCheckFailedException) {
           throw new Error("Entity already exists");
         }
 
         /* istanbul ignore next */
         throw e;
       },
-    } as DFUpdateOperation);
+    });
 
     // run extensions
-    this.config.extensions.map((extension) =>
+    this.extensions.map((extension) =>
       extension.onInsert(entityWithMetadata, transaction)
     );
 
@@ -122,7 +117,6 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       ...updateFields,
     } as Record<string, UpdateValue>;
 
-    // TODO: test this
     // increment write count in every transaction
     // this allows extensions to perform optimistic locking on entities
     // and re-try if we are interrupting their operation with this write
@@ -147,7 +141,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
         _PK: { $exists: true },
       },
       errorHandler: (e: any) => {
-        if (e.Code === "ConditionalCheckFailedException") {
+        if (e instanceof DFConditionalCheckFailedException) {
           throw new Error("Entity does not exist");
         }
 
@@ -157,7 +151,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     });
 
     // run extensions
-    this.config.extensions.map((extension) =>
+    this.extensions.map((extension) =>
       extension.onUpdate(key, updateFieldsWithMetadata, transaction)
     );
 
@@ -216,10 +210,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     }
 
     return await Promise.all(
-      entities.map((x) =>
-        // TODO: test me
-        this.entityFromRawDynamoItem(x)
-      )
+      entities.map((x) => this.entityFromRawDynamoItem(x))
     );
   }
 
@@ -235,7 +226,8 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     return items[0];
   }
 
-  // TODO: test me
+  // basically the same as entityFromDynamo row, however it will ALWAYS run migrations
+  // entityFromDynamoRow will only run migrations if an extension says it's out of date
   public async migrateEntityWithMetadata(
     entityWithMetadata: DynamoItem
   ): Promise<Entity> {
@@ -260,34 +252,34 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
         // and this error handler will be run
         // the error-handler re-reads from the DB and tries the migration again
         errorHandler: async (e: any) => {
-          if (e.Code === "ConditionalCheckFailedException") {
-            // re-fetch the full entity from the database
-            const res = await this.table.client.get({
-              TableName: this.table.tableName,
-              Key: {
-                _PK,
-                _SK,
-              },
-            });
-
-            if (res.Item === undefined) {
-              throw new Error(
-                "Item was deleted while migration was in progress, migration cancelled"
-              );
-            }
-
-            // store the latest version of this entity
-            entityWithMetadata = res.Item;
-
-            // reset Transaction state
-            transaction.primaryOperation = createPrimaryOperation();
-
-            // request a retry
-            return RETRY_TRANSACTION;
+          /* istanbul ignore next */
+          if (!(e instanceof DFConditionalCheckFailedException)) {
+            throw e; // not our business
           }
 
-          /* istanbul ignore next */
-          throw e;
+          // re-fetch the full entity from the database
+          const res = await this.table.client.get({
+            TableName: this.table.tableName,
+            Key: {
+              _PK,
+              _SK,
+            },
+          });
+
+          if (res.Item === undefined) {
+            throw new Error(
+              "Item was deleted while migration was in progress, migration cancelled"
+            );
+          }
+
+          // store the latest version of this entity
+          entityWithMetadata = res.Item;
+
+          // reset Transaction state
+          transaction.primaryOperation = createPrimaryOperation();
+
+          // request a retry
+          return RETRY_TRANSACTION;
         },
       };
     };
@@ -299,18 +291,19 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     // we can commit all migrates in one go
     transaction.addPreCommitHandler(async () => {
       await Promise.all(
-        this.config.extensions.map((extension) =>
+        this.extensions.map((extension) =>
           extension.migrateEntity(entityWithMetadata, transaction)
         )
       );
     });
 
+    // TODO: if a transaction.commit() fails, it would be nice to print the query
     const migratedEntity = await transaction.commitWithReturn();
 
     // check our migration was successful
     // if this returns false, it's possible we are stuck in a loop with an extension
     // that will never be happy with this entity
-    for (const ext of this.config.extensions) {
+    for (const ext of this.extensions) {
       if (ext.entityRequiresMigration(migratedEntity)) {
         throw new Error(
           `Extension ${ext.constructor.name} still requires migration after migration was run`
@@ -321,7 +314,6 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     return this.entityFromRawDynamoItem(migratedEntity);
   }
 
-  // TODO: test me with migrations
   // runs postRetrieve hooks for all extensions & strip metadata
   public async entityFromRawDynamoItem(
     entityWithMetadata: DynamoItem
@@ -329,7 +321,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     // TODO: this is often run in a loop, if many items need updating it would be more efficient to batch write them
 
     // check with all extensions to see if any think the entity needs to be migrated
-    const entityRequiresMigration = this.config.extensions.some((extension) =>
+    const entityRequiresMigration = this.extensions.some((extension) =>
       extension.entityRequiresMigration(
         entityWithMetadata as EntityWithMetadata
       )
@@ -344,7 +336,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
     // run postRetrieve hooks
     await Promise.all(
-      this.config.extensions.map((extension) =>
+      this.extensions.map((extension) =>
         extension.postRetrieve(entityWithMetadata)
       )
     );
@@ -373,7 +365,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       );
     }
 
-    for (const extension of this.config.extensions) {
+    for (const extension of this.extensions) {
       // ask this extension if they can provide an expression for this query
       const queryExpression = await extension.expressionForQuery(query);
       if (queryExpression !== undefined) {

@@ -18,7 +18,6 @@ describe("DFMigrationExt", () => {
     const usersCollection = table.createCollection<User>({
       name: collectionName, // re-use the same collection name as if this application is restarting with new code each test
       partitionKey: "id",
-      extensions: [],
     });
 
     await Promise.all([
