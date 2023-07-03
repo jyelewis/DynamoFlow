@@ -2204,8 +2204,7 @@ describe("DFWriteTransaction", () => {
         eventLog.push("pre-commit handler 1");
 
         // modify the transaction
-        const op = transaction.primaryOperation as DFUpdateOperation;
-        op.updateValues.firstName += "2";
+        transaction.primaryUpdateOperation.updateValues.firstName += "2";
       });
       transaction.addPreCommitHandler(async () => {
         eventLog.push("pre-commit handler 2");

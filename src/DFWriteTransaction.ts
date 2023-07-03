@@ -45,6 +45,12 @@ export class DFWriteTransaction {
     public primaryOperation: DFWritePrimaryOperation
   ) {}
 
+  public get primaryUpdateOperation(): DFUpdateOperation {
+    // TODO: test me
+    assert(this.primaryOperation.type === "Update");
+    return this.primaryOperation as DFUpdateOperation;
+  }
+
   public addSecondaryOperation(op: DFWriteSecondaryOperation) {
     // or even take a callback to handle an error
     this.secondaryOperations.push(op);

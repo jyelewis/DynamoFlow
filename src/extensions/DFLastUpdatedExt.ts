@@ -3,6 +3,7 @@ import { DFWriteTransaction } from "../DFWriteTransaction.js";
 import { EntityWithMetadata, SafeEntity, UpdateValue } from "../types/types.js";
 
 // TODO: this is very much just a POC, re-write when appropriate
+// TODO: does this require migrations?
 
 export class DFLastUpdatedExt<
   Entity extends SafeEntity<Entity>
@@ -13,11 +14,12 @@ export class DFLastUpdatedExt<
 
   public onInsert(
     entity: EntityWithMetadata,
-    _transaction: DFWriteTransaction
+    transaction: DFWriteTransaction
   ): void | Promise<void> {
-    // TODO: kinda want to only write this if the item didn't already exist?
-    // no clean way to write this expression with our system
-    entity[this.fieldName as string] = new Date().toISOString();
+    transaction.primaryUpdateOperation.updateValues[this.fieldName as string] =
+      {
+        $setIfNotExists: new Date().toISOString(),
+      };
   }
 
   public onUpdate(

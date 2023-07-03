@@ -14,6 +14,8 @@ import { DFCollection } from "../DFCollection.js";
 import { DFUpdateOperation } from "../types/operations.js";
 import { isDynamoValue } from "../utils/isDynamoValue.js";
 
+// TODO: not ready for production use, needs more testing
+
 interface DFSecondaryIndexExtConfig<Entity extends SafeEntity<Entity>> {
   indexName: string;
   dynamoIndex: "GSI1" | "GSI2" | "GSI3" | "GSI4" | "GSI5";
@@ -274,24 +276,22 @@ export class DFSecondaryIndexExt<
       !this.config.includeInIndex ||
       this.config.includeInIndex[0](entity as Entity);
 
-    const primaryUpdateOperation =
-      transaction.primaryOperation as DFUpdateOperation;
-
     // update the GSI keys
     if (includeInIndex) {
       // compute our new keys & write
-      primaryUpdateOperation.updateValues[this.indexPartitionKey] =
+      transaction.primaryUpdateOperation.updateValues[this.indexPartitionKey] =
         `${this.collection.config.name}#` +
         generateKeyString(this.pkKeys, entity);
-      primaryUpdateOperation.updateValues[this.indexSortKey] =
+      transaction.primaryUpdateOperation.updateValues[this.indexSortKey] =
         `${this.collection.config.name}#` +
         generateKeyString(this.skKeys, entity);
     } else {
       // removing the key values on our GSI will remove this item from the index
-      primaryUpdateOperation.updateValues[this.indexPartitionKey] = {
-        $remove: true,
-      };
-      primaryUpdateOperation.updateValues[this.indexSortKey] = {
+      transaction.primaryUpdateOperation.updateValues[this.indexPartitionKey] =
+        {
+          $remove: true,
+        };
+      transaction.primaryUpdateOperation.updateValues[this.indexSortKey] = {
         $remove: true,
       };
     }
