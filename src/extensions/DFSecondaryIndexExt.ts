@@ -71,7 +71,7 @@ export class DFSecondaryIndexExt<
   public onInsert(
     entity: EntityWithMetadata,
     _transaction: DFWriteTransaction
-  ): void | Promise<void> {
+  ): void {
     if (
       this.config.includeInIndex &&
       !this.config.includeInIndex[0](entity as Entity)
@@ -90,11 +90,11 @@ export class DFSecondaryIndexExt<
       generateKeyString(this.skKeys, entity);
   }
 
-  public async onUpdate(
+  public onUpdate(
     key: Partial<Entity>,
     entityUpdate: Record<string, UpdateValue>,
     transaction: DFWriteTransaction
-  ): Promise<void> {
+  ): void {
     // collect all the properties we can
     // we'll use these to compute the new GSI keys if needed & possible
     // if needed & not possible, we'll fetch the entity from Dynamo first to get all existing fields

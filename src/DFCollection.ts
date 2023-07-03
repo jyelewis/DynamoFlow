@@ -94,10 +94,8 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     } as DFUpdateOperation);
 
     // run extensions
-    await Promise.all(
-      this.config.extensions.map((extension) =>
-        extension.onInsert(entityWithMetadata, transaction)
-      )
+    this.config.extensions.map((extension) =>
+      extension.onInsert(entityWithMetadata, transaction)
     );
 
     // gotta still run postRetrieves on writes
@@ -161,10 +159,8 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     });
 
     // run extensions
-    await Promise.all(
-      this.config.extensions.map((extension) =>
-        extension.onUpdate(key, updateFieldsWithMetadata, transaction)
-      )
+    this.config.extensions.map((extension) =>
+      extension.onUpdate(key, updateFieldsWithMetadata, transaction)
     );
 
     // gotta still run postRetrieves on writes
@@ -258,7 +254,6 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
         },
         // ensure this entity already exists, we're expecting this to be an update
         condition: {
-          _PK: { $exists: true },
           _wc: { $eq: entityWithMetadata._wc },
         },
         // the _wc check above provides an optimistic lock for our migration

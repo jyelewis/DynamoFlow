@@ -27,22 +27,21 @@ export abstract class DFBaseExtension<Entity extends SafeEntity<Entity>> {
     this._collection = collection;
   }
 
-  // TODO: can we make these not async anymore?
   public onInsert(
     entity: EntityWithMetadata,
     transaction: DFWriteTransaction
-  ): void | Promise<void> {}
+  ): void {}
 
   public onUpdate(
     key: Partial<Entity>,
     entityUpdate: Record<string, UpdateValue>,
     transaction: DFWriteTransaction
-  ): void | Promise<void> {}
+  ): void {}
 
   public onDelete(
     key: Partial<Entity>,
     transaction: DFWriteTransaction
-  ): void | Promise<void> {}
+  ): void {}
 
   public expressionForQuery(
     query: Query<Entity>
