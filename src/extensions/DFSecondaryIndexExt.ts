@@ -152,10 +152,7 @@ export class DFSecondaryIndexExt<
     // check whether we already have the required fields to perform checks & generate keys
     // boolean: 'key' does not have a literal update value
     const requiredValueMissing = (key: string) =>
-      !(key in entityWithSomeProperties) ||
-      // TODO: does this make sense?
-      (typeof entityWithSomeProperties[key] === "object" &&
-        entityWithSomeProperties[key] !== null);
+      !(key in entityWithSomeProperties);
 
     const mustPreFetchEntity =
       this.pkKeys.some(requiredValueMissing) ||
@@ -183,6 +180,7 @@ export class DFSecondaryIndexExt<
         // this allows us to optimistic lock the entity against our preFetched item
         // if someone updates this item between our read & write,
         // the write will fail and entire operation be re-tried
+        /* istanbul ignore next */
         const primaryCondition = primaryUpdateOperation.condition || {};
         primaryUpdateOperation.condition = primaryCondition;
 
