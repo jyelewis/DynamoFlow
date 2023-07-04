@@ -1,5 +1,4 @@
 import { DFTable } from "../DFTable.js";
-import { CancellationReason } from "@aws-sdk/client-dynamodb";
 import { testDbConfig } from "../testHelpers/testDbConfigs.js";
 import { genTestPrefix } from "../testHelpers/genTestPrefix.js";
 import { DFUpdateOperation } from "../types/operations.js";
@@ -2366,7 +2365,7 @@ describe("DFWriteTransaction", () => {
           condition: {
             _PK: { $exists: false },
           },
-          errorHandler: (err: CancellationReason, op: DFUpdateOperation) => {
+          errorHandler: (err, op: DFUpdateOperation) => {
             const currentUserNum = parseInt(
               (op.key as any)._PK.split("USER#user")[1],
               10
@@ -2499,7 +2498,7 @@ describe("DFWriteTransaction", () => {
           condition: {
             _PK: { $exists: false },
           },
-          errorHandler: (err: CancellationReason, op: DFUpdateOperation) => {
+          errorHandler: (err, op: DFUpdateOperation) => {
             const currentUserNum = parseInt(
               (op.key as any)._PK.split("USER#user")[1],
               10
