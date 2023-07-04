@@ -13,6 +13,8 @@ import { generateQueryExpression } from "../utils/generateQueryExpression.js";
 import { DFCollection } from "../DFCollection.js";
 import { DFUpdateOperation } from "../types/operations.js";
 import { isDynamoValue } from "../utils/isDynamoValue.js";
+import { DFConditionalCheckFailedException } from "../errors/DFConditionalCheckFailedException.js";
+import { ensureArray } from "../utils/ensureArray.js";
 
 // TODO: not ready for production use, needs more testing
 
@@ -32,20 +34,12 @@ export class DFSecondaryIndexExt<
   private readonly includeInIndexKeys: string[];
 
   public constructor(
-    private readonly config: DFSecondaryIndexExtConfig<Entity>
+    protected readonly config: DFSecondaryIndexExtConfig<Entity>
   ) {
     super();
 
-    this.pkKeys = Array.isArray(this.config.partitionKey)
-      ? this.config.partitionKey
-      : [this.config.partitionKey];
-    if (this.config.sortKey) {
-      this.skKeys = Array.isArray(this.config.sortKey)
-        ? this.config.sortKey
-        : [this.config.sortKey];
-    } else {
-      this.skKeys = [];
-    }
+    this.pkKeys = ensureArray(this.config.partitionKey);
+    this.skKeys = ensureArray(this.config.sortKey);
 
     this.includeInIndexKeys = this.config.includeInIndex
       ? (this.config.includeInIndex[1] as string[])
@@ -64,6 +58,22 @@ export class DFSecondaryIndexExt<
     if (!this.collection.table.config.GSIs.includes(this.config.dynamoIndex)) {
       throw new Error(
         `GSI '${this.config.dynamoIndex}' not defined for this DB`
+      );
+    }
+
+    const dynamoIndexAlreadyUsed = this.collection.extensions
+      // find any other GSI extensions
+      .filter((ext) => ext instanceof DFSecondaryIndexExt && ext !== this)
+      // check if they are using the same index as us
+      .some(
+        (ext) =>
+          (ext as DFSecondaryIndexExt<any>).config.dynamoIndex ===
+          this.config.dynamoIndex
+      );
+
+    if (dynamoIndexAlreadyUsed) {
+      throw new Error(
+        `'${this.config.dynamoIndex}' already used by another index on collection ${this.collection.config.name}`
       );
     }
   }
@@ -143,6 +153,7 @@ export class DFSecondaryIndexExt<
     // boolean: 'key' does not have a literal update value
     const requiredValueMissing = (key: string) =>
       !(key in entityWithSomeProperties) ||
+      // TODO: does this make sense?
       (typeof entityWithSomeProperties[key] === "object" &&
         entityWithSomeProperties[key] !== null);
 
@@ -189,10 +200,11 @@ export class DFSecondaryIndexExt<
         primaryUpdateOperation.errorHandler = (err) => {
           // if our conditional check failed (likely due to a writeCount mismatch) re-try the transaction
           // this will allow is to re-fetch the entity and re-try the update
-          if (err.Code === "ConditionalCheckFailedException") {
+          if (err instanceof DFConditionalCheckFailedException) {
             return RETRY_TRANSACTION;
           }
 
+          /* istanbul ignore next */
           throw err;
         };
       }

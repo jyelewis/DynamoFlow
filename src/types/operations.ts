@@ -1,5 +1,7 @@
 import { DynamoItem, DynamoValue, UpdateValue } from "./types.js";
 import { CancellationReason } from "@aws-sdk/client-dynamodb";
+import { DFConditionalCheckFailedException } from "../errors/DFConditionalCheckFailedException.js";
+import { DFWriteTransactionFailedError } from "../errors/DFWriteTransactionFailedError.js";
 
 export type DFConditionValue =
   | DynamoValue
@@ -50,7 +52,13 @@ export interface ConditionExpressionProperties {
 }
 
 export type DFWriteTransactionErrorHandler<Operation extends DFWriteOperation> =
-  (error: CancellationReason, op: Operation) => symbol | Promise<symbol>;
+  (
+    error:
+      | DFWriteTransactionFailedError
+      | DFConditionalCheckFailedException
+      | CancellationReason,
+    op: Operation
+  ) => symbol | Promise<symbol>;
 
 export type DFUpdateOperation = {
   type: "Update";
