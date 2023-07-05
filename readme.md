@@ -16,6 +16,8 @@ A practical & extendable DynamoDB client for TypeScript applications.
     1. Following [single table design](https://aws.amazon.com/blogs/database/single-table-vs-multi-table-design-in-amazon-dynamodb/), your application will likely only have one DFTable instance
     2. AWS credentials are loaded from the v3 SDK
 ```typescript
+import {DFTable} from 'dynaflow';
+
 const table = new DFTable({
   tableName: "my-application-table",
   GSIs: ["GSI1", "GSI2"], // GSIs can be added later if needed
