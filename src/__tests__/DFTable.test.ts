@@ -434,6 +434,23 @@ describe("DFTable", () => {
         itemsReceived.every((x) => x.collection === usersCollection)
       ).toEqual(true);
     });
+
+    it.concurrent("Runs a scan that matches no items", async () => {
+      await allItemsProm;
+
+      let numBatchesReceived = 0;
+
+      await table.fullTableScan({
+        filter: {
+          _c: "non-existent-collection",
+        },
+        processBatch: async () => {
+          numBatchesReceived += 1;
+        },
+      });
+
+      expect(numBatchesReceived).toEqual(0);
+    });
   });
 
   describe("createTableIfNotExists", () => {

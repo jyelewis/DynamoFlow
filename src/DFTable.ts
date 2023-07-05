@@ -151,10 +151,10 @@ export class DFTable {
     while (!isComplete) {
       const [processBatchResponse] = await Promise.all([
         // process the batch we have available
-        nextBatch.length > 0 ? scanParams.processBatch(nextBatch) : () => {},
+        nextBatch.length > 0 ? scanParams.processBatch(nextBatch) : undefined,
 
         // fetch the next batch in advance while we wait
-        // no-op of there is no data left to fetch
+        // no-op if there is no data left to fetch
         fetchNextBatch(),
       ]);
 

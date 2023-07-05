@@ -1,3 +1,10 @@
 # DynaFlow
 
-A Practical & extendable DynamoDB client for TypeScript applications.
+A practical & extendable DynamoDB client for TypeScript applications.
+
+## Why?
+
+## Features
+
+## Getting Started
+
