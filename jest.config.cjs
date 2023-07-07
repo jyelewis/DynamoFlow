@@ -1,5 +1,4 @@
 module.exports = {
-  preset: "ts-jest",
   verbose: false,
   bail: false,
   collectCoverage: true,
@@ -7,6 +6,9 @@ module.exports = {
   moduleNameMapper: {
     "(.*)\\.js$": "$1",
   },
-  setupFiles: ["<rootDir>/jest.globalSetup.ts"],
+  transform: {
+    "^.+\\.(t|j)sx?$": "@swc/jest",
+  },
+  setupFiles: ["<rootDir>/jest.globalSetup.js"],
   maxWorkers: 4,
 };

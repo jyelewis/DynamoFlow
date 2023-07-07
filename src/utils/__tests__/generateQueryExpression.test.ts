@@ -371,7 +371,7 @@ describe("generateQueryExpression", () => {
     };
     expect(() =>
       generateQueryExpression("things", ["a"], ["b", "c"], query)
-    ).toThrowError(`Invalid query where filter provided "c": function () { }`);
+    ).toThrowError(`Invalid query where filter provided "c": function`);
   });
 
   it("Throws if the where clause contains an invalid expression", () => {

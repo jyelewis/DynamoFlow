@@ -389,6 +389,7 @@ describe("DFTable", () => {
         where: {
           id: 1,
         },
+        consistentRead: true,
       });
       expect(user1?.fullName).toEqual("Walter White");
     });
@@ -453,78 +454,83 @@ describe("DFTable", () => {
     });
   });
 
-  describe("createTableIfNotExists", () => {
-    it.concurrent("Works with existing table", async () => {
-      const existingTable = new DFTable(testDbConfig);
+  // only run create table tests on DDB local
+  if (testDbConfig.endpoint !== undefined) {
+    describe("createTableIfNotExists", () => {
+      it.concurrent("Works with existing table", async () => {
+        const existingTable = new DFTable(testDbConfig);
 
-      // should exist both before and after this function is called
-      const tablesBeforeCreate = await existingTable.client.send(
-        new ListTablesCommand({})
-      );
-      expect(tablesBeforeCreate.TableNames).toContain(existingTable.tableName);
+        // should exist both before and after this function is called
+        const tablesBeforeCreate = await existingTable.client.send(
+          new ListTablesCommand({})
+        );
+        expect(tablesBeforeCreate.TableNames).toContain(
+          existingTable.tableName
+        );
 
-      await existingTable.createTableIfNotExists();
+        await existingTable.createTableIfNotExists();
 
-      const tablesAfterCreate = await existingTable.client.send(
-        new ListTablesCommand({})
-      );
-      expect(tablesAfterCreate.TableNames).toContain(existingTable.tableName);
+        const tablesAfterCreate = await existingTable.client.send(
+          new ListTablesCommand({})
+        );
+        expect(tablesAfterCreate.TableNames).toContain(existingTable.tableName);
+      });
+
+      it.concurrent("Works with non-existent table (no GSIs)", async () => {
+        const createdInTestTable = new DFTable(testCreatedInTestDbConfig);
+
+        // should exist both before and after this function is called
+        const tablesBeforeCreate = await createdInTestTable.client.send(
+          new ListTablesCommand({})
+        );
+        expect(tablesBeforeCreate.TableNames).not.toContain(
+          createdInTestTable.tableName
+        );
+
+        await createdInTestTable.createTableIfNotExists();
+
+        const tablesAfterCreate = await createdInTestTable.client.send(
+          new ListTablesCommand({})
+        );
+        expect(tablesAfterCreate.TableNames).toContain(
+          createdInTestTable.tableName
+        );
+
+        // delete the table so tests can run again
+        await createdInTestTable.client.send(
+          new DeleteTableCommand({
+            TableName: createdInTestTable.tableName,
+          })
+        );
+      });
+
+      it.concurrent("Works with non-existent table (with GSIs)", async () => {
+        const createdInTestTable = new DFTable(testCreatedInTestGSIsDbConfig);
+
+        // should exist both before and after this function is called
+        const tablesBeforeCreate = await createdInTestTable.client.send(
+          new ListTablesCommand({})
+        );
+        expect(tablesBeforeCreate.TableNames).not.toContain(
+          createdInTestTable.tableName
+        );
+
+        await createdInTestTable.createTableIfNotExists();
+
+        const tablesAfterCreate = await createdInTestTable.client.send(
+          new ListTablesCommand({})
+        );
+        expect(tablesAfterCreate.TableNames).toContain(
+          createdInTestTable.tableName
+        );
+
+        // delete the table so tests can run again
+        await createdInTestTable.client.send(
+          new DeleteTableCommand({
+            TableName: createdInTestTable.tableName,
+          })
+        );
+      });
     });
-
-    it.concurrent("Works with non-existent table (no GSIs)", async () => {
-      const createdInTestTable = new DFTable(testCreatedInTestDbConfig);
-
-      // should exist both before and after this function is called
-      const tablesBeforeCreate = await createdInTestTable.client.send(
-        new ListTablesCommand({})
-      );
-      expect(tablesBeforeCreate.TableNames).not.toContain(
-        createdInTestTable.tableName
-      );
-
-      await createdInTestTable.createTableIfNotExists();
-
-      const tablesAfterCreate = await createdInTestTable.client.send(
-        new ListTablesCommand({})
-      );
-      expect(tablesAfterCreate.TableNames).toContain(
-        createdInTestTable.tableName
-      );
-
-      // delete the table so tests can run again
-      await createdInTestTable.client.send(
-        new DeleteTableCommand({
-          TableName: createdInTestTable.tableName,
-        })
-      );
-    });
-
-    it.concurrent("Works with non-existent table (with GSIs)", async () => {
-      const createdInTestTable = new DFTable(testCreatedInTestGSIsDbConfig);
-
-      // should exist both before and after this function is called
-      const tablesBeforeCreate = await createdInTestTable.client.send(
-        new ListTablesCommand({})
-      );
-      expect(tablesBeforeCreate.TableNames).not.toContain(
-        createdInTestTable.tableName
-      );
-
-      await createdInTestTable.createTableIfNotExists();
-
-      const tablesAfterCreate = await createdInTestTable.client.send(
-        new ListTablesCommand({})
-      );
-      expect(tablesAfterCreate.TableNames).toContain(
-        createdInTestTable.tableName
-      );
-
-      // delete the table so tests can run again
-      await createdInTestTable.client.send(
-        new DeleteTableCommand({
-          TableName: createdInTestTable.tableName,
-        })
-      );
-    });
-  });
+  }
 });

@@ -1,10 +1,13 @@
 import { DFTableConfig } from "../DFTable.js";
 
+const testInProduction = false;
+
 // almost all tests should use this
 export const testDbConfig: DFTableConfig = {
   region: "ap-southeast-2",
-  tableName: "DynamoFlow-tests-primary",
-  endpoint: "http://localhost:8000",
+  tableName: testInProduction ? "DynamoFlowTests" : "DynamoFlow-tests-primary",
+  endpoint: testInProduction ? undefined : "http://localhost:8000",
+
   GSIs: ["GSI1", "GSI2"],
 };
 
@@ -13,7 +16,7 @@ export const testDbConfig: DFTableConfig = {
 export const testFullTableScanDbConfig: DFTableConfig = {
   region: "ap-southeast-2",
   tableName: "DynamoFlow-tests-full-table-scan",
-  endpoint: "http://localhost:8000",
+  endpoint: testInProduction ? undefined : "http://localhost:8000",
   GSIs: ["GSI1"],
 };
 

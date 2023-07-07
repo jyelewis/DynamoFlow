@@ -5,9 +5,11 @@ import {
 import { DFTable } from "./src/DFTable.js";
 
 async function jestGlobalSetup() {
-  // use mock AWS keys (required present for DDB Local)
-  process.env.AWS_ACCESS_KEY_ID = "XXXXXXXXXXXXX";
-  process.env.AWS_SECRET_ACCESS_KEY = "XXXXXXXXXXXXX";
+  // use mock AWS keys if not already present (required for DDB Local)
+  process.env.AWS_ACCESS_KEY_ID =
+    process.env.AWS_ACCESS_KEY_ID || "XXXXXXXXXXXXX";
+  process.env.AWS_SECRET_ACCESS_KEY =
+    process.env.AWS_SECRET_ACCESS_KEY || "XXXXXXXXXXXXX";
 
   // Ah-ha, I think this is running multiple times for multiple threads
   // create required test tables
