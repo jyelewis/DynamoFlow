@@ -5,6 +5,8 @@
 // - expressionForQuery - provide a queryExpression if appropriate to handle custom indexes
 // - postRetrieve (no pre available, also called on all other functions to check / transform object)
 
+// TODO:  update this list ^
+
 import { DFCollection } from "../DFCollection.js";
 import { DFWriteTransaction } from "../DFWriteTransaction.js";
 import {
@@ -16,8 +18,8 @@ import {
 import { PartialQueryExpression } from "../types/internalTypes.js";
 
 export abstract class DFBaseExtension<Entity extends SafeEntity<Entity>> {
-  private _collection: undefined | DFCollection<Entity>;
-  protected get collection(): DFCollection<Entity> {
+  public _collection: undefined | DFCollection<Entity>;
+  public get collection(): DFCollection<Entity> {
     if (!this._collection) {
       throw new Error("Collection not set, had this extension been init()'ed?");
     }

@@ -16,6 +16,19 @@ import { DFCondition, DFWritePrimaryOperation } from "./types/operations.js";
 import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
 import { DFConditionalCheckFailedException } from "./errors/DFConditionalCheckFailedException.js";
 
+// TODO: is this the most appropraite place for this type def
+export type DFCollectionSchema<Entity extends SafeEntity<Entity>> = Partial<{
+  [key in keyof Entity]: {
+    type: "string" | "number" | "boolean" | "object" | "array";
+    nullable?: boolean;
+    allowedValues?: string[] | number[];
+    references?: {
+      foreignField: string;
+      collection: DFCollection<SafeEntity<any>>;
+    };
+  };
+}>;
+
 export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
   name: string;
   partitionKey: (string & keyof Entity) | Array<string & keyof Entity>;
@@ -25,6 +38,17 @@ export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
 
 export class DFCollection<Entity extends SafeEntity<Entity>> {
   public extensions: DFBaseExtension<Entity>[];
+
+  // TODO: is this even a good idea? Do we expect many extensions to be using this?
+  //     zod, foreign reference, computed count
+  //     honestly, would rather leave this up to the consumer - they can walk our extensions and ask
+
+  // TODO: scrap this idea, move it to the AdminJS library
+  // populating this is completely optional
+  // extensions may populate this if they are given the schema
+  // it's initial purpose was to enable automated admin UI generation
+  public schema: DFCollectionSchema<Entity> = {};
+
   constructor(
     public readonly table: DFTable,
     public readonly config: DFCollectionConfig<Entity>
@@ -165,6 +189,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     keys: Partial<Entity>,
     updatedEntity: Partial<Record<keyof Entity, UpdateValue>>
   ): Promise<Entity> {
+    // TODO: check PKs aren't being updated, currently the base field updates but the key gets out of sync
     // TODO: is it dangerous to perform migrations after an update? What if we write to a new field then a migration takes the old field value
 
     const transaction = this.updateTransaction(keys, updatedEntity);

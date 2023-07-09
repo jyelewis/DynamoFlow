@@ -41,19 +41,6 @@ describe("E2E tests", () => {
           indexName: "email",
           partitionKey: "email",
         }),
-        // many more coming:
-        //     * Unique constraint
-        //     * Computed values
-        //     * TTL
-        //     * Local re-sort index
-        //     * Denormalised count
-        //     * Denormalise items (attach to another record in the table)
-        //     * Join (store items in another collections partition) so multiple entities can be fetched with a single query
-        //     * ZodValidation
-        //     * ModelVersion upgrades / data migrations
-        //     * Auto generated slug IDs (can check existence while writing & optimistic lock)
-        //     * Audit history
-        //     * Auto batching of reads/writes
       ],
     });
 

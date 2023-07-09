@@ -9,6 +9,7 @@
     "prettier": "prettier --check src/**/*.ts",
     "prettier:fix": "prettier --write src/**/*.ts",
     "eslint": "eslint src",
+    "build": "tsc",
     "start": "ts-node --esm",
     "test": "jest",
     "check": "pnpm run check:ts && pnpm run prettier && pnpm run eslint && pnpm run test"
@@ -28,6 +29,7 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.359.0",
     "@aws-sdk/lib-dynamodb": "^3.359.0",
-    "@aws-sdk/util-dynamodb": "^3.359.0"
+    "@aws-sdk/util-dynamodb": "^3.359.0",
+    "zod": "^3.21.4"
   }
 }

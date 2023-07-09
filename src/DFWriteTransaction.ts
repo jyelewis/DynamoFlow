@@ -362,6 +362,12 @@ export class DFWriteTransaction {
     };
     let index = 0;
     Object.keys(op.updateValues).forEach((key) => {
+      const updateValue = op.updateValues[key];
+      if (updateValue === undefined) {
+        // TODO: test me
+        return; // undefined = don't update this column
+      }
+
       // process keys into a format we can use in the expression
       // this is mostly for dot or array notation for updating sub items
 
@@ -391,8 +397,6 @@ export class DFWriteTransaction {
       // all names have already been populated in expressionAttributeNames
       // need to chop the '.' at the start from the first attribute name
       const keyAttributeStr = keyAttributeParts.join("").substring(1);
-
-      const updateValue = op.updateValues[key];
 
       // literal value update
       if (isDynamoValue(updateValue)) {
