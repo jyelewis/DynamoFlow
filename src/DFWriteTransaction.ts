@@ -44,7 +44,6 @@ export class DFWriteTransaction {
   ) {}
 
   public get primaryUpdateOperation(): DFUpdateOperation {
-    // TODO: test me
     assert(this.primaryOperation.type === "Update");
     return this.primaryOperation as DFUpdateOperation;
   }
@@ -364,7 +363,6 @@ export class DFWriteTransaction {
     Object.keys(op.updateValues).forEach((key) => {
       const updateValue = op.updateValues[key];
       if (updateValue === undefined) {
-        // TODO: test me
         return; // undefined = don't update this column
       }
 

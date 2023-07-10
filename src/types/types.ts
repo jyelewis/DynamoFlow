@@ -32,6 +32,7 @@ export type DynamoValue =
 
 export type DynamoItem = Record<string, DynamoValue>;
 export type UpdateValue =
+  | undefined
   | DynamoValue
   | { $inc: number }
   | { $remove: true }

@@ -1,5 +1,5 @@
 describe("DFZodValidationExt", () => {
-  it.skip("Defines schema for collection", () => {
+  it("Defines schema for collection", () => {
     // const userSchema = z.object({
     //   id: z.string(),
     //   firstName: z.string(),

@@ -56,6 +56,71 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent(
+      "Executes single write transaction (with undefined/unchanged values)",
+      async () => {
+        const table = new DFTable(testDbConfig);
+        const keyPrefix = genTestPrefix();
+
+        const preTestGet = await table.client.get({
+          TableName: table.tableName,
+          Key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+        });
+        expect(preTestGet.Item).toBeUndefined();
+
+        await table
+          .createTransaction({
+            type: "Update",
+            key: {
+              _PK: `${keyPrefix}USER#user1`,
+              _SK: "USER#user1",
+            },
+            updateValues: {
+              firstName: "Jye",
+              lastName: "Lewis",
+            },
+          })
+          .commit();
+
+        const transaction = table.createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Joe",
+            lastName: undefined,
+          },
+        });
+        const updatedEntity = await transaction.commit();
+
+        expect(updatedEntity).toEqual({
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+          firstName: "Joe",
+          lastName: "Lewis",
+        });
+
+        const postTestGet = await table.client.get({
+          TableName: table.tableName,
+          Key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+        });
+        expect(postTestGet.Item).toEqual({
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+          firstName: "Joe",
+          lastName: "Lewis",
+        });
+      }
+    );
+
+    it.concurrent(
       "Executes single write transaction (with inc operation)",
       async () => {
         const table = new DFTable(testDbConfig);
