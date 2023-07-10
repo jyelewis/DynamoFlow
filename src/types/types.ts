@@ -37,7 +37,6 @@ export type UpdateValue =
   | { $inc: number }
   | { $remove: true }
   | { $setIfNotExists: DynamoValue }
-  // TODO: make sure GSIs handle this gracefully
   | { $addItemsToSet: Set<string> | Set<number> }
   | { $removeItemsFromSet: Set<string> | Set<number> }
   | {
@@ -70,6 +69,7 @@ export interface Query<Entity extends SafeEntity<Entity>> {
   consistentRead?: boolean;
   index?: string;
   returnRaw?: boolean;
+  exclusiveStartKey?: any;
 }
 
 export interface FullTableScanItem {

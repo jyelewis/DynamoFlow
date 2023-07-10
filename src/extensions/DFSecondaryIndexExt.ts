@@ -16,8 +16,6 @@ import { isDynamoValue } from "../utils/isDynamoValue.js";
 import { DFConditionalCheckFailedException } from "../errors/DFConditionalCheckFailedException.js";
 import { ensureArray } from "../utils/ensureArray.js";
 
-// TODO: not ready for production use, needs more testing
-
 interface DFSecondaryIndexExtConfig<Entity extends SafeEntity<Entity>> {
   indexName: string;
   dynamoIndex: "GSI1" | "GSI2" | "GSI3" | "GSI4" | "GSI5";
@@ -113,6 +111,7 @@ export class DFSecondaryIndexExt<
       ...entityUpdate,
     } as EntityWithMetadata;
 
+    // ensure that any fields included in this index are given as literal value updates
     [...this.pkKeys, ...this.skKeys, ...this.includeInIndexKeys].forEach(
       (key) => {
         if (
@@ -164,16 +163,12 @@ export class DFSecondaryIndexExt<
     transaction.addPreCommitHandler(async () => {
       // on re-try this will always be true
       if (mustPreFetchEntity) {
-        // TODO: auto batching / request deduping
-        // TODO: we need the raw metadata which is being stripped here..
         const existingItem = (await this.collection.retrieveOne({
           where: key,
           returnRaw: true,
         })) as EntityWithMetadata;
         if (existingItem === null) {
-          throw new Error(
-            `Could not find entity with key ${JSON.stringify(key)}`
-          );
+          throw new Error("Entity does not exist");
         }
 
         // because we are reading before write, we need to add a condition expression
@@ -194,7 +189,6 @@ export class DFSecondaryIndexExt<
           ...entityUpdate,
         } as EntityWithMetadata;
 
-        // TODO: umm one error handler?
         primaryUpdateOperation.errorHandler = (err) => {
           // if our conditional check failed (likely due to a writeCount mismatch) re-try the transaction
           // this will allow is to re-fetch the entity and re-try the update
@@ -240,7 +234,6 @@ export class DFSecondaryIndexExt<
     return queryExpression;
   }
 
-  // TODO: test me
   public entityRequiresMigration(entity: EntityWithMetadata): boolean {
     const shouldBeIncludedInIndex =
       !this.config.includeInIndex ||

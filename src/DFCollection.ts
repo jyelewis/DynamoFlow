@@ -15,19 +15,7 @@ import { generateQueryExpression } from "./utils/generateQueryExpression.js";
 import { DFCondition, DFWritePrimaryOperation } from "./types/operations.js";
 import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
 import { DFConditionalCheckFailedException } from "./errors/DFConditionalCheckFailedException.js";
-
-// TODO: is this the most appropraite place for this type def
-export type DFCollectionSchema<Entity extends SafeEntity<Entity>> = Partial<{
-  [key in keyof Entity]: {
-    type: "string" | "number" | "boolean" | "object" | "array";
-    nullable?: boolean;
-    allowedValues?: string[] | number[];
-    references?: {
-      foreignField: string;
-      collection: DFCollection<SafeEntity<any>>;
-    };
-  };
-}>;
+import { ensureArray } from "./utils/ensureArray.js";
 
 export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
   name: string;
@@ -38,6 +26,7 @@ export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
 
 export class DFCollection<Entity extends SafeEntity<Entity>> {
   public extensions: DFBaseExtension<Entity>[];
+  public readOnlyFields: Array<keyof Entity>;
 
   constructor(
     public readonly table: DFTable,
@@ -48,6 +37,11 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
         `Collection '${this.config.name}' already exists in this table`
       );
     }
+
+    this.readOnlyFields = [
+      ...ensureArray(this.config.partitionKey),
+      ...ensureArray(this.config.sortKey),
+    ];
 
     // init extensions
     this.extensions = config.extensions || [];
@@ -127,6 +121,14 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     key: Partial<Entity>,
     updateFields: Partial<Record<keyof Entity, UpdateValue>>
   ): DFWriteTransaction {
+    // ensure the user isn't trying to update key fields
+    // we can update the field, but we can't change the key, it'll just get out of sync
+    for (const fieldKey in updateFields) {
+      if (this.readOnlyFields.indexOf(fieldKey) !== -1) {
+        throw new Error(`Cannot update read-only field ${fieldKey}`);
+      }
+    }
+
     const updateFieldsWithMetadata = {
       ...updateFields,
     } as Record<string, UpdateValue>;
@@ -176,21 +178,46 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   }
 
   public async update(
-    keys: Partial<Entity>,
+    key: Partial<Entity>,
     updatedEntity: Partial<Record<keyof Entity, UpdateValue>>
   ): Promise<Entity> {
-    // TODO: check PKs aren't being updated, currently the base field updates but the key gets out of sync
-    // TODO: is it dangerous to perform migrations after an update? What if we write to a new field then a migration takes the old field value
-
-    const transaction = this.updateTransaction(keys, updatedEntity);
+    const transaction = this.updateTransaction(key, updatedEntity);
     return (await transaction.commit()) as Entity;
   }
 
-  // TODO: delete operations
+  public deleteTransaction(key: Partial<Entity>): DFWriteTransaction {
+    // will succeed at deleting an item that doesn't exist by default
+    // the transaction can be amended with a check that the item doesn't exist & custom error handler if needed
 
-  // TODO: pagination
+    const [pk, sk] = generateIndexStrings(
+      this.config.name,
+      this.config.partitionKey,
+      this.config.sortKey,
+      key
+    );
+
+    const transaction = this.table.createTransaction({
+      type: "Delete",
+      key: {
+        _PK: pk,
+        _SK: sk,
+      },
+    });
+
+    // run extensions
+    this.extensions.map((extension) => extension.onDelete(key, transaction));
+
+    return transaction;
+  }
+
+  public async delete(key: Partial<Entity>): Promise<void> {
+    await this.deleteTransaction(key).commit();
+  }
+
   // TODO: sort direction
-  public async retrieveMany(query: Query<Entity>): Promise<Entity[]> {
+  public async retrieveManyWithPagination(
+    query: Query<Entity>
+  ): Promise<{ items: Entity[]; lastEvaluatedKey?: Record<string, any> }> {
     // generate an expression based off the query
     // if this query is against the primary index, that will generate it locally
     // otherwise it will search for an extension to generate this expression for us
@@ -216,17 +243,32 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       Limit: query.limit || undefined,
       ConsistentRead: query.consistentRead,
       IndexName: queryExpression.indexName,
+      // TODO: test me
+      ExclusiveStartKey: query.exclusiveStartKey,
     });
     const entities = result.Items as EntityWithMetadata[];
 
     // run extensions on all items & strip metadata
     if (query.returnRaw) {
-      return entities as Entity[];
+      return {
+        items: entities as Entity[],
+        lastEvaluatedKey: result.LastEvaluatedKey,
+      };
     }
 
-    return await Promise.all(
+    const parsedEntities = await Promise.all(
       entities.map((x) => this.entityFromRawDynamoItem(x))
     );
+
+    return {
+      items: parsedEntities,
+      lastEvaluatedKey: result.LastEvaluatedKey,
+    };
+  }
+
+  public async retrieveMany(query: Query<Entity>): Promise<Entity[]> {
+    const { items } = await this.retrieveManyWithPagination(query);
+    return items;
   }
 
   public async retrieveOne(query: Query<Entity>): Promise<null | Entity> {
@@ -312,7 +354,6 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       );
     });
 
-    // TODO: if a transaction.commit() fails, it would be nice to print the query
     const migratedEntity = await transaction.commitWithReturn();
 
     // check our migration was successful
@@ -333,7 +374,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   public async entityFromRawDynamoItem(
     entityWithMetadata: DynamoItem
   ): Promise<Entity> {
-    // TODO: this is often run in a loop, if many items need updating it would be more efficient to batch write them
+    // TODO: this is often run in a loop, if many items need read it would be more efficient to batch read/write them
 
     // check with all extensions to see if any think the entity needs to be migrated
     const entityRequiresMigration = this.extensions.some((extension) =>

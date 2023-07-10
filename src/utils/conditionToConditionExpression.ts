@@ -5,10 +5,8 @@ import {
 import { DynamoValue } from "../types/types.js";
 import { isDynamoValue } from "./isDynamoValue.js";
 
-// TODO: test me (+ query, insert, update, scan)
 // converts our DFCondition interface to Dynamo conditions
 // not super flexible, but can always fallback to "raw"
-// TODO: allow raw update expressions too
 
 export function conditionToConditionExpression(
   condition: undefined | DFCondition

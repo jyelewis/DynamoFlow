@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 import { DFTableConfig } from "../DFTable.js";
 
 const testInProduction = false;

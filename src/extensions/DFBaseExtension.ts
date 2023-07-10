@@ -3,9 +3,9 @@
 // - onUpdate
 // - onDelete
 // - expressionForQuery - provide a queryExpression if appropriate to handle custom indexes
+// - entityRequiresMigration
+// - migrateEntity
 // - postRetrieve (no pre available, also called on all other functions to check / transform object)
-
-// TODO:  update this list ^
 
 import { DFCollection } from "../DFCollection.js";
 import { DFWriteTransaction } from "../DFWriteTransaction.js";

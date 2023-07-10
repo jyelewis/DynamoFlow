@@ -210,7 +210,7 @@ describe("DFCollection", () => {
     });
 
     it.concurrent(
-      "Throws if updating an item that already exists",
+      "Throws if updating an item that does not exist",
       async () => {
         const table = new DFTable(testDbConfig);
 
@@ -230,6 +230,34 @@ describe("DFCollection", () => {
         ).rejects.toThrow("Entity does not exist");
       }
     );
+
+    it.concurrent("Throws if updating a field used within key", async () => {
+      const table = new DFTable(testDbConfig);
+
+      const usersCollection = table.createCollection<User>({
+        name: `${genTestPrefix()}-user`,
+        partitionKey: "id",
+      });
+
+      await usersCollection.insert({
+        id: 1,
+        firstName: "Jye",
+        lastName: "Lewis",
+        isActivated: true,
+        age: 30,
+      });
+
+      await expect(
+        usersCollection.update(
+          { id: 1 },
+          {
+            id: 2,
+            firstName: "Jye 2",
+            age: { $inc: 10 },
+          }
+        )
+      ).rejects.toThrow("Cannot update read-only field id");
+    });
 
     it.concurrent(
       "Can update multiple items within a transaction",
@@ -339,6 +367,43 @@ describe("DFCollection", () => {
         age: 40,
         isActivated: true,
       });
+    });
+  });
+
+  describe("Delete", () => {
+    it.concurrent("Can delete items", async () => {
+      const table = new DFTable(testDbConfig);
+
+      const usersCollection = table.createCollection<User>({
+        name: `${genTestPrefix()}-user`,
+        partitionKey: "id",
+      });
+
+      await usersCollection.insert({
+        id: 1,
+        firstName: "Jye",
+        lastName: "Lewis",
+        isActivated: true,
+      });
+
+      const user1 = await usersCollection.retrieveOne({ where: { id: 1 } });
+      expect(user1).not.toBeNull();
+
+      await usersCollection.delete({ id: 1 });
+
+      const user2 = await usersCollection.retrieveOne({ where: { id: 1 } });
+      expect(user2).toBeNull();
+    });
+
+    it.concurrent("Handles deleting an item that doesn't exist", async () => {
+      const table = new DFTable(testDbConfig);
+
+      const usersCollection = table.createCollection<User>({
+        name: `${genTestPrefix()}-user`,
+        partitionKey: "id",
+      });
+
+      await expect(usersCollection.delete({ id: 1 })).resolves.not.toThrow();
     });
   });
 
@@ -759,257 +824,310 @@ describe("DFCollection", () => {
       });
     });
 
-    describe("migrateEntityWithMetadata", () => {
-      it.concurrent(
-        "Runs all migration functions and persists item",
-        async () => {
-          const table = new DFTable(testDbConfig);
+    describe("Pagination", () => {
+      it.concurrent("Can retrieve multiple pages of items", async () => {
+        const thingsCollection = await thingsCollectionProm;
 
-          const migrationExtension = new DFMigrationExt<
-            Thing & { sum: null | number }
-          >({
-            version: 1,
-            migrateEntity: (version, entity: any) => {
-              if (version === 1) {
-                // migrate version 1 -> 2
-                // set the sum property
-                return {
-                  sum: entity.groupId + entity.thingId,
-                };
-              }
-
-              return {};
-            },
-          });
-
-          const thingsCollection = table.createCollection<
-            Thing & { sum: null | number }
-          >({
-            name: `${genTestPrefix()}-things-migration`,
-            partitionKey: "groupId",
-            sortKey: "thingId",
-            extensions: [migrationExtension],
-          });
-
-          await thingsCollection.insert({ groupId: 1, thingId: 1, sum: null });
-          const insertedThing: any = await thingsCollection.retrieveOne({
+        const { items: items1, lastEvaluatedKey: lastEvaluatedKey1 } =
+          await thingsCollection.retrieveManyWithPagination({
             where: {
               groupId: 1,
-              thingId: 1,
             },
-            returnRaw: true,
+            limit: 1,
           });
 
-          const migratedEntity =
-            await thingsCollection.migrateEntityWithMetadata({
-              _PK: insertedThing._PK,
-              _SK: insertedThing._SK,
-              _c: insertedThing._SK,
-              _wc: insertedThing._wc,
-              _v: insertedThing._v,
-              groupId: 1,
-              thingId: 1,
-            });
-          expect(migratedEntity).toEqual({
-            groupId: 1,
-            thingId: 1,
-            sum: 2,
-          });
-        }
-      );
+        expect(items1).toEqual([{ groupId: 1, thingId: 1 }]);
+        expect(lastEvaluatedKey1).not.toBeUndefined();
 
-      it.concurrent(
-        "Handles item being deleted while migration is in progress",
-        async () => {
-          const table = new DFTable(testDbConfig);
-
-          const migrationExtension = new DFMigrationExt<Thing>({
-            version: 1,
-            migrateEntity: async (version, entity: any) => {
-              // oopsie someone is trying to delete this item during a slow migration process
-              // (wouldn't usually literally happen in the migration function, but maybe another web-request came in)
-              await table.client.delete({
-                TableName: table.tableName,
-                Key: {
-                  _PK: entity._PK,
-                  _SK: entity._SK,
-                },
-              });
-
-              return {};
-            },
-          });
-
-          const thingsCollection = table.createCollection<Thing>({
-            name: `${genTestPrefix()}-things-migration`,
-            partitionKey: "groupId",
-            sortKey: "thingId",
-            extensions: [migrationExtension],
-          });
-
-          await thingsCollection.insert({ groupId: 1, thingId: 1 });
-          const insertedThing: any = await thingsCollection.retrieveOne({
+        const { items: items2, lastEvaluatedKey: lastEvaluatedKey2 } =
+          await thingsCollection.retrieveManyWithPagination({
             where: {
               groupId: 1,
-              thingId: 1,
             },
-            returnRaw: true,
+            limit: 1,
+            exclusiveStartKey: lastEvaluatedKey1,
           });
 
-          await expect(
-            thingsCollection.migrateEntityWithMetadata({
-              _PK: insertedThing._PK,
-              _SK: insertedThing._SK,
-              _c: insertedThing._SK,
-              _wc: insertedThing._wc,
-              _v: insertedThing._v,
-              groupId: 1,
-              thingId: 1,
-            })
-          ).rejects.toThrowError(
-            "Item was deleted while migration was in progress, migration cancelled"
-          );
-        }
-      );
+        expect(items2).toEqual([{ groupId: 1, thingId: 2 }]);
+        expect(lastEvaluatedKey2).not.toBeUndefined();
 
-      it.concurrent(
-        "Can migrate while entities are being written to (locking works)",
-        async () => {
-          const table = new DFTable(testDbConfig);
-
-          let numMigrationsRun = 0;
-          const migrationExtension = new DFMigrationExt<
-            Thing & { num: number }
-          >({
-            version: 1,
-            migrateEntity: async (version, entity: any) => {
-              numMigrationsRun++;
-
-              // oopsie someone is trying to delete this item during a slow migration process
-              // (wouldn't usually literally happen in the migration function, but maybe another web-request came in)
-              if (entity.num === 1) {
-                // we expect this migration will fail because someone else wrote to the item
-                await thingsCollection.update(
-                  { groupId: entity.groupId, thingId: entity.thingId },
-                  {
-                    num: 2,
-                  }
-                );
-              }
-
-              return {};
-            },
-          });
-
-          const thingsCollection = table.createCollection<
-            Thing & { num: number }
-          >({
-            name: `${genTestPrefix()}-things-migration`,
-            partitionKey: "groupId",
-            sortKey: "thingId",
-            extensions: [migrationExtension],
-          });
-
-          expect(numMigrationsRun).toEqual(0);
-
-          await thingsCollection.insert({ groupId: 1, thingId: 1, num: 1 });
-
-          expect(numMigrationsRun).toEqual(0);
-
-          const insertedThing: any = await thingsCollection.retrieveOne({
+        const { items: items3, lastEvaluatedKey: lastEvaluatedKey3 } =
+          await thingsCollection.retrieveManyWithPagination({
             where: {
               groupId: 1,
-              thingId: 1,
             },
-            returnRaw: true,
+            limit: 1,
+            exclusiveStartKey: lastEvaluatedKey2,
           });
 
-          expect(numMigrationsRun).toEqual(0);
+        expect(items3).toEqual([{ groupId: 1, thingId: 3 }]);
+        expect(lastEvaluatedKey3).not.toBeUndefined();
 
-          const migratedEntity =
-            await thingsCollection.migrateEntityWithMetadata(insertedThing);
-          expect(migratedEntity).toEqual({
-            groupId: 1,
-            thingId: 1,
-            num: 2,
-          });
-
-          // one migration should have run, but failed to commit because of the write, then the second succeeded
-          expect(numMigrationsRun).toEqual(2);
-        }
-      );
-
-      it.concurrent(
-        "Throws if extension completes migration but still thinks the entity needs migration",
-        async () => {
-          let enabledBadExtensionBehaviour = false;
-          class BadExt extends DFBaseExtension<any> {
-            public entityRequiresMigration(entity: any): boolean {
-              // always complain about the entity, even after we've been allowed to migrate it
-              return enabledBadExtensionBehaviour;
-            }
-
-            public migrateEntity() {
-              // no need to actually change anything
-            }
-          }
-
-          const table = new DFTable(testDbConfig);
-          const thingsCollection = table.createCollection<Thing>({
-            name: `${genTestPrefix()}-things-migration`,
-            partitionKey: "groupId",
-            sortKey: "thingId",
-            extensions: [new BadExt()],
-          });
-
-          await thingsCollection.insert({ groupId: 1, thingId: 1 });
-
-          const insertedThing: any = await thingsCollection.retrieveOne({
+        const { items: items4, lastEvaluatedKey: lastEvaluatedKey4 } =
+          await thingsCollection.retrieveManyWithPagination({
             where: {
               groupId: 1,
-              thingId: 1,
             },
-            returnRaw: true,
+            limit: 1,
+            exclusiveStartKey: lastEvaluatedKey3,
           });
 
-          enabledBadExtensionBehaviour = true;
-          await expect(
-            thingsCollection.migrateEntityWithMetadata(insertedThing)
-          ).rejects.toThrow(
-            "Extension BadExt still requires migration after migration was run"
-          );
-        }
-      );
-
-      it.concurrent(
-        "Throws if extension completes migration but still thinks the entity needs migration (for insert)",
-        async () => {
-          class BadExt extends DFBaseExtension<any> {
-            public entityRequiresMigration(entity: any): boolean {
-              // always complain about the entity, even after we've been allowed to migrate it
-              return true;
-            }
-
-            public migrateEntity() {
-              // no need to actually change anything
-            }
-          }
-
-          const table = new DFTable(testDbConfig);
-          const thingsCollection = table.createCollection<Thing>({
-            name: `${genTestPrefix()}-things-migration`,
-            partitionKey: "groupId",
-            sortKey: "thingId",
-            extensions: [new BadExt()],
-          });
-
-          await expect(
-            thingsCollection.insert({ groupId: 1, thingId: 1 })
-          ).rejects.toThrow(
-            "Extension BadExt still requires migration after migration was run"
-          );
-        }
-      );
+        expect(items4).toEqual([]);
+        expect(lastEvaluatedKey4).toBeUndefined();
+      });
     });
+  });
+
+  describe("migrateEntityWithMetadata", () => {
+    it.concurrent(
+      "Runs all migration functions and persists item",
+      async () => {
+        const table = new DFTable(testDbConfig);
+
+        const migrationExtension = new DFMigrationExt<
+          Thing & { sum: null | number }
+        >({
+          version: 1,
+          migrateEntity: (version, entity: any) => {
+            if (version === 1) {
+              // migrate version 1 -> 2
+              // set the sum property
+              return {
+                sum: entity.groupId + entity.thingId,
+              };
+            }
+
+            return {};
+          },
+        });
+
+        const thingsCollection = table.createCollection<
+          Thing & { sum: null | number }
+        >({
+          name: `${genTestPrefix()}-things-migration`,
+          partitionKey: "groupId",
+          sortKey: "thingId",
+          extensions: [migrationExtension],
+        });
+
+        await thingsCollection.insert({ groupId: 1, thingId: 1, sum: null });
+        const insertedThing: any = await thingsCollection.retrieveOne({
+          where: {
+            groupId: 1,
+            thingId: 1,
+          },
+          returnRaw: true,
+        });
+
+        const migratedEntity = await thingsCollection.migrateEntityWithMetadata(
+          {
+            _PK: insertedThing._PK,
+            _SK: insertedThing._SK,
+            _c: insertedThing._SK,
+            _wc: insertedThing._wc,
+            _v: insertedThing._v,
+            groupId: 1,
+            thingId: 1,
+          }
+        );
+        expect(migratedEntity).toEqual({
+          groupId: 1,
+          thingId: 1,
+          sum: 2,
+        });
+      }
+    );
+
+    it.concurrent(
+      "Handles item being deleted while migration is in progress",
+      async () => {
+        const table = new DFTable(testDbConfig);
+
+        const migrationExtension = new DFMigrationExt<Thing>({
+          version: 1,
+          migrateEntity: async (version, entity: any) => {
+            // oopsie someone is trying to delete this item during a slow migration process
+            // (wouldn't usually literally happen in the migration function, but maybe another web-request came in)
+            await table.client.delete({
+              TableName: table.tableName,
+              Key: {
+                _PK: entity._PK,
+                _SK: entity._SK,
+              },
+            });
+
+            return {};
+          },
+        });
+
+        const thingsCollection = table.createCollection<Thing>({
+          name: `${genTestPrefix()}-things-migration`,
+          partitionKey: "groupId",
+          sortKey: "thingId",
+          extensions: [migrationExtension],
+        });
+
+        await thingsCollection.insert({ groupId: 1, thingId: 1 });
+        const insertedThing: any = await thingsCollection.retrieveOne({
+          where: {
+            groupId: 1,
+            thingId: 1,
+          },
+          returnRaw: true,
+        });
+
+        await expect(
+          thingsCollection.migrateEntityWithMetadata({
+            _PK: insertedThing._PK,
+            _SK: insertedThing._SK,
+            _c: insertedThing._SK,
+            _wc: insertedThing._wc,
+            _v: insertedThing._v,
+            groupId: 1,
+            thingId: 1,
+          })
+        ).rejects.toThrowError(
+          "Item was deleted while migration was in progress, migration cancelled"
+        );
+      }
+    );
+
+    it.concurrent(
+      "Can migrate while entities are being written to (locking works)",
+      async () => {
+        const table = new DFTable(testDbConfig);
+
+        let numMigrationsRun = 0;
+        const migrationExtension = new DFMigrationExt<Thing & { num: number }>({
+          version: 1,
+          migrateEntity: async (version, entity: any) => {
+            numMigrationsRun++;
+
+            // oopsie someone is trying to delete this item during a slow migration process
+            // (wouldn't usually literally happen in the migration function, but maybe another web-request came in)
+            if (entity.num === 1) {
+              // we expect this migration will fail because someone else wrote to the item
+              await thingsCollection.update(
+                { groupId: entity.groupId, thingId: entity.thingId },
+                {
+                  num: 2,
+                }
+              );
+            }
+
+            return {};
+          },
+        });
+
+        const thingsCollection = table.createCollection<
+          Thing & { num: number }
+        >({
+          name: `${genTestPrefix()}-things-migration`,
+          partitionKey: "groupId",
+          sortKey: "thingId",
+          extensions: [migrationExtension],
+        });
+
+        expect(numMigrationsRun).toEqual(0);
+
+        await thingsCollection.insert({ groupId: 1, thingId: 1, num: 1 });
+
+        expect(numMigrationsRun).toEqual(0);
+
+        const insertedThing: any = await thingsCollection.retrieveOne({
+          where: {
+            groupId: 1,
+            thingId: 1,
+          },
+          returnRaw: true,
+        });
+
+        expect(numMigrationsRun).toEqual(0);
+
+        const migratedEntity = await thingsCollection.migrateEntityWithMetadata(
+          insertedThing
+        );
+        expect(migratedEntity).toEqual({
+          groupId: 1,
+          thingId: 1,
+          num: 2,
+        });
+
+        // one migration should have run, but failed to commit because of the write, then the second succeeded
+        expect(numMigrationsRun).toEqual(2);
+      }
+    );
+
+    it.concurrent(
+      "Throws if extension completes migration but still thinks the entity needs migration",
+      async () => {
+        let enabledBadExtensionBehaviour = false;
+        class BadExt extends DFBaseExtension<any> {
+          public entityRequiresMigration(entity: any): boolean {
+            // always complain about the entity, even after we've been allowed to migrate it
+            return enabledBadExtensionBehaviour;
+          }
+
+          public migrateEntity() {
+            // no need to actually change anything
+          }
+        }
+
+        const table = new DFTable(testDbConfig);
+        const thingsCollection = table.createCollection<Thing>({
+          name: `${genTestPrefix()}-things-migration`,
+          partitionKey: "groupId",
+          sortKey: "thingId",
+          extensions: [new BadExt()],
+        });
+
+        await thingsCollection.insert({ groupId: 1, thingId: 1 });
+
+        const insertedThing: any = await thingsCollection.retrieveOne({
+          where: {
+            groupId: 1,
+            thingId: 1,
+          },
+          returnRaw: true,
+        });
+
+        enabledBadExtensionBehaviour = true;
+        await expect(
+          thingsCollection.migrateEntityWithMetadata(insertedThing)
+        ).rejects.toThrow(
+          "Extension BadExt still requires migration after migration was run"
+        );
+      }
+    );
+
+    it.concurrent(
+      "Throws if extension completes migration but still thinks the entity needs migration (for insert)",
+      async () => {
+        class BadExt extends DFBaseExtension<any> {
+          public entityRequiresMigration(entity: any): boolean {
+            // always complain about the entity, even after we've been allowed to migrate it
+            return true;
+          }
+
+          public migrateEntity() {
+            // no need to actually change anything
+          }
+        }
+
+        const table = new DFTable(testDbConfig);
+        const thingsCollection = table.createCollection<Thing>({
+          name: `${genTestPrefix()}-things-migration`,
+          partitionKey: "groupId",
+          sortKey: "thingId",
+          extensions: [new BadExt()],
+        });
+
+        await expect(
+          thingsCollection.insert({ groupId: 1, thingId: 1 })
+        ).rejects.toThrow(
+          "Extension BadExt still requires migration after migration was run"
+        );
+      }
+    );
   });
 });

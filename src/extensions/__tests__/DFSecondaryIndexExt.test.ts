@@ -520,8 +520,9 @@ describe("DFSecondaryIndexExt", () => {
             // don't provide other fields - will need to fetch the entity to generate this key
             // also the entity doesn't exist, so this should fail on pre-fetch
           }
-        ) // TODO: this should throw the same as the normal not found error?
-      ).rejects.toThrow(`Could not find entity with key {"id":2}`);
+        )
+        // we expect it throws the same error as DFCollection would if the entity didn't exist on update
+      ).rejects.toThrow(`Entity does not exist`);
     }
   );
 
