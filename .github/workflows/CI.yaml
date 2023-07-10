@@ -65,3 +65,6 @@ jobs:
 
       - name: Test
         run: pnpm run test --ci
+
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
