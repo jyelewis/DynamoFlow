@@ -43,7 +43,10 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
     ? sortKeys
     : [sortKeys].filter(Boolean);
   for (const sortKey of sortKeysArr) {
-    const sortValue = query.where[sortKey as keyof Entity];
+    // can't leave typed as a where statement
+    // because ANY object is technically a DynamoValue (according to typescript)
+    // so we can't safely filter out our query expression objects
+    const sortValue = query.where[sortKey as keyof Entity] as any;
 
     if (sortValue !== undefined && queryIsComplete) {
       throw new Error(

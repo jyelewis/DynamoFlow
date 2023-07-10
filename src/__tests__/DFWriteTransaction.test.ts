@@ -1258,7 +1258,6 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Stores list with complex properties", async () => {
-      // TODO: types prevent this, although the code will handle it
       const table = new DFTable(testDbConfig);
       const keyPrefix = genTestPrefix();
 
@@ -1277,12 +1276,9 @@ describe("DFWriteTransaction", () => {
               city: "Fakeville",
               postcode: 1234,
               deliveryDays: new Set(["MON", "WED", "THURS"]),
-              // @ts-ignore
               occupantNames: ["Jane Doe", "John Smith"],
-              // @ts-ignore
               occupantAges: [30, 32],
               driverRatings: {
-                // @ts-ignore
                 sam: 5,
                 blake: 4.5,
               },
@@ -1302,12 +1298,9 @@ describe("DFWriteTransaction", () => {
             city: "Fakeville",
             postcode: 1234,
             deliveryDays: new Set(["MON", "WED", "THURS"]),
-            // @ts-ignore
             occupantNames: ["Jane Doe", "John Smith"],
-            // @ts-ignore
             occupantAges: [30, 32],
             driverRatings: {
-              // @ts-ignore
               sam: 5,
               blake: 4.5,
             },
@@ -1333,12 +1326,9 @@ describe("DFWriteTransaction", () => {
             city: "Fakeville",
             postcode: 1234,
             deliveryDays: new Set(["MON", "WED", "THURS"]),
-            // @ts-ignore
             occupantNames: ["Jane Doe", "John Smith"],
-            // @ts-ignore
             occupantAges: [30, 32],
             driverRatings: {
-              // @ts-ignore
               sam: 5,
               blake: 4.5,
             },
@@ -1517,7 +1507,6 @@ describe("DFWriteTransaction", () => {
               lastName: "Lewis",
               details: {
                 address: {
-                  // @ts-ignore
                   city: "Faketown",
                   postcode: 3241,
                   deliveryDays: new Set(["Monday", "Tuesday"]),
@@ -1554,7 +1543,6 @@ describe("DFWriteTransaction", () => {
           lastName: "Lewis",
           details: {
             address: {
-              // @ts-ignore
               city: "Fakeville",
               postcode: 3246,
               deliveryDays: new Set(["Monday", "Tuesday", "Thursday"]),
@@ -1577,7 +1565,6 @@ describe("DFWriteTransaction", () => {
           lastName: "Lewis",
           details: {
             address: {
-              // @ts-ignore
               city: "Fakeville",
               postcode: 3246,
               deliveryDays: new Set(["Monday", "Tuesday", "Thursday"]),

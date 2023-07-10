@@ -1,22 +1,32 @@
 import { DFCollection } from "../DFCollection.js";
 import { DFConditionValue } from "./operations.js";
 
-export type SimpleDynamoValue =
-  | string
-  | number
-  | boolean
-  | null
-  | Set<string>
-  | Set<number>;
+// export type SimpleDynamoValue =
+//   | string
+//   | number
+//   | boolean
+//   | null
+//   | Set<string>
+//   | Set<number>;
+
+// export type DynamoValue =
+//   | string
+//   | number
+//   | boolean
+//   | null // literal or set
+//   | SimpleDynamoValue[] // list
+//   | Record<string, SimpleDynamoValue> // dict
+//   | Record<string, SimpleDynamoValue>[] // list of dicts
+//   | Set<string>
+//   | Set<number>;
 
 export type DynamoValue =
   | string
   | number
   | boolean
-  | null // literal or set
-  | SimpleDynamoValue[] // list
-  | Record<string, SimpleDynamoValue> // dict
-  | Record<string, SimpleDynamoValue>[] // list of dicts
+  | null
+  | DynamoValue[]
+  | { [key: string | number]: DynamoValue }
   | Set<string>
   | Set<number>;
 
@@ -30,9 +40,7 @@ export type UpdateValue =
   | { $addItemsToSet: Set<string> | Set<number> }
   | { $removeItemsFromSet: Set<string> | Set<number> }
   | {
-      $appendItemsToList: Array<
-        Record<string, SimpleDynamoValue> | SimpleDynamoValue
-      >;
+      $appendItemsToList: Array<DynamoValue>;
     };
 
 export const RETRY_TRANSACTION = Symbol("RETRY_TRANSACTION");
