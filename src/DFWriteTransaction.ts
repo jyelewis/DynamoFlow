@@ -56,8 +56,8 @@ export class DFWriteTransaction {
   public addSecondaryTransaction(secondaryTransaction: DFWriteTransaction) {
     this.secondaryOperations.push(secondaryTransaction.primaryOperation);
     this.secondaryOperations.push(...secondaryTransaction.secondaryOperations);
-    // TODO: test me
     this.preCommitHandlers.push(...secondaryTransaction.preCommitHandlers);
+
     // leave their resultTransformer behind, only needed for the primary item
   }
 
@@ -342,7 +342,6 @@ export class DFWriteTransaction {
     });
   }
 
-  // TODO: should this become a util function and be tested like the others (check expected output + execute)
   private updateExpressionToParams(op: DFUpdateOperation): UpdateCommandInput {
     const expressionAttributeNames: Record<string, any> = {};
     const expressionAttributeValues: Record<string, any> = {};

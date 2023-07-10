@@ -2379,9 +2379,143 @@ describe("DFWriteTransaction", () => {
       });
     });
 
-    it.todo("Runs pre-commit handlers for a multiple operation");
+    it.concurrent(
+      "Runs pre-commit handlers for a multiple operation",
+      async () => {
+        const table = new DFTable(testDbConfig);
+        const keyPrefix = genTestPrefix();
 
-    it.todo("Runs pre-commit on re-try");
+        const eventLog: string[] = [];
+
+        const transaction = table.createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+          },
+        });
+
+        transaction.addSecondaryOperation({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user2`,
+            _SK: "USER#user2",
+          },
+          updateValues: {
+            firstName: "Joe",
+            lastName: "Bot",
+          },
+        });
+
+        transaction.addPreCommitHandler(async () => {
+          eventLog.push("pre-commit handler 1");
+
+          // modify the transaction
+          transaction.primaryUpdateOperation.updateValues.firstName += "2";
+        });
+        transaction.addPreCommitHandler(async () => {
+          eventLog.push("pre-commit handler 2");
+          // do something async
+          await setTimeout(0);
+        });
+        eventLog.push("pre-commit");
+        const updatedEntity = await transaction.commit();
+        eventLog.push("post-commit");
+
+        expect(updatedEntity).toEqual({
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+          firstName: "Jye2",
+          lastName: "Lewis",
+        });
+        expect(eventLog).toEqual([
+          "pre-commit",
+          "pre-commit handler 1",
+          "pre-commit handler 2",
+          "post-commit",
+        ]);
+
+        const postTestGet = await table.client.get({
+          TableName: table.tableName,
+          Key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+        });
+        expect(postTestGet.Item).toEqual({
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+          firstName: "Jye2", // changed by the pre-commit hook
+          lastName: "Lewis",
+        });
+      }
+    );
+
+    it.concurrent("Re-runs pre-commit on re-try", async () => {
+      const table = new DFTable(testDbConfig);
+      const keyPrefix = genTestPrefix();
+
+      // set up some data
+      // this will mean we need to label our user "user2" with a transaction auto retry
+      await table.client.put({
+        TableName: table.tableName,
+        Item: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+          firstName: "Jye",
+          lastName: "Lewis",
+        },
+      });
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+        // only if this ID isn't taken
+        condition: {
+          _PK: { $exists: false },
+        },
+        errorHandler: (err, op: DFUpdateOperation) => {
+          const currentUserNum = parseInt(
+            (op.key as any)._PK.split("USER#user")[1],
+            10
+          );
+
+          (op.key as any) = {
+            _PK: `${keyPrefix}USER#user${currentUserNum + 1}`,
+            _SK: `USER#user${currentUserNum + 1}`,
+          };
+
+          return RETRY_TRANSACTION;
+        },
+      });
+
+      let preCommitCalls = 0;
+      transaction.addPreCommitHandler(async () => {
+        preCommitCalls += 1;
+      });
+
+      const updatedEntity = await transaction.commit();
+
+      expect(preCommitCalls).toEqual(2);
+
+      expect(updatedEntity).toEqual({
+        _PK: `${keyPrefix}USER#user2`,
+        _SK: "USER#user2",
+        firstName: "Joe",
+        lastName: "Bot",
+      });
+    });
   });
 
   describe("Transaction error handling & retrying", () => {
@@ -2695,6 +2829,58 @@ describe("DFWriteTransaction", () => {
       });
     });
 
-    it.todo("Runs pre-commit for all items in merged transaction");
+    it.concurrent(
+      "Runs pre-commit for all items in merged transaction",
+      async () => {
+        const table = new DFTable(testDbConfig);
+        const keyPrefix = genTestPrefix();
+
+        const preCommit1 = jest.fn();
+        const preCommit2 = jest.fn();
+        const preCommit3 = jest.fn();
+        const preCommit4 = jest.fn();
+
+        const transaction1 = table.createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
+          },
+          updateValues: {
+            firstName: "Jye",
+            lastName: "Lewis",
+          },
+        });
+        transaction1.addPreCommitHandler(preCommit1);
+        transaction1.addPreCommitHandler(preCommit2);
+
+        const transaction2 = table.createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user2`,
+            _SK: "USER#user2",
+          },
+          updateValues: {
+            firstName: "Joe",
+            lastName: "Bot",
+          },
+        });
+        transaction2.addPreCommitHandler(preCommit3);
+        transaction2.addPreCommitHandler(preCommit4);
+
+        // merge transaction 2 into transaction 1
+        transaction1.addSecondaryTransaction(transaction2);
+
+        // check we have everything
+        expect(transaction1.preCommitHandlers.length).toEqual(4);
+
+        await transaction1.commit();
+
+        expect(preCommit1).toHaveBeenCalled();
+        expect(preCommit2).toHaveBeenCalled();
+        expect(preCommit3).toHaveBeenCalled();
+        expect(preCommit4).toHaveBeenCalled();
+      }
+    );
   });
 });
