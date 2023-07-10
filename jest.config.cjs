@@ -3,6 +3,7 @@ module.exports = {
   bail: false,
   collectCoverage: true,
   coveragePathIgnorePatterns: [".mock.ts"],
+  testPathIgnorePatterns: ["<rootDir>/dist/"],
   moduleNameMapper: {
     "(.*)\\.js$": "$1",
   },

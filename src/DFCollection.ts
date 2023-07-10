@@ -39,16 +39,6 @@ export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
 export class DFCollection<Entity extends SafeEntity<Entity>> {
   public extensions: DFBaseExtension<Entity>[];
 
-  // TODO: is this even a good idea? Do we expect many extensions to be using this?
-  //     zod, foreign reference, computed count
-  //     honestly, would rather leave this up to the consumer - they can walk our extensions and ask
-
-  // TODO: scrap this idea, move it to the AdminJS library
-  // populating this is completely optional
-  // extensions may populate this if they are given the schema
-  // it's initial purpose was to enable automated admin UI generation
-  public schema: DFCollectionSchema<Entity> = {};
-
   constructor(
     public readonly table: DFTable,
     public readonly config: DFCollectionConfig<Entity>
