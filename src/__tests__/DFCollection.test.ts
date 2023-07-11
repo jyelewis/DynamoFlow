@@ -878,7 +878,7 @@ describe("DFCollection", () => {
         expect(items2).toEqual([{ groupId: 1, thingId: 2 }]);
         expect(lastEvaluatedKey2).not.toBeUndefined();
 
-        const { items: items3, lastEvaluatedKey: lastEvaluatedKey3 } =
+        const { items: items3 } =
           await thingsCollection.retrieveManyWithPagination({
             where: {
               groupId: 1,
