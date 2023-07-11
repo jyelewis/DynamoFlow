@@ -556,6 +556,33 @@ describe("DFCollection", () => {
         });
         expect(thing).toEqual({ groupId: 1, thingId: 2 });
       });
+
+      it.concurrent("Retrieves with sort direction specified", async () => {
+        const thingsCollection = await thingsCollectionProm;
+        const thingsAsc = await thingsCollection.retrieveMany({
+          where: {
+            groupId: 2,
+          },
+          sort: "ASC",
+        });
+        expect(thingsAsc).toEqual([
+          { groupId: 2, thingId: 1 },
+          { groupId: 2, thingId: 2 },
+          { groupId: 2, thingId: 3 },
+        ]);
+
+        const thingsDesc = await thingsCollection.retrieveMany({
+          where: {
+            groupId: 2,
+          },
+          sort: "DESC",
+        });
+        expect(thingsDesc).toEqual([
+          { groupId: 2, thingId: 3 },
+          { groupId: 2, thingId: 2 },
+          { groupId: 2, thingId: 1 },
+        ]);
+      });
     });
 
     describe("Retrieve various query expressions", () => {

@@ -70,6 +70,7 @@ export interface Query<Entity extends SafeEntity<Entity>> {
   index?: string;
   returnRaw?: boolean;
   exclusiveStartKey?: any;
+  sort?: "ASC" | "DESC";
 }
 
 export interface FullTableScanItem {

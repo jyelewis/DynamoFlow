@@ -214,7 +214,6 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     await this.deleteTransaction(key).commit();
   }
 
-  // TODO: sort direction
   public async retrieveManyWithPagination(
     query: Query<Entity>
   ): Promise<{ items: Entity[]; lastEvaluatedKey?: Record<string, any> }> {
@@ -243,8 +242,8 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       Limit: query.limit || undefined,
       ConsistentRead: query.consistentRead,
       IndexName: queryExpression.indexName,
-      // TODO: test me
       ExclusiveStartKey: query.exclusiveStartKey,
+      ScanIndexForward: query.sort === undefined || query.sort === "ASC",
     });
     const entities = result.Items as EntityWithMetadata[];
 
