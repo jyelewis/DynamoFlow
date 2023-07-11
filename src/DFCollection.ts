@@ -282,6 +282,50 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     return items[0];
   }
 
+  public async retrieveBatch(keys: Array<Partial<Entity>>): Promise<{
+    items: Entity[];
+    unprocessedKeys: Array<Partial<Entity>>;
+  }> {
+    const res = await this.table.client.batchGet({
+      RequestItems: {
+        [this.table.tableName]: {
+          Keys: keys.map((key) => {
+            const [pk, sk] = generateIndexStrings(
+              this.config.name,
+              this.config.partitionKey,
+              this.config.sortKey,
+              key
+            );
+            return {
+              _PK: pk,
+              _SK: sk,
+            };
+          }),
+        },
+      },
+    });
+
+    if (res.Responses === undefined) {
+      throw new Error("No responses returned from batchGet");
+    }
+
+    const parsedEntities: Entity[] = await Promise.all(
+      res.Responses[this.table.tableName].map((x) =>
+        this.entityFromRawDynamoItem(x)
+      )
+    );
+
+    return {
+      items: parsedEntities,
+      unprocessedKeys:
+        // slightly clean up this API by always returning a single array of keys
+        ((res.UnprocessedKeys &&
+          res.UnprocessedKeys[this.table.tableName] &&
+          res.UnprocessedKeys[this.table.tableName]
+            .Keys) as Partial<Entity>[]) || [],
+    };
+  }
+
   // basically the same as entityFromDynamo row, however it will ALWAYS run migrations
   // entityFromDynamoRow will only run migrations if an extension says it's out of date
   public async migrateEntityWithMetadata(
@@ -373,8 +417,6 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   public async entityFromRawDynamoItem(
     entityWithMetadata: DynamoItem
   ): Promise<Entity> {
-    // TODO: this is often run in a loop, if many items need read it would be more efficient to batch read/write them
-
     // check with all extensions to see if any think the entity needs to be migrated
     const entityRequiresMigration = this.extensions.some((extension) =>
       extension.entityRequiresMigration(
