@@ -888,19 +888,11 @@ describe("DFCollection", () => {
           });
 
         expect(items3).toEqual([{ groupId: 1, thingId: 3 }]);
-        expect(lastEvaluatedKey3).not.toBeUndefined();
 
-        const { items: items4, lastEvaluatedKey: lastEvaluatedKey4 } =
-          await thingsCollection.retrieveManyWithPagination({
-            where: {
-              groupId: 1,
-            },
-            limit: 1,
-            exclusiveStartKey: lastEvaluatedKey3,
-          });
-
-        expect(items4).toEqual([]);
-        expect(lastEvaluatedKey4).toBeUndefined();
+        // the spec says this should be undefined on the last page
+        // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#API_Query_ResponseElements
+        // however DDBLocal returns the last key of the last page!
+        // expect(lastEvaluatedKey3).toBeUndefined();
       });
     });
 

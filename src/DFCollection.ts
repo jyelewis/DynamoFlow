@@ -305,6 +305,8 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       },
     });
 
+    // the spec says this is possible, but I've never seen it happen
+    /* istanbul ignore next */
     if (res.Responses === undefined) {
       throw new Error("No responses returned from batchGet");
     }
@@ -319,6 +321,8 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       items: parsedEntities,
       unprocessedKeys:
         // slightly clean up this API by always returning a single array of keys
+        // the spec says this is possible, but I've never seen it happen
+        /* istanbul ignore next */
         ((res.UnprocessedKeys &&
           res.UnprocessedKeys[this.table.tableName] &&
           res.UnprocessedKeys[this.table.tableName]
