@@ -1,9 +1,9 @@
 import { DFTable } from "../DFTable.js";
-import { DFLastUpdatedExt } from "../extensions/DFLastUpdatedExt.js";
 import { DFSecondaryIndexExt } from "../extensions/DFSecondaryIndexExt.js";
 
 import { testDbConfig } from "../testHelpers/testDbConfigs.js";
 import { genTestPrefix } from "../testHelpers/genTestPrefix.js";
+import { DFTimestampsExt } from "../extensions/DFTimestampsExt.js";
 
 describe("E2E tests", () => {
   it.concurrent("Users & projects flow", async () => {
@@ -29,7 +29,7 @@ describe("E2E tests", () => {
       name: `${genTestPrefix()}-user`,
       partitionKey: "id",
       extensions: [
-        new DFLastUpdatedExt("lastUpdated"),
+        new DFTimestampsExt({ updatedAt: "lastUpdated" }),
         new DFSecondaryIndexExt({
           dynamoIndex: "GSI1",
           indexName: "name",
