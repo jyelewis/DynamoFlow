@@ -62,14 +62,6 @@ describe("DFBaseExtension", () => {
       ext.onDelete({}, transaction);
     });
 
-    it("expressionForQuery()", () => {
-      expect(
-        ext.expressionForQuery({
-          where: {},
-        })
-      ).toEqual(undefined);
-    });
-
     it("onQuery()", () => {
       expect(
         ext.onQuery({

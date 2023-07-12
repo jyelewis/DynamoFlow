@@ -9,7 +9,6 @@ import {
   SafeEntity,
   UpdateValue,
 } from "./types/types.js";
-import { PartialQueryExpression } from "./types/internalTypes.js";
 import { generateIndexStrings } from "./utils/generateIndexStrings.js";
 import { generateQueryExpression } from "./utils/generateQueryExpression.js";
 import { DFCondition, DFWritePrimaryOperation } from "./types/operations.js";
@@ -217,14 +216,25 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   public async retrieveManyWithPagination(
     query: Query<Entity>
   ): Promise<{ items: Entity[]; lastEvaluatedKey?: Record<string, any> }> {
-    // generate an expression based off the query
-    // if this query is against the primary index, that will generate it locally
-    // otherwise it will search for an extension to generate this expression for us
-    const queryExpression = await this.expressionForQuery(query);
+    if (query.index === undefined && query.rawExpression === undefined) {
+      // default expression against the primary index
+      query.rawExpression = generateQueryExpression(
+        this.config.name,
+        this.config.partitionKey,
+        this.config.sortKey,
+        query
+      );
+    }
 
-    // TODO: test this
     // run extension hooks
     this.extensions.map((extension) => extension.onQuery(query));
+
+    if (query.rawExpression === undefined) {
+      throw new Error(
+        `No extensions available to handle querying by index '${query.index}'`
+      );
+    }
+    const queryExpression = query.rawExpression;
 
     // filters have the same interface as expressions
     const filterExpression = conditionToConditionExpression(
@@ -455,29 +465,5 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       );
 
     return entity as Entity;
-  }
-
-  private expressionForQuery(query: Query<Entity>): PartialQueryExpression {
-    if (query.index === undefined) {
-      // primary index
-      return generateQueryExpression(
-        this.config.name,
-        this.config.partitionKey,
-        this.config.sortKey,
-        query
-      );
-    }
-
-    for (const extension of this.extensions) {
-      // ask this extension if they can provide an expression for this query
-      const queryExpression = extension.expressionForQuery(query);
-      if (queryExpression !== undefined) {
-        return queryExpression;
-      }
-    }
-
-    throw new Error(
-      `No extensions available to handle querying by index '${query.index}'`
-    );
   }
 }

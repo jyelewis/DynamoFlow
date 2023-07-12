@@ -8,7 +8,6 @@ import {
   SafeEntity,
   UpdateValue,
 } from "../types/types.js";
-import { PartialQueryExpression } from "../types/internalTypes.js";
 import { generateQueryExpression } from "../utils/generateQueryExpression.js";
 import { DFCollection } from "../DFCollection.js";
 import { DFUpdateOperation } from "../types/operations.js";
@@ -210,9 +209,7 @@ export class DFSecondaryIndexExt<
     });
   }
 
-  public expressionForQuery(
-    query: Query<Entity>
-  ): undefined | PartialQueryExpression {
+  public onQuery(query: Query<Entity>) {
     if (query.index !== this.config.indexName) {
       // not for us
       return undefined;
@@ -231,7 +228,7 @@ export class DFSecondaryIndexExt<
     queryExpression.expressionAttributeNames["#PK"] = this.indexPartitionKey;
     queryExpression.expressionAttributeNames["#SK"] = this.indexSortKey;
 
-    return queryExpression;
+    query.rawExpression = queryExpression;
   }
 
   public entityRequiresMigration(entity: EntityWithMetadata): boolean {

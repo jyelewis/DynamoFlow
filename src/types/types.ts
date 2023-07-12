@@ -1,5 +1,6 @@
 import { DFCollection } from "../DFCollection.js";
 import { DFConditionValue } from "./operations.js";
+import { PartialQueryExpression } from "./internalTypes.js";
 
 // export type SimpleDynamoValue =
 //   | string
@@ -71,6 +72,7 @@ export interface Query<Entity extends SafeEntity<Entity>> {
   returnRaw?: boolean;
   exclusiveStartKey?: any;
   sort?: "ASC" | "DESC";
+  rawExpression?: PartialQueryExpression;
 }
 
 export interface FullTableScanItem {
