@@ -71,7 +71,6 @@ describe("DFTtlExt", () => {
 
   describe("Insert", () => {
     it.concurrent("Stores converted value in _ttl if provided", async () => {
-      // TODO: if this works, swap the pattern with other tests (if feesable)
       const table = new DFTable(testDbConfigWithPrefix());
       const cacheItemsCollection = table.createCollection<CacheItem>({
         name: `cacheItems`,

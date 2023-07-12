@@ -403,6 +403,35 @@ describe("DFCollection", () => {
 
       await expect(usersCollection.delete({ id: 1 })).resolves.not.toThrow();
     });
+
+    it.concurrent("Runs onDelete extension handlers", async () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+
+      let deleteHandlerCalled = false;
+      class DeleteExt extends DFBaseExtension<any> {
+        async onDelete(key: Partial<any>) {
+          expect(key).toEqual({ id: 1 });
+          deleteHandlerCalled = true;
+        }
+      }
+
+      const usersCollection = table.createCollection<User>({
+        name: `user`,
+        partitionKey: "id",
+        extensions: [new DeleteExt()],
+      });
+
+      await usersCollection.insert({
+        id: 1,
+        firstName: "Jye",
+        lastName: "Lewis",
+        isActivated: true,
+      });
+
+      await usersCollection.delete({ id: 1 });
+
+      expect(deleteHandlerCalled).toEqual(true);
+    });
   });
 
   describe("Retrieve", () => {

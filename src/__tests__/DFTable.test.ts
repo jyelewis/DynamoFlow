@@ -54,6 +54,29 @@ describe("DFTable", () => {
       expect(table.collections["MyCollection"]).toStrictEqual(collection);
       expect(collection.config.name).toEqual("MyCollection");
     });
+
+    it("Creates a collection with keyPrefix", () => {
+      const table = new DFTable({
+        ...testDbConfig,
+        keyPrefix: "dev_",
+      });
+
+      interface MyEntity {
+        id: number;
+      }
+
+      const collection = table.createCollection<MyEntity>({
+        name: "MyCollection",
+        partitionKey: "id",
+      });
+
+      expect(collection.config.name).toEqual("dev_MyCollection");
+
+      expect(collection.table).toStrictEqual(table);
+      expect(Object.keys(table.collections)).toEqual(["dev_MyCollection"]);
+      expect(table.collections["dev_MyCollection"]).toStrictEqual(collection);
+      expect(collection.config.name).toEqual("dev_MyCollection");
+    });
   });
 
   describe("fullTableScan", () => {
