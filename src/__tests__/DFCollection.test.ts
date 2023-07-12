@@ -1,9 +1,8 @@
 import { DFTable } from "../DFTable.js";
-import { testDbConfig } from "../testHelpers/testDbConfigs.js";
-import { genTestPrefix } from "../testHelpers/genTestPrefix.js";
 import { DFSecondaryIndexExt } from "../extensions/DFSecondaryIndexExt.js";
 import { DFMigrationExt } from "../extensions/DFMigrationExt.js";
 import { DFBaseExtension } from "../extensions/DFBaseExtension.js";
+import { testDbConfigWithPrefix } from "../testHelpers/testDbConfigs.js";
 
 interface User {
   id: number;
@@ -21,19 +20,18 @@ interface Thing {
 describe("DFCollection", () => {
   describe("Construct", () => {
     it("Throws if duplicate collection is created within the same table", () => {
-      const table = new DFTable(testDbConfig);
-      const testCollectionName = `${genTestPrefix()}-user`;
+      const table = new DFTable(testDbConfigWithPrefix());
 
       expect(() =>
         table.createCollection<User>({
-          name: testCollectionName,
+          name: "user",
           partitionKey: "id",
         })
       ).not.toThrow();
 
       expect(() =>
         table.createCollection<User>({
-          name: testCollectionName,
+          name: "user",
           partitionKey: "id",
         })
       ).toThrow("already exists in this table");
@@ -42,10 +40,10 @@ describe("DFCollection", () => {
 
   describe("Insert", () => {
     it.concurrent("Can insert items", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
       const usersCollection = table.createCollection<User>({
-        name: `${genTestPrefix()}-user`,
+        name: `user`,
         partitionKey: "id",
       });
 
@@ -66,10 +64,10 @@ describe("DFCollection", () => {
     it.concurrent(
       "Throws if inserting an item that already exists",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
 
         const usersCollection = table.createCollection<User>({
-          name: `${genTestPrefix()}-user`,
+          name: `user`,
           partitionKey: "id",
         });
 
@@ -95,10 +93,10 @@ describe("DFCollection", () => {
     it.concurrent(
       "Can insert multiple items within a transaction",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
 
         const usersCollection = table.createCollection<User>({
-          name: `${genTestPrefix()}-user`,
+          name: `user`,
           partitionKey: "id",
         });
 
@@ -142,13 +140,13 @@ describe("DFCollection", () => {
     );
 
     it.concurrent("Stores _wc and _c metadata properties", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
-      const testCollectionName = `${genTestPrefix()}-user`;
       const usersCollection = table.createCollection<User>({
-        name: testCollectionName,
+        name: "user",
         partitionKey: "id",
       });
+      const testCollectionName = usersCollection.config.name;
 
       await usersCollection.insert({
         id: 1,
@@ -178,10 +176,10 @@ describe("DFCollection", () => {
 
   describe("Update", () => {
     it.concurrent("Can update items", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
       const usersCollection = table.createCollection<User>({
-        name: `${genTestPrefix()}-user`,
+        name: `user`,
         partitionKey: "id",
       });
 
@@ -212,10 +210,10 @@ describe("DFCollection", () => {
     it.concurrent(
       "Throws if updating an item that does not exist",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
 
         const usersCollection = table.createCollection<User>({
-          name: `${genTestPrefix()}-user`,
+          name: `user`,
           partitionKey: "id",
         });
 
@@ -232,10 +230,10 @@ describe("DFCollection", () => {
     );
 
     it.concurrent("Throws if updating a field used within key", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
       const usersCollection = table.createCollection<User>({
-        name: `${genTestPrefix()}-user`,
+        name: `user`,
         partitionKey: "id",
       });
 
@@ -262,10 +260,10 @@ describe("DFCollection", () => {
     it.concurrent(
       "Can update multiple items within a transaction",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
 
         const usersCollection = table.createCollection<User>({
-          name: `${genTestPrefix()}-user`,
+          name: `user`,
           partitionKey: "id",
         });
 
@@ -327,13 +325,13 @@ describe("DFCollection", () => {
     );
 
     it.concurrent("Updates _wc", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
-      const testCollectionName = `${genTestPrefix()}-user`;
       const usersCollection = table.createCollection<User>({
-        name: testCollectionName,
+        name: "user",
         partitionKey: "id",
       });
+      const testCollectionName = usersCollection.config.name;
 
       await usersCollection.insert({
         id: 1,
@@ -372,10 +370,10 @@ describe("DFCollection", () => {
 
   describe("Delete", () => {
     it.concurrent("Can delete items", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
       const usersCollection = table.createCollection<User>({
-        name: `${genTestPrefix()}-user`,
+        name: `user`,
         partitionKey: "id",
       });
 
@@ -396,10 +394,10 @@ describe("DFCollection", () => {
     });
 
     it.concurrent("Handles deleting an item that doesn't exist", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
       const usersCollection = table.createCollection<User>({
-        name: `${genTestPrefix()}-user`,
+        name: `user`,
         partitionKey: "id",
       });
 
@@ -410,9 +408,9 @@ describe("DFCollection", () => {
   describe("Retrieve", () => {
     // annoying trick for prepping concurrent tests
     const thingsCollectionProm = (async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const thingsCollection = table.createCollection<Thing>({
-        name: `${genTestPrefix()}-things`,
+        name: `things`,
         partitionKey: "groupId",
         sortKey: "thingId",
         extensions: [
@@ -708,7 +706,7 @@ describe("DFCollection", () => {
       });
 
       it.concurrent("Runs migration if required", async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
 
         let migrationsRun = 0;
         const migrationExtension = new DFMigrationExt<
@@ -733,7 +731,7 @@ describe("DFCollection", () => {
         const thingsCollection = table.createCollection<
           Thing & { sum: null | number }
         >({
-          name: `${genTestPrefix()}-things-migration`,
+          name: `things-migration`,
           partitionKey: "groupId",
           sortKey: "thingId",
           extensions: [migrationExtension],
@@ -792,7 +790,7 @@ describe("DFCollection", () => {
       });
 
       it.concurrent("Runs postRetrieve on all extensions", async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
 
         let postRetrievesRun = 0;
         class MockExtension extends DFBaseExtension<any> {
@@ -802,7 +800,7 @@ describe("DFCollection", () => {
         }
 
         const thingsCollection = table.createCollection<Thing>({
-          name: `${genTestPrefix()}-things-migration`,
+          name: `things-migration`,
           partitionKey: "groupId",
           sortKey: "thingId",
           extensions: [
@@ -956,7 +954,7 @@ describe("DFCollection", () => {
     it.concurrent(
       "Runs all migration functions and persists item",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
 
         const migrationExtension = new DFMigrationExt<
           Thing & { sum: null | number }
@@ -978,7 +976,7 @@ describe("DFCollection", () => {
         const thingsCollection = table.createCollection<
           Thing & { sum: null | number }
         >({
-          name: `${genTestPrefix()}-things-migration`,
+          name: `things-migration`,
           partitionKey: "groupId",
           sortKey: "thingId",
           extensions: [migrationExtension],
@@ -1015,7 +1013,7 @@ describe("DFCollection", () => {
     it.concurrent(
       "Handles item being deleted while migration is in progress",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
 
         const migrationExtension = new DFMigrationExt<Thing>({
           version: 1,
@@ -1035,7 +1033,7 @@ describe("DFCollection", () => {
         });
 
         const thingsCollection = table.createCollection<Thing>({
-          name: `${genTestPrefix()}-things-migration`,
+          name: `things-migration`,
           partitionKey: "groupId",
           sortKey: "thingId",
           extensions: [migrationExtension],
@@ -1069,7 +1067,7 @@ describe("DFCollection", () => {
     it.concurrent(
       "Can migrate while entities are being written to (locking works)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
 
         let numMigrationsRun = 0;
         const migrationExtension = new DFMigrationExt<Thing & { num: number }>({
@@ -1096,7 +1094,7 @@ describe("DFCollection", () => {
         const thingsCollection = table.createCollection<
           Thing & { num: number }
         >({
-          name: `${genTestPrefix()}-things-migration`,
+          name: `things-migration`,
           partitionKey: "groupId",
           sortKey: "thingId",
           extensions: [migrationExtension],
@@ -1147,9 +1145,9 @@ describe("DFCollection", () => {
           }
         }
 
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const thingsCollection = table.createCollection<Thing>({
-          name: `${genTestPrefix()}-things-migration`,
+          name: `things-migration`,
           partitionKey: "groupId",
           sortKey: "thingId",
           extensions: [new BadExt()],
@@ -1188,9 +1186,9 @@ describe("DFCollection", () => {
           }
         }
 
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const thingsCollection = table.createCollection<Thing>({
-          name: `${genTestPrefix()}-things-migration`,
+          name: `things-migration`,
           partitionKey: "groupId",
           sortKey: "thingId",
           extensions: [new BadExt()],

@@ -38,11 +38,6 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       );
     }
 
-    // TODO: test me
-    if (this.table.config.keyPrefix) {
-      this.config.name = `${this.table.config.keyPrefix}${this.config.name}`;
-    }
-
     this.readOnlyFields = [
       ...ensureArray(this.config.partitionKey),
       ...ensureArray(this.config.sortKey),

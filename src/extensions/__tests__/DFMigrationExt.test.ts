@@ -1,10 +1,10 @@
-import { testDbConfig } from "../../testHelpers/testDbConfigs.js";
 import { DFTable } from "../../DFTable.js";
 import { genTestPrefix } from "../../testHelpers/genTestPrefix.js";
 import { DFMigrationExt } from "../DFMigrationExt.js";
+import { testDbConfig } from "../../testHelpers/testDbConfigs.js";
 
 describe("DFMigrationExt", () => {
-  const collectionName = `${genTestPrefix()}-users`;
+  const collectionName = `test-${genTestPrefix()}-users-`;
 
   it("Creates & populates a table of entities without extension enabled", async () => {
     const table = new DFTable(testDbConfig);

@@ -1,5 +1,8 @@
 import { DFTable } from "../../DFTable.js";
-import { testDbConfig } from "../../testHelpers/testDbConfigs.js";
+import {
+  testDbConfig,
+  testDbConfigWithPrefix,
+} from "../../testHelpers/testDbConfigs.js";
 import { genTestPrefix } from "../../testHelpers/genTestPrefix.js";
 import { DFSecondaryIndexExt } from "../DFSecondaryIndexExt.js";
 
@@ -16,13 +19,13 @@ interface User {
 describe("DFSecondaryIndexExt", () => {
   it("Throws if the DB has no GSIs", () => {
     const table = new DFTable({
-      ...testDbConfig,
+      ...testDbConfigWithPrefix(),
       GSIs: undefined,
     });
 
     expect(() => {
       table.createCollection<User>({
-        name: `${genTestPrefix()}-user`,
+        name: `user`,
         partitionKey: "id",
         extensions: [
           new DFSecondaryIndexExt({
@@ -38,13 +41,13 @@ describe("DFSecondaryIndexExt", () => {
 
   it("Throws if the DB does not have the required GSI defined", () => {
     const table = new DFTable({
-      ...testDbConfig,
+      ...testDbConfigWithPrefix(),
       GSIs: ["GSI1", "GSI2"],
     });
 
     expect(() => {
       table.createCollection<User>({
-        name: `${genTestPrefix()}-user`,
+        name: `user`,
         partitionKey: "id",
         extensions: [
           new DFSecondaryIndexExt({
@@ -59,10 +62,10 @@ describe("DFSecondaryIndexExt", () => {
   });
 
   it.concurrent("Writes & retrieves from secondary index", async () => {
-    const table = new DFTable(testDbConfig);
+    const table = new DFTable(testDbConfigWithPrefix());
 
     const usersCollection = table.createCollection<User>({
-      name: `${genTestPrefix()}-user`,
+      name: `user`,
       partitionKey: "id",
       extensions: [
         new DFSecondaryIndexExt({
@@ -170,10 +173,10 @@ describe("DFSecondaryIndexExt", () => {
   it.concurrent(
     "Writes & retrieves from secondary index with a composite key (all fields provided)",
     async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
       const usersCollection = table.createCollection<User>({
-        name: `${genTestPrefix()}-user`,
+        name: `user`,
         partitionKey: "id",
         extensions: [
           new DFSecondaryIndexExt({
@@ -297,11 +300,10 @@ describe("DFSecondaryIndexExt", () => {
   it.concurrent(
     "Writes & retrieves from secondary index with a composite key (fields missing, requires fetch)",
     async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
-      const collectionName = `${genTestPrefix()}-user`;
       const usersCollection = table.createCollection<User>({
-        name: collectionName,
+        name: "user",
         partitionKey: "id",
         extensions: [
           new DFSecondaryIndexExt({
@@ -312,6 +314,7 @@ describe("DFSecondaryIndexExt", () => {
           }),
         ],
       });
+      const collectionName = usersCollection.config.name;
 
       const user1: User = {
         id: 1,
@@ -394,11 +397,10 @@ describe("DFSecondaryIndexExt", () => {
   it.concurrent(
     "Writes & retrieves without touching the secondary index properties",
     async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
-      const collectionName = `${genTestPrefix()}-user`;
       const usersCollection = table.createCollection<User>({
-        name: collectionName,
+        name: "user",
         partitionKey: "id",
         extensions: [
           new DFSecondaryIndexExt({
@@ -409,6 +411,7 @@ describe("DFSecondaryIndexExt", () => {
           }),
         ],
       });
+      const collectionName = usersCollection.config.name;
 
       const user1: User = {
         id: 1,
@@ -491,10 +494,10 @@ describe("DFSecondaryIndexExt", () => {
   it.concurrent(
     "Writes & retrieves from secondary index with a composite key (fields missing, requires fetch, entity doesn't exist)",
     async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
       const usersCollection = table.createCollection<User>({
-        name: `${genTestPrefix()}-user`,
+        name: `user`,
         partitionKey: "id",
         extensions: [
           new DFSecondaryIndexExt({
@@ -531,7 +534,7 @@ describe("DFSecondaryIndexExt", () => {
     async () => {
       const table = new DFTable(testDbConfig);
 
-      const userCollectionName = `${genTestPrefix()}-user`;
+      const userCollectionName = `test-${genTestPrefix()}-user-`;
       const usersCollectionPreIndex = table.createCollection<User>({
         name: userCollectionName,
         partitionKey: "id",
@@ -606,11 +609,10 @@ describe("DFSecondaryIndexExt", () => {
   it.concurrent(
     "Throws if trying to use a dynamic update expression on a GSI composite key",
     async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
-      const userCollectionName = `${genTestPrefix()}-user`;
       const usersCollection = table.createCollection<User>({
-        name: userCollectionName,
+        name: "user",
         partitionKey: "id",
         extensions: [
           new DFSecondaryIndexExt({
@@ -662,7 +664,7 @@ describe("DFSecondaryIndexExt", () => {
   );
 
   it.concurrent("Retries if optimistic lock write fails", async () => {
-    const table = new DFTable(testDbConfig);
+    const table = new DFTable(testDbConfigWithPrefix());
 
     const userCollectionName = `${genTestPrefix()}-user`;
     const usersCollection = table.createCollection<User>({
@@ -743,10 +745,10 @@ describe("DFSecondaryIndexExt", () => {
   });
 
   it.concurrent("Multiple indexes can exist in parallel", async () => {
-    const table = new DFTable(testDbConfig);
+    const table = new DFTable(testDbConfigWithPrefix());
 
     const usersCollection = table.createCollection<User>({
-      name: `${genTestPrefix()}-user`,
+      name: `user`,
       partitionKey: "id",
       extensions: [
         new DFSecondaryIndexExt({
@@ -825,11 +827,11 @@ describe("DFSecondaryIndexExt", () => {
   it.concurrent(
     "Throws if multiple indexes try to use the same dynamo index",
     async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
       expect(() =>
         table.createCollection<User>({
-          name: `${genTestPrefix()}-user`,
+          name: `user`,
           partitionKey: "id",
           extensions: [
             new DFSecondaryIndexExt({
@@ -855,7 +857,7 @@ describe("DFSecondaryIndexExt", () => {
   );
 
   describe("entityRequiresMigration", () => {
-    const table = new DFTable(testDbConfig);
+    const table = new DFTable(testDbConfigWithPrefix());
 
     const over21Index = new DFSecondaryIndexExt({
       indexName: "over21",
@@ -866,11 +868,12 @@ describe("DFSecondaryIndexExt", () => {
     });
 
     // collection needs to exist for the index to be inited
-    table.createCollection<User>({
+    const usersCollection = table.createCollection<User>({
       name: `users`,
       partitionKey: "id",
       extensions: [over21Index],
     });
+    const collectionName = usersCollection.config.name;
 
     const user1: any = {
       id: 1,
@@ -880,11 +883,11 @@ describe("DFSecondaryIndexExt", () => {
       userName: "jyelewis",
       age: 29,
       lastUpdated: null,
-      _PK: `users#0000000001.000000#`,
-      _SK: `users##`,
-      _GSI1PK: `users#jyelewis#1#`,
-      _GSI1SK: `users#lewis#jye#`,
-      _c: "users",
+      _PK: `${collectionName}#0000000001.000000#`,
+      _SK: `${collectionName}##`,
+      _GSI1PK: `${collectionName}#jyelewis#1#`,
+      _GSI1SK: `${collectionName}#lewis#jye#`,
+      _c: collectionName,
       _wc: 1,
     };
 

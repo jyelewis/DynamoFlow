@@ -1,5 +1,5 @@
 import { DFTable } from "../DFTable.js";
-import { testDbConfig } from "../testHelpers/testDbConfigs.js";
+import { testDbConfigWithPrefix } from "../testHelpers/testDbConfigs.js";
 import { genTestPrefix } from "../testHelpers/genTestPrefix.js";
 import { DFUpdateOperation } from "../types/operations.js";
 import { RETRY_TRANSACTION } from "../types/types.js";
@@ -9,7 +9,7 @@ import { DFConditionalCheckFailedException } from "../errors/DFConditionalCheckF
 describe("DFWriteTransaction", () => {
   describe("Basic single operations", () => {
     it.concurrent("Executes single write transaction", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const preTestGet = await table.client.get({
@@ -58,7 +58,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single write transaction (with undefined/unchanged values)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         const preTestGet = await table.client.get({
@@ -123,7 +123,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single write transaction (with inc operation)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         await table.client.put({
@@ -178,7 +178,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single write transaction (with $setIfNotExists operation - doesn't exist)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         await table.client.put({
@@ -232,7 +232,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single write transaction (with $setIfNotExists operation - already exists)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         await table.client.put({
@@ -287,7 +287,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single write transaction (with $inc + $remove operation)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         await table.client.put({
@@ -344,7 +344,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single write transaction with condition + success handler (condition passes)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         const preTestGet = await table.client.get({
@@ -408,7 +408,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single write transaction with condition + error handler (condition fails)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         const preTestGet = await table.client.get({
@@ -460,7 +460,7 @@ describe("DFWriteTransaction", () => {
     );
 
     it.concurrent("Executes single delete transaction", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       await table.client.put({
@@ -505,7 +505,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes single delete transaction with condition (condition fails)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         await table.client.put({
@@ -554,7 +554,7 @@ describe("DFWriteTransaction", () => {
     );
 
     it.concurrent("Throws if operation type is unknown", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const transaction = table.createTransaction({
@@ -577,7 +577,7 @@ describe("DFWriteTransaction", () => {
 
   describe("set/list/map single operations", () => {
     it.concurrent("Stores object", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const preTestGet = await table.client.get({
@@ -636,7 +636,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Updates object properties", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const preTestGet = await table.client.get({
@@ -713,7 +713,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Stores list", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const transaction = table.createTransaction({
@@ -754,7 +754,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Replaces list", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       // create document with list
@@ -822,7 +822,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Appends to list", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       // create document with list
@@ -894,7 +894,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Deletes from list", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       // create document with list
@@ -958,7 +958,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Creates & modifies lists literals", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       // create document with list
@@ -1019,7 +1019,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Updates literal within list", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       // create document with list
@@ -1086,7 +1086,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Updates object within list", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       // create document with list
@@ -1157,7 +1157,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Stores set", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       // create document with set
@@ -1201,7 +1201,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Adds to set (exists and not exists)", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       // create document with set
@@ -1262,7 +1262,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Removes from set (exists and not exists)", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       // create document with set
@@ -1323,7 +1323,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Stores list with complex properties", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const transaction = table.createTransaction({
@@ -1403,7 +1403,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Sets value of nested object", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const preTestGet = await table.client.get({
@@ -1479,7 +1479,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Sets value of nested list entry", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const preTestGet = await table.client.get({
@@ -1547,7 +1547,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Performs operations on complex object properties",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         const preTestGet = await table.client.get({
@@ -1643,7 +1643,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Throws if trying to use an update key starting with an index expression",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         const transaction = table.createTransaction({
@@ -1666,7 +1666,7 @@ describe("DFWriteTransaction", () => {
     );
 
     it.concurrent("Throws if update expression is not recognised", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const transaction = table.createTransaction({
@@ -1688,7 +1688,7 @@ describe("DFWriteTransaction", () => {
 
   describe("Basic multiple operations", () => {
     it.concurrent("Executes write+write transaction", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const preTestGet1 = await table.client.get({
@@ -1769,7 +1769,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes write+write with embedded condition transaction (condition fails)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         const preTestGet1 = await table.client.get({
@@ -1842,7 +1842,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes write+write and retrieves value for both return handlers",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         const preTestGet1 = await table.client.get({
@@ -1935,7 +1935,7 @@ describe("DFWriteTransaction", () => {
     );
 
     it.concurrent("Executes delete+delete transaction", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       // add some test data
@@ -2003,7 +2003,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Executes write+delete transaction", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       // add some test data
@@ -2065,7 +2065,7 @@ describe("DFWriteTransaction", () => {
     });
 
     it.concurrent("Executes write+conditionCheck transaction", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       // update user 2 (primary) delete user 1 (secondary) and condition check user 3 (secondary)
@@ -2113,7 +2113,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes write+conditionCheck transaction (condition check fails)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         // update user 2 (primary) delete user 1 (secondary) and condition check user 3 (secondary)
@@ -2153,7 +2153,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Executes write+delete+conditionCheck transaction",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         // add some test data
@@ -2228,7 +2228,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Throws if error handler doesn't throw or request a re-try (multiple items)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         const transaction = table.createTransaction({
@@ -2268,7 +2268,7 @@ describe("DFWriteTransaction", () => {
     );
 
     it.concurrent("Throws if operation type is unknown", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const transaction = table.createTransaction({
@@ -2301,7 +2301,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Throws if .commitWithReturn() is called on a transaction where the primary operation is not 'update'",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         const transaction = table.createTransaction({
@@ -2320,7 +2320,7 @@ describe("DFWriteTransaction", () => {
 
   describe("Pre-commit handlers", () => {
     it.concurrent("Runs pre-commit handlers for single operation", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const eventLog: string[] = [];
@@ -2382,7 +2382,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Runs pre-commit handlers for a multiple operation",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         const eventLog: string[] = [];
@@ -2456,7 +2456,7 @@ describe("DFWriteTransaction", () => {
     );
 
     it.concurrent("Re-runs pre-commit on re-try", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       // set up some data
@@ -2522,7 +2522,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Re-tries transaction if error handler returns RETRY_TRANSACTION (single item)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         // set up some data
@@ -2594,7 +2594,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Throws if error handler doesn't throw or request a re-try",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         const transaction = table.createTransaction({
@@ -2624,7 +2624,7 @@ describe("DFWriteTransaction", () => {
     );
 
     it.concurrent("Throws if too many re-tries are attempted", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const transaction = table.createTransaction({
@@ -2655,7 +2655,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Re-tries transaction if error handler returns RETRY_TRANSACTION (with secondary ops)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         // set up some data
@@ -2724,7 +2724,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Throws if too many re-tries are attempted (with secondaryOps)",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         const transaction = table.createTransaction({
@@ -2767,7 +2767,7 @@ describe("DFWriteTransaction", () => {
 
   describe("Merging transactions", () => {
     it.concurrent("Merges transactions", async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
       const keyPrefix = genTestPrefix();
 
       const transaction1 = table.createTransaction({
@@ -2832,7 +2832,7 @@ describe("DFWriteTransaction", () => {
     it.concurrent(
       "Runs pre-commit for all items in merged transaction",
       async () => {
-        const table = new DFTable(testDbConfig);
+        const table = new DFTable(testDbConfigWithPrefix());
         const keyPrefix = genTestPrefix();
 
         const preCommit1 = jest.fn();

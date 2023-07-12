@@ -59,6 +59,10 @@ export class DFTable {
   public createCollection<Entity extends SafeEntity<Entity>>(
     collectionConfig: DFCollectionConfig<Entity>
   ): DFCollection<Entity> {
+    // TODO: test me
+    if (this.config.keyPrefix) {
+      collectionConfig.name = `${this.config.keyPrefix}${collectionConfig.name}`;
+    }
     const newCollection = new DFCollection(this, collectionConfig);
 
     // keep a reference ourselves

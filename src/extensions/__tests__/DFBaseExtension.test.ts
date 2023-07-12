@@ -1,6 +1,6 @@
 import { DFBaseExtension } from "../DFBaseExtension.js";
 import { DFTable } from "../../DFTable.js";
-import { testDbConfig } from "../../testHelpers/testDbConfigs.js";
+import { testDbConfigWithPrefix } from "../../testHelpers/testDbConfigs.js";
 
 class MyExt extends DFBaseExtension<any> {
   public fetchCollection() {
@@ -19,7 +19,7 @@ describe("DFBaseExtension", () => {
   const ext = new MyExt();
 
   // init the extension
-  const table = new DFTable(testDbConfig);
+  const table = new DFTable(testDbConfigWithPrefix());
   table.createCollection<any>({
     name: "test",
     partitionKey: "id",

@@ -1,6 +1,5 @@
 import { DFTable } from "../../DFTable.js";
-import { testDbConfig } from "../../testHelpers/testDbConfigs.js";
-import { genTestPrefix } from "../../testHelpers/genTestPrefix.js";
+import { testDbConfigWithPrefix } from "../../testHelpers/testDbConfigs.js";
 import { DFTimestampsExt } from "../DFTimestampsExt.js";
 
 interface User {
@@ -23,10 +22,10 @@ const user1: User = {
 };
 describe("DFTimestamps", () => {
   it.concurrent("Populates fields on insert (none set)", async () => {
-    const table = new DFTable(testDbConfig);
+    const table = new DFTable(testDbConfigWithPrefix());
 
     const usersCollection = table.createCollection<User>({
-      name: `${genTestPrefix()}-user`,
+      name: `user`,
       partitionKey: "id",
       extensions: [new DFTimestampsExt({})],
     });
@@ -44,10 +43,10 @@ describe("DFTimestamps", () => {
   });
 
   it.concurrent("Populates fields on insert (createdAt set)", async () => {
-    const table = new DFTable(testDbConfig);
+    const table = new DFTable(testDbConfigWithPrefix());
 
     const usersCollection = table.createCollection<User>({
-      name: `${genTestPrefix()}-user`,
+      name: `user`,
       partitionKey: "id",
       extensions: [
         new DFTimestampsExt({
@@ -69,10 +68,10 @@ describe("DFTimestamps", () => {
   });
 
   it.concurrent("Populates fields on insert (updatedAt set)", async () => {
-    const table = new DFTable(testDbConfig);
+    const table = new DFTable(testDbConfigWithPrefix());
 
     const usersCollection = table.createCollection<User>({
-      name: `${genTestPrefix()}-user`,
+      name: `user`,
       partitionKey: "id",
       extensions: [
         new DFTimestampsExt({
@@ -96,10 +95,10 @@ describe("DFTimestamps", () => {
   it.concurrent(
     "Populates fields on insert (createdAt & updatedAt set)",
     async () => {
-      const table = new DFTable(testDbConfig);
+      const table = new DFTable(testDbConfigWithPrefix());
 
       const usersCollection = table.createCollection<User>({
-        name: `${genTestPrefix()}-user`,
+        name: `user`,
         partitionKey: "id",
         extensions: [
           new DFTimestampsExt({
@@ -123,10 +122,10 @@ describe("DFTimestamps", () => {
   );
 
   it.concurrent("Updates (none set)", async () => {
-    const table = new DFTable(testDbConfig);
+    const table = new DFTable(testDbConfigWithPrefix());
 
     const usersCollection = table.createCollection<User>({
-      name: `${genTestPrefix()}-user`,
+      name: `user`,
       partitionKey: "id",
       extensions: [new DFTimestampsExt({})],
     });
@@ -147,10 +146,10 @@ describe("DFTimestamps", () => {
   });
 
   it.concurrent("Updates (createdAt set)", async () => {
-    const table = new DFTable(testDbConfig);
+    const table = new DFTable(testDbConfigWithPrefix());
 
     const usersCollection = table.createCollection<User>({
-      name: `${genTestPrefix()}-user`,
+      name: `user`,
       partitionKey: "id",
       extensions: [
         new DFTimestampsExt({
@@ -175,10 +174,10 @@ describe("DFTimestamps", () => {
   });
 
   it.concurrent("Updates (updatedAt set)", async () => {
-    const table = new DFTable(testDbConfig);
+    const table = new DFTable(testDbConfigWithPrefix());
 
     const usersCollection = table.createCollection<User>({
-      name: `${genTestPrefix()}-user`,
+      name: `user`,
       partitionKey: "id",
       extensions: [
         new DFTimestampsExt({
@@ -203,10 +202,10 @@ describe("DFTimestamps", () => {
   });
 
   it.concurrent("Updates (createdAt & updatedAt set)", async () => {
-    const table = new DFTable(testDbConfig);
+    const table = new DFTable(testDbConfigWithPrefix());
 
     const usersCollection = table.createCollection<User>({
-      name: `${genTestPrefix()}-user`,
+      name: `user`,
       partitionKey: "id",
       extensions: [
         new DFTimestampsExt({
@@ -232,10 +231,10 @@ describe("DFTimestamps", () => {
   });
 
   it.concurrent("Prevents overwriting createdAt", async () => {
-    const table = new DFTable(testDbConfig);
+    const table = new DFTable(testDbConfigWithPrefix());
 
     const usersCollection = table.createCollection<User>({
-      name: `${genTestPrefix()}-user`,
+      name: `user`,
       partitionKey: "id",
       extensions: [
         new DFTimestampsExt({

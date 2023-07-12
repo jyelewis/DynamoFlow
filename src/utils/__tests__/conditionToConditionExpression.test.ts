@@ -1,10 +1,10 @@
 import { conditionToConditionExpression } from "../conditionToConditionExpression.js";
 import { ConditionExpressionProperties } from "../../types/operations.js";
 import { DFTable } from "../../DFTable.js";
-import { testDbConfig } from "../../testHelpers/testDbConfigs.js";
+import { testDbConfigWithPrefix } from "../../testHelpers/testDbConfigs.js";
 
 describe("conditionToConditionExpression", () => {
-  const table = new DFTable(testDbConfig);
+  const table = new DFTable(testDbConfigWithPrefix());
 
   // both runs this expression against the database
   // and asserts against the returned object
