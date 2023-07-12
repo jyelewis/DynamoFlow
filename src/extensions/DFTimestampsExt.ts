@@ -7,8 +7,8 @@ export class DFTimestampsExt<
 > extends DFBaseExtension<Entity> {
   public constructor(
     public readonly config: {
-      createdAt?: keyof Entity;
-      updatedAt?: keyof Entity;
+      createdAtField?: keyof Entity;
+      updatedAtField?: keyof Entity;
     }
   ) {
     super();
@@ -20,17 +20,17 @@ export class DFTimestampsExt<
   ): void | Promise<void> {
     const now = new Date().toISOString();
 
-    if (this.config.createdAt) {
+    if (this.config.createdAtField) {
       transaction.primaryUpdateOperation.updateValues[
-        this.config.createdAt as string
+        this.config.createdAtField as string
       ] = {
         $setIfNotExists: now,
       };
     }
 
-    if (this.config.updatedAt) {
+    if (this.config.updatedAtField) {
       transaction.primaryUpdateOperation.updateValues[
-        this.config.updatedAt as string
+        this.config.updatedAtField as string
       ] = {
         $setIfNotExists: now,
       };
@@ -43,12 +43,13 @@ export class DFTimestampsExt<
     transaction: DFWriteTransaction
   ): void | Promise<void> {
     // ensure no one can update createdAt, if we're in control of the field
-    if (this.config.createdAt) {
-      entityUpdate[this.config.createdAt as string] = undefined;
+    if (this.config.createdAtField) {
+      entityUpdate[this.config.createdAtField as string] = undefined;
     }
 
-    if (this.config.updatedAt) {
-      entityUpdate[this.config.updatedAt as string] = new Date().toISOString();
+    if (this.config.updatedAtField) {
+      entityUpdate[this.config.updatedAtField as string] =
+        new Date().toISOString();
     }
   }
 }

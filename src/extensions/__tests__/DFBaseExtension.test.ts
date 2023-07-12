@@ -70,6 +70,14 @@ describe("DFBaseExtension", () => {
       ).toEqual(undefined);
     });
 
+    it("onQuery()", () => {
+      expect(
+        ext.onQuery({
+          where: {},
+        })
+      ).toEqual(undefined);
+    });
+
     it("entityRequiresMigration()", () => {
       expect(ext.entityRequiresMigration({})).toEqual(false);
     });

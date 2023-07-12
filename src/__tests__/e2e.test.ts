@@ -29,7 +29,7 @@ describe("E2E tests", () => {
       name: `${genTestPrefix()}-user`,
       partitionKey: "id",
       extensions: [
-        new DFTimestampsExt({ updatedAt: "lastUpdated" }),
+        new DFTimestampsExt({ updatedAtField: "lastUpdated" }),
         new DFSecondaryIndexExt({
           dynamoIndex: "GSI1",
           indexName: "name",

@@ -23,6 +23,8 @@ export interface DFTableConfig {
   region?: string;
   endpoint?: string;
   GSIs?: string[];
+  // TODO: test this
+  keyPrefix?: string;
 }
 
 export class DFTable {

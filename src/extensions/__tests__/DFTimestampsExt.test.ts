@@ -51,7 +51,7 @@ describe("DFTimestamps", () => {
       partitionKey: "id",
       extensions: [
         new DFTimestampsExt({
-          createdAt: "dateCreated",
+          createdAtField: "dateCreated",
         }),
       ],
     });
@@ -76,7 +76,7 @@ describe("DFTimestamps", () => {
       partitionKey: "id",
       extensions: [
         new DFTimestampsExt({
-          updatedAt: "lastUpdated",
+          updatedAtField: "lastUpdated",
         }),
       ],
     });
@@ -103,8 +103,8 @@ describe("DFTimestamps", () => {
         partitionKey: "id",
         extensions: [
           new DFTimestampsExt({
-            createdAt: "dateCreated",
-            updatedAt: "lastUpdated",
+            createdAtField: "dateCreated",
+            updatedAtField: "lastUpdated",
           }),
         ],
       });
@@ -154,7 +154,7 @@ describe("DFTimestamps", () => {
       partitionKey: "id",
       extensions: [
         new DFTimestampsExt({
-          createdAt: "dateCreated",
+          createdAtField: "dateCreated",
         }),
       ],
     });
@@ -182,7 +182,7 @@ describe("DFTimestamps", () => {
       partitionKey: "id",
       extensions: [
         new DFTimestampsExt({
-          updatedAt: "lastUpdated",
+          updatedAtField: "lastUpdated",
         }),
       ],
     });
@@ -210,8 +210,8 @@ describe("DFTimestamps", () => {
       partitionKey: "id",
       extensions: [
         new DFTimestampsExt({
-          createdAt: "dateCreated",
-          updatedAt: "lastUpdated",
+          createdAtField: "dateCreated",
+          updatedAtField: "lastUpdated",
         }),
       ],
     });
@@ -239,8 +239,8 @@ describe("DFTimestamps", () => {
       partitionKey: "id",
       extensions: [
         new DFTimestampsExt({
-          createdAt: "dateCreated",
-          updatedAt: "lastUpdated",
+          createdAtField: "dateCreated",
+          updatedAtField: "lastUpdated",
         }),
       ],
     });

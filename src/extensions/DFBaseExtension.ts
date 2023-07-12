@@ -16,6 +16,7 @@ import {
   UpdateValue,
 } from "../types/types.js";
 import { PartialQueryExpression } from "../types/internalTypes.js";
+import { DFCondition } from "../types/operations.js";
 
 export abstract class DFBaseExtension<Entity extends SafeEntity<Entity>> {
   public _collection: undefined | DFCollection<Entity>;
@@ -47,7 +48,12 @@ export abstract class DFBaseExtension<Entity extends SafeEntity<Entity>> {
 
   public expressionForQuery(
     query: Query<Entity>
-  ): undefined | PartialQueryExpression | Promise<PartialQueryExpression> {
+  ): undefined | PartialQueryExpression {
+    return undefined;
+  }
+
+  // TODO: can expression for query be merged into onQuery? Could have a 'raw' property on the query that needs populating
+  public onQuery(query: Query<Entity>): undefined | DFCondition {
     return undefined;
   }
 

@@ -38,6 +38,11 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       );
     }
 
+    // TODO: test me
+    if (this.table.config.keyPrefix) {
+      this.config.name = `${this.table.config.keyPrefix}${this.config.name}`;
+    }
+
     this.readOnlyFields = [
       ...ensureArray(this.config.partitionKey),
       ...ensureArray(this.config.sortKey),
@@ -221,6 +226,10 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     // if this query is against the primary index, that will generate it locally
     // otherwise it will search for an extension to generate this expression for us
     const queryExpression = await this.expressionForQuery(query);
+
+    // TODO: test this
+    // run extension hooks
+    this.extensions.map((extension) => extension.onQuery(query));
 
     // filters have the same interface as expressions
     const filterExpression = conditionToConditionExpression(
@@ -453,9 +462,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     return entity as Entity;
   }
 
-  private async expressionForQuery(
-    query: Query<Entity>
-  ): Promise<PartialQueryExpression> {
+  private expressionForQuery(query: Query<Entity>): PartialQueryExpression {
     if (query.index === undefined) {
       // primary index
       return generateQueryExpression(
@@ -468,7 +475,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
     for (const extension of this.extensions) {
       // ask this extension if they can provide an expression for this query
-      const queryExpression = await extension.expressionForQuery(query);
+      const queryExpression = extension.expressionForQuery(query);
       if (queryExpression !== undefined) {
         return queryExpression;
       }
