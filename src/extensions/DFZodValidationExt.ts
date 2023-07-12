@@ -1,38 +1,89 @@
-import { EntityWithMetadata, SafeEntity } from "../types/types.js";
+import { EntityWithMetadata, SafeEntity, UpdateValue } from "../types/types.js";
 import { DFBaseExtension } from "./DFBaseExtension.js";
 import { DFWriteTransaction } from "../DFWriteTransaction.js";
 import z from "zod";
-
-// TODO: finish this, just a POC
-// TODO: can we make Zod not a hard dependency?
-
-// interface DFSecondaryIndexExtConfig<Entity extends SafeEntity<Entity>> {
-//   indexName: string;
-//   dynamoIndex: "GSI1" | "GSI2" | "GSI3" | "GSI4" | "GSI5";
-//   partitionKey: (string & keyof Entity) | Array<string & keyof Entity>;
-//   sortKey?: (string & keyof Entity) | Array<string & keyof Entity>;
-//   includeInIndex?: [(entity: Entity) => boolean, Array<keyof Entity>];
-// }
+import { isDynamoValue } from "../utils/isDynamoValue.js";
 
 export class DFZodValidationExt<
   Entity extends SafeEntity<Entity>
 > extends DFBaseExtension<Entity> {
-  // TODO: need more settings
-  //  1. Allow cleanup
-  //  2. validateOnRetrieve
-  //  3. validateOnInsert
-  //  4. validateOnUpdate
-  constructor(public readonly zodSchema: z.ZodObject<any>) {
+  constructor(
+    public readonly config: {
+      schema: z.ZodObject<any>;
+      // these default to true
+      validateOnInsert?: boolean;
+      validateOnUpdate?: boolean;
+      validateOnRetrieve?: boolean;
+    }
+  ) {
     super();
+
+    // default all validations to true
+    this.config = {
+      validateOnInsert: true,
+      validateOnUpdate: true,
+      validateOnRetrieve: true,
+      ...this.config,
+    };
+
+    if (
+      (!this.config.validateOnInsert || !this.config.validateOnUpdate) &&
+      this.config.validateOnRetrieve
+    ) {
+      // we can't really handle this case
+      // as any insert/update will use the retrieve processor to return a value to the user
+      throw new Error(
+        "If validateOnRetrieve is enabled, validateOnInsert & validateOnUpdate must also be enabled"
+      );
+    }
   }
 
-  // TODO: where in the chain does this sit?
   public onInsert(
     entityWithMetadata: EntityWithMetadata,
     transaction: DFWriteTransaction
   ) {
-    // TODO: do this on retrieve & update as well
+    if (!this.config.validateOnInsert) {
+      // insert validation disabled
+      return;
+    }
 
+    this.validateAndParse(entityWithMetadata);
+  }
+
+  public onUpdate(
+    key: Partial<Entity>,
+    entityUpdate: Record<string, UpdateValue>,
+    transaction: DFWriteTransaction
+  ) {
+    if (!this.config.validateOnUpdate) {
+      return;
+    }
+
+    // we can only parse the values we have for the update
+    Object.entries(entityUpdate).forEach(([key, value]) => {
+      if (key.startsWith("_")) {
+        // ignore metadata fields
+        return;
+      }
+
+      if (isDynamoValue(value)) {
+        // parse new value (this also validates)
+        entityUpdate[key] = this.config.schema.shape[key].parse(value);
+      }
+
+      // we have a dynamic update, we can't validate this
+    });
+  }
+
+  public postRetrieve(entityWithMetadata: EntityWithMetadata): void {
+    if (!this.config.validateOnRetrieve) {
+      return;
+    }
+
+    this.validateAndParse(entityWithMetadata);
+  }
+
+  private validateAndParse(entityWithMetadata: EntityWithMetadata) {
     // strip metadata so we get the fields the user is updating
     const entity: any = {};
     Object.keys(entityWithMetadata)
@@ -42,13 +93,11 @@ export class DFZodValidationExt<
       );
 
     // this will both validate the entity & clean up any non standard values for type (i.e 1 => true)
-    const parsedEntity = this.zodSchema.parse(entity);
+    const parsedEntity = this.config.schema.parse(entity);
 
     // pop the parsed fields back onto the entityWithMetadata (should be a 1:1 overwrite)
     Object.keys(parsedEntity).forEach((key) => {
       entityWithMetadata[key] = parsedEntity[key];
     });
   }
-
-  // TODO: finish me :)
 }
