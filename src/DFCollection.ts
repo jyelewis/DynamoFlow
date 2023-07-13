@@ -13,7 +13,7 @@ import { generateIndexStrings } from "./utils/generateIndexStrings.js";
 import { generateQueryExpression } from "./utils/generateQueryExpression.js";
 import { DFCondition, DFWritePrimaryOperation } from "./types/operations.js";
 import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
-import { DFConditionalCheckFailedException } from "./errors/DFConditionalCheckFailedException.js";
+import { DFConditionalCheckFailedError } from "./errors/DFConditionalCheckFailedError.js";
 import { ensureArray } from "./utils/ensureArray.js";
 
 export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
@@ -85,7 +85,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
           }
         : undefined,
       errorHandler: (e: any) => {
-        if (e instanceof DFConditionalCheckFailedException) {
+        if (e instanceof DFConditionalCheckFailedError) {
           throw new Error("Entity already exists");
         }
 
@@ -156,7 +156,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
         _PK: { $exists: true },
       },
       errorHandler: (e: any) => {
-        if (e instanceof DFConditionalCheckFailedException) {
+        if (e instanceof DFConditionalCheckFailedError) {
           throw new Error("Entity does not exist");
         }
 
@@ -371,7 +371,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
         // the error-handler re-reads from the DB and tries the migration again
         errorHandler: async (e: any) => {
           /* istanbul ignore next */
-          if (!(e instanceof DFConditionalCheckFailedException)) {
+          if (!(e instanceof DFConditionalCheckFailedError)) {
             throw e; // not our business
           }
 

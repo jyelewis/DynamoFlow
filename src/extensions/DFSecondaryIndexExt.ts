@@ -12,7 +12,7 @@ import { generateQueryExpression } from "../utils/generateQueryExpression.js";
 import { DFCollection } from "../DFCollection.js";
 import { DFUpdateOperation } from "../types/operations.js";
 import { isDynamoValue } from "../utils/isDynamoValue.js";
-import { DFConditionalCheckFailedException } from "../errors/DFConditionalCheckFailedException.js";
+import { DFConditionalCheckFailedError } from "../errors/DFConditionalCheckFailedError.js";
 import { ensureArray } from "../utils/ensureArray.js";
 
 interface DFSecondaryIndexExtConfig<Entity extends SafeEntity<Entity>> {
@@ -191,7 +191,7 @@ export class DFSecondaryIndexExt<
         primaryUpdateOperation.errorHandler = (err) => {
           // if our conditional check failed (likely due to a writeCount mismatch) re-try the transaction
           // this will allow is to re-fetch the entity and re-try the update
-          if (err instanceof DFConditionalCheckFailedException) {
+          if (err instanceof DFConditionalCheckFailedError) {
             return RETRY_TRANSACTION;
           }
 

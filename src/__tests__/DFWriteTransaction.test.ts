@@ -4,7 +4,7 @@ import { genTestPrefix } from "../testHelpers/genTestPrefix.js";
 import { DFUpdateOperation } from "../types/operations.js";
 import { RETRY_TRANSACTION } from "../types/types.js";
 import { setTimeout } from "timers/promises";
-import { DFConditionalCheckFailedException } from "../errors/DFConditionalCheckFailedException.js";
+import { DFConditionalCheckFailedError } from "../errors/DFConditionalCheckFailedError.js";
 
 describe("DFWriteTransaction", () => {
   describe("Basic single operations", () => {
@@ -2138,7 +2138,7 @@ describe("DFWriteTransaction", () => {
             _PK: { $exists: true },
           },
           errorHandler: (e) => {
-            expect(e).toBeInstanceOf(DFConditionalCheckFailedException);
+            expect(e).toBeInstanceOf(DFConditionalCheckFailedError);
 
             throw new Error("Conditional check caught and re-thrown");
           },

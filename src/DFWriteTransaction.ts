@@ -13,7 +13,7 @@ import {
 import assert from "assert";
 import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
 import { isDynamoValue } from "./utils/isDynamoValue.js";
-import { DFConditionalCheckFailedException } from "./errors/DFConditionalCheckFailedException.js";
+import { DFConditionalCheckFailedError } from "./errors/DFConditionalCheckFailedError.js";
 
 const MAX_TRANSACTION_RETRIES = 5;
 
@@ -98,7 +98,7 @@ export class DFWriteTransaction {
         // make Dynamo errors consistent with multi-op error handling
         let userFacingError = e;
         if (e.name === "ConditionalCheckFailedException") {
-          userFacingError = new DFConditionalCheckFailedException(this);
+          userFacingError = new DFConditionalCheckFailedError(this);
         }
 
         if (!this.primaryOperation.errorHandler) {
@@ -156,7 +156,7 @@ export class DFWriteTransaction {
         // make errors consistent between multi and single transactions
         let userFacingError: any = reason;
         if (reason.Code === "ConditionalCheckFailed") {
-          userFacingError = new DFConditionalCheckFailedException(this);
+          userFacingError = new DFConditionalCheckFailedError(this);
         }
 
         const op =
