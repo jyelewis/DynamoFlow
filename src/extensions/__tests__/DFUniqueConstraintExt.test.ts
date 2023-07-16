@@ -379,5 +379,40 @@ describe("DFUniqueConstraintExt", () => {
 
   // describe("onDelete");
 
-  // describe("migrateEntity");
+  describe("migrateEntity", () => {
+    it.each([
+      [undefined, 0],
+      [null, 0],
+      [user1.email, 1],
+    ])(
+      "Does nothing if the entity does not have the field",
+      (email, expectedSecondaryTransactions) => {
+        const table = new DFTable(testDbConfigWithPrefix());
+        const uniqueEmailExt = new DFUniqueConstraintExt<User>("email");
+        table.createCollection<User>({
+          name: "users",
+          partitionKey: "id",
+          extensions: [uniqueEmailExt],
+        });
+
+        const migrationTransaction = table.createTransaction({
+          type: "Update",
+          key: {},
+          updateValues: {},
+        });
+
+        uniqueEmailExt.migrateEntity(
+          {
+            ...user1,
+            email: email as any,
+          },
+          migrationTransaction
+        );
+
+        expect(migrationTransaction.secondaryOperations.length).toEqual(
+          expectedSecondaryTransactions
+        );
+      }
+    );
+  });
 });

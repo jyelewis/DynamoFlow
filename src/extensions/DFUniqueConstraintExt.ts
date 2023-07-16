@@ -179,7 +179,7 @@ export class DFUniqueConstraintExt<
 
         throw err;
       };
-      // TODO: we also need to remove this one before re-adding one
+
       transaction.addSecondaryTransaction(newUniqueConstraintTransaction);
     });
   }
@@ -195,7 +195,7 @@ export class DFUniqueConstraintExt<
   public migrateEntity(
     entity: EntityWithMetadata,
     transaction: DFWriteTransaction
-  ): void | Promise<void> {
+  ): void {
     const uniqueFieldValue = entity[this.uniqueField as string];
     if (uniqueFieldValue === undefined || uniqueFieldValue === null) {
       // field doesn't exist or is null, no need to store any items in unique index
