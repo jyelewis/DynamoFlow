@@ -8,16 +8,16 @@ A practical & extendable DynamoDB client for TypeScript applications.
 
 ## Features
 * Supports & encourages [single table design](https://aws.amazon.com/blogs/database/single-table-vs-multi-table-design-in-amazon-dynamodb/)
-* Abstracts your different item types into [collections](docs/DFCollection.md)
-* [Transactions](src/DFWriteTransaction.ts)
-* [Unique constraints](src/extensions/DFUniqueConstraintExt.ts)
-* [Secondary indexes](src/extensions/DFSecondaryIndexExt.ts)
-* [Timestamping](src/extensions/DFTimestampsExt.ts)
-* [Zod validation](src/extensions/DFZodValidationExt.ts)
-* [TTL](src/extensions/DFTtlExt.ts)
-* Extendable via [extensions](docs/Collection%20extensions.md)
-* On the fly schema [migrations](src/extensions/DFMigrationExt.ts)
-* Scan / batch schema [migrations](src/extensions/DFMigrationExt.ts)
+* Abstracts your different item types into [collections](https://github.com/jyelewis/DynamoFlow/blob/main/docs/DFCollection.md)
+* [Transactions](https://github.com/jyelewis/DynamoFlow/blob/main/src/DFWriteTransaction.ts)
+* [Unique constraints](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFUniqueConstraintExt.ts)
+* [Secondary indexes](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFSecondaryIndexExt.ts)
+* [Timestamping](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFTimestampsExt.ts)
+* [Zod validation](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFZodValidationExt.ts)
+* [TTL](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFTtlExt.ts)
+* Extendable via [extensions](https://github.com/jyelewis/DynamoFlow/blob/main/docs/Collection%20extensions.md)
+* On the fly schema [migrations](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFMigrationExt.ts)
+* Scan / batch schema [migrations](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFMigrationExt.ts)
 
 ## Why?
 Unlike many other database technologies, DynamoDB expects your data management logic to live in the application layer.
@@ -39,7 +39,7 @@ My personal favourites are
 
 1. Install the package: `npm install --save dynamoflow` or `yarn add dynamoflow`
 2. Start DynamoDB Local `docker run -p 8000:8000 amazon/dynamodb-local` (or copy our example [docker-compose.yml](docker-compose.yml) file)
-3. Create a [DFTable](docs/DFTable.md) instance
+3. Create a [DFTable](https://github.com/jyelewis/DynamoFlow/blob/main/docs/DFTable.md) instance
     1. Following [single table design](https://aws.amazon.com/blogs/database/single-table-vs-multi-table-design-in-amazon-dynamodb/), your application will likely only have one DFTable instance
     2. AWS credentials are loaded from the v3 SDK
 ```typescript
@@ -60,10 +60,10 @@ await table.createTableIfNotExists();
 4. Define types for your entities
     1. Any normal TypeScript type can be used, DynamoFlow does not care about the schema of your objects
     2. If desired, you can use extensions like DFZodValidationExt to validate your objects at runtime
-5. Create [collections](docs/DFCollection.md) for each entity type you have
+5. Create [collections](https://github.com/jyelewis/DynamoFlow/blob/main/docs/DFCollection.md) for each entity type you have
     1. Collections are used to read & write from your table
     2. Many collections can exist within a single Table
-    3. [Extensions](docs/Collection%20extensions.md) can be used to add additional functionality to your collections
+    3. [Extensions](https://github.com/jyelewis/DynamoFlow/blob/main/docs/Collection%20extensions.md) can be used to add additional functionality to your collections
 
 ```typescript
 
@@ -104,7 +104,7 @@ const projectsCollection = table.createCollection<Project>({
 
 ```
 
-6. Use these [collections](docs/DFCollection.md) to read & write from your [table](docs/DFTable.md)
+6. Use these [collections](https://github.com/jyelewis/DynamoFlow/blob/main/docs/DFCollection.md) to read & write from your [table](https://github.com/jyelewis/DynamoFlow/blob/main/docs/DFTable.md)
 ```typescript
 const user1 = await usersCollection.insert({
     id: "user-1",
@@ -136,5 +136,5 @@ const retrievedProject = await projectsCollection.retrieveOne({
 });
 ```
 
-For a more comprehensive example, take a look at the included [Messaging app](src/examples/messaging_app) demo.
+For a more comprehensive example, take a look at the included [Messaging app](https://github.com/jyelewis/DynamoFlow/blob/main/src/examples/messaging_app) demo.
 

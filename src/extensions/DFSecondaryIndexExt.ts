@@ -15,7 +15,7 @@ import { isDynamoValue } from "../utils/isDynamoValue.js";
 import { DFConditionalCheckFailedError } from "../errors/DFConditionalCheckFailedError.js";
 import { ensureArray } from "../utils/ensureArray.js";
 
-interface DFSecondaryIndexExtConfig<Entity extends SafeEntity<Entity>> {
+export interface DFSecondaryIndexExtConfig<Entity extends SafeEntity<Entity>> {
   indexName: string;
   dynamoIndex: "GSI1" | "GSI2" | "GSI3" | "GSI4" | "GSI5";
   partitionKey: (string & keyof Entity) | Array<string & keyof Entity>;
