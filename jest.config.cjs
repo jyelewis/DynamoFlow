@@ -12,4 +12,12 @@ module.exports = {
   },
   setupFiles: ["<rootDir>/jest.globalSetup.js"],
   maxWorkers: 4,
+  coverageThreshold: {
+    global: {
+      branches: 90,
+      functions: 95,
+      lines: 95,
+      statements: 95,
+    },
+  },
 };

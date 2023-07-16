@@ -1,15 +1,4 @@
-on:
-  push:
-  pull_request:
-    branches:
-      - production
-      - staging
-    types:
-      - opened
-      - synchronize
-      - reopened
-
-name: Lint & test
+name: Test & publish
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
@@ -53,6 +42,9 @@ jobs:
       - name: ESLint
         run: pnpm run eslint
 
+      - name: TypeScript build
+        run: pnpm run build
+
       - name: Setup DynamoDB Local for tests
         uses: rrainn/dynamodb-action@v2.0.1
         with:
@@ -67,4 +59,9 @@ jobs:
         run: pnpm run test --ci
 
       - name: Coveralls
+        if: github.ref == 'refs/heads/main'
         uses: coverallsapp/github-action@v2
+
+      - name: Publish to NPM
+        if: github.ref == 'refs/heads/main'
+        run: npm run publish
