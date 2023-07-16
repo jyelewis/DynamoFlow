@@ -2,9 +2,11 @@
 
 A practical & extendable DynamoDB client for TypeScript applications.
 
-[![Coverage Status](https://coveralls.io/repos/github/jyelewis/DynamoFlow/badge.svg?branch=main)](https://coveralls.io/github/jyelewis/dynamoflow?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/jyelewis/DynamoFlow/badge.svg?branch=main)](https://coveralls.io/github/jyelewis/DynamoFlow?branch=main)
+[![NPM](https://img.shields.io/npm/v/badges.svg)](https://www.npmjs.com/package/dynamoflow)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
+
 
 ## Features
 * Supports & encourages [single table design](https://aws.amazon.com/blogs/database/single-table-vs-multi-table-design-in-amazon-dynamodb/)
@@ -139,3 +141,4 @@ const retrievedProject = await projectsCollection.retrieveOne({
 
 For a more comprehensive example, take a look at the included [Messaging app](https://github.com/jyelewis/DynamoFlow/blob/main/src/examples/messaging_app) demo.
 
+Once you're ready to test against a real DynamoDB table, read [Configuring DynamoDB Tables](https://github.com/jyelewis/DynamoFlow/blob/main/docs/Configuring%20DynamoDB%20tables.md)
