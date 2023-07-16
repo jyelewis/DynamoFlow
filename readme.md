@@ -13,7 +13,7 @@ A practical & extendable DynamoDB client for TypeScript applications.
 * [Unique constraints](src/extensions/DFUniqueFieldExt.ts)
 * [Foreign keys](src/extensions/DFForeignKeyExt.ts)
 * [Secondary indexes](src/extensions/DFSecondaryIndexExt.ts)
-* [Timestamping](src/extensions/DFTimestampExt.ts)
+* [Timestamping](src/extensions/DFTimestampsExt.ts)
 * [Zod validation](src/extensions/DFZodValidationExt.ts)
 * [TTL](src/extensions/DFTtlExt.ts)
 * Extendable via [extensions](docs/Collection%20extensions.md)
