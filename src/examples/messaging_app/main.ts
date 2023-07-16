@@ -75,7 +75,7 @@ export async function sendMessage({
   // this schema is designed to make viewing conversations & messages very cheap
   // at the cost here, of creating conversations & sending messages being expensive
 
-  // we've chosen to use this schema to demonstrate some of the features of DynaFlow
+  // we've chosen to use this schema to demonstrate some of the features of DynamoFlow
 
   const transaction = messagesCollection.insertTransaction({
     conversationId,

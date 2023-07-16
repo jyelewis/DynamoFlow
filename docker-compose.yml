@@ -2,7 +2,7 @@ version: '3.7'
 services:
   dynamodb:
     image:  amazon/dynamodb-local
-    container_name: dynaflow-tests-dynamodb
+    container_name: dynamoflow-tests-dynamodb
     hostname: dynamodb
     restart: always
     ports:

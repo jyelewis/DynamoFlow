@@ -1,8 +1,8 @@
-# DynaFlow
+# DynamoFlow
 
 A practical & extendable DynamoDB client for TypeScript applications.
 
-[![Coverage Status](https://coveralls.io/repos/github/jyelewis/dynaflow/badge.svg?branch=main)](https://coveralls.io/github/jyelewis/dynaflow?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/jyelewis/dynamoflow/badge.svg?branch=main)](https://coveralls.io/github/jyelewis/dynamoflow?branch=main)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 
@@ -10,8 +10,7 @@ A practical & extendable DynamoDB client for TypeScript applications.
 * Supports & encourages [single table design](https://aws.amazon.com/blogs/database/single-table-vs-multi-table-design-in-amazon-dynamodb/)
 * Abstracts your different item types into [collections](docs/DFCollection.md)
 * [Transactions](src/DFWriteTransaction.ts)
-* [Unique constraints](src/extensions/DFUniqueFieldExt.ts)
-* [Foreign keys](src/extensions/DFForeignKeyExt.ts)
+* [Unique constraints](src/extensions/DFUniqueConstraintExt.ts)
 * [Secondary indexes](src/extensions/DFSecondaryIndexExt.ts)
 * [Timestamping](src/extensions/DFTimestampsExt.ts)
 * [Zod validation](src/extensions/DFZodValidationExt.ts)
@@ -25,7 +24,7 @@ Unlike many other database technologies, DynamoDB expects your data management l
 Rather than providing built-in features such as unique fields, foreign keys, or cascading deletes,
 DynamoDB provides the foundational technologies to implement these features yourself.
 
-Rather than picking which of these features we do and don't include, DynaFlow provides a set of tools to make it easy to implement these features yourself.
+Rather than picking which of these features we do and don't include, DynamoFlow provides a set of tools to make it easy to implement these features yourself.
 We also provide a set of ready-to-go extensions for common patters, such as unique fields, foreign keys, secondary indexes & timestamping
 
 There are several other Typescript DynamoDB clients available, and I encourage you to check them all out before committing to one.
@@ -38,13 +37,13 @@ My personal favourites are
 
 ## Getting Started
 
-1. Install the package: `npm install --save dynaflow` or `yarn add dynaflow`
+1. Install the package: `npm install --save dynamoflow` or `yarn add dynamoflow`
 2. Start DynamoDB Local `docker run -p 8000:8000 amazon/dynamodb-local` (or copy our example [docker-compose.yml](docker-compose.yml) file)
 3. Create a [DFTable](docs/DFTable.md) instance
     1. Following [single table design](https://aws.amazon.com/blogs/database/single-table-vs-multi-table-design-in-amazon-dynamodb/), your application will likely only have one DFTable instance
     2. AWS credentials are loaded from the v3 SDK
 ```typescript
-import {DFTable} from 'dynaflow';
+import {DFTable} from 'dynamoflow';
 
 const table = new DFTable({
   tableName: "my-application-table",
@@ -59,7 +58,7 @@ await table.createTableIfNotExists();
 ```
 
 4. Define types for your entities
-    1. Any normal TypeScript type can be used, DynaFlow does not care about the schema of your objects
+    1. Any normal TypeScript type can be used, DynamoFlow does not care about the schema of your objects
     2. If desired, you can use extensions like DFZodValidationExt to validate your objects at runtime
 5. Create [collections](docs/DFCollection.md) for each entity type you have
     1. Collections are used to read & write from your table

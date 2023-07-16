@@ -1,6 +1,6 @@
 # Metadata fields
 
-Dynaflow uses a number of metadata fields to store information about your data in DynamoDB.
+DynamoFlow uses a number of metadata fields to store information about your data in DynamoDB.
 Below is a list of metadata fields that may be written to your entities.
 Extensions may also attach metadata to your entities.
 

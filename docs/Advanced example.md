@@ -1,10 +1,10 @@
 ```typescript
-import {DFTable} from 'dynaflow';
+import {DFTable} from 'dynamoflow';
 import {DFSecondaryIndexExt} from "./DFSecondaryIndexExt";
 
 // -------------------- 1. Create a DFTable for your DynamoDB Table --------------------
 // following single table design, your application will likely only have one DFTable instance
-// Dynaflow will 
+// DynamoFlow will 
 const table = new DFTable({
   // AWS credentials are loaded from the v3 SDK
   tableName: "my-application-table",
@@ -20,7 +20,7 @@ await table.createTableIfNotExists();
 // -------------------- 2. Create collections for each of your entity types ---------------
 
 // any normal typescript type can be used
-// Dynaflow does not care about the schema of your objects
+// DynamoFlow does not care about the schema of your objects
 // if desired, you can use extensions like DFZodValidationExt to validate your objects at runtime
 interface Project {
   id: string;
