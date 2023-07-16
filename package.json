@@ -1,7 +1,19 @@
 {
   "name": "dynamoflow",
   "version": "1.0.0",
+  "description": "A practical & extendable DynamoDB client for TypeScript applications.",
   "license": "MIT",
+  "keywords": [
+    "dynamodb",
+    "dynamo",
+    "database",
+    "serverless",
+    "orm"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jyelewis/DynamoFlow.git"
+  },
   "type": "module",
   "author": "Jye Lewis <jye@jyelewis.com>",
   "main": "dist/index.js",
