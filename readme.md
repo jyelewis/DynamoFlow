@@ -6,6 +6,19 @@ A practical & extendable DynamoDB client for TypeScript applications.
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 
+## Features
+* Supports & encourages [single table design](https://aws.amazon.com/blogs/database/single-table-vs-multi-table-design-in-amazon-dynamodb/)
+* Abstracts your different item types into [collections](docs/DFCollection.md)
+* [Transactions](src/DFWriteTransaction.ts)
+* [Unique constraints](src/extensions/DFUniqueFieldExt.ts)
+* [Foreign keys](src/extensions/DFForeignKeyExt.ts)
+* [Secondary indexes](src/extensions/DFSecondaryIndexExt.ts)
+* [Timestamping](src/extensions/DFTimestampExt.ts)
+* [Zod validation](src/extensions/DFZodValidationExt.ts)
+* [TTL](src/extensions/DFTtlExt.ts)
+* Extendable via [extensions](docs/Collection%20extensions.md)
+* On the fly schema [migrations](src/extensions/DFMigrationExt.ts)
+* Scan / batch schema [migrations](src/extensions/DFMigrationExt.ts)
 
 ## Why?
 Unlike many other database technologies, DynamoDB expects your data management logic to live in the application layer.
@@ -15,19 +28,13 @@ DynamoDB provides the foundational technologies to implement these features your
 Rather than picking which of these features we do and don't include, DynaFlow provides a set of tools to make it easy to implement these features yourself.
 We also provide a set of ready-to-go extensions for common patters, such as unique fields, foreign keys, secondary indexes & timestamping
 
-## Features
- * Supports & encourages [single table design](https://aws.amazon.com/blogs/database/single-table-vs-multi-table-design-in-amazon-dynamodb/)
- * Abstracts your different item types into [collections](docs/DFCollection.md)
- * [Transactions](src/DFWriteTransaction.ts)
- * [Unique constraints](src/extensions/DFUniqueFieldExt.ts)
- * [Foreign keys](src/extensions/DFForeignKeyExt.ts)
- * [Secondary indexes](src/extensions/DFSecondaryIndexExt.ts)
- * [Timestamping](src/extensions/DFTimestampExt.ts)
- * [Zod validation](src/extensions/DFZodValidationExt.ts)
- * [TTL](src/extensions/DFTtlExt.ts)
- * Extendable via [extensions](docs/Collection%20extensions.md)
- * On the fly schema [migrations](src/extensions/DFMigrationExt.ts)
- * Scan / batch schema [migrations](src/extensions/DFMigrationExt.ts)
+There are several other Typescript DynamoDB clients available, and I encourage you to check them all out before committing to one.
+
+My personal favourites are
+ * [dynamodb-toolbox](https://github.com/jeremydaly/dynamodb-toolbox)
+ * [TypeDORM](https://github.com/typedorm/typedorm)
+ * [AWS lib-dynamodb](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-lib-dynamodb/)
+
 
 ## Getting Started
 
