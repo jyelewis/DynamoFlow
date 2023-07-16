@@ -32,8 +32,8 @@ export class DFWriteTransaction {
   // could have to merge ops in future if they interact with the same item...
   // Maybe that's a cleaner way to add meta properties to objects anyway though? idk
   private retryCount = 0;
-  public readonly secondaryOperations: DFWriteSecondaryOperation[] = [];
-  public readonly preCommitHandlers: Array<() => Promise<void>> = [];
+  public secondaryOperations: DFWriteSecondaryOperation[] = [];
+  public preCommitHandlers: Array<() => Promise<void>> = [];
   public resultTransformer?: (
     item: DynamoItem
   ) => Promise<DynamoItem> | DynamoItem;
@@ -69,6 +69,12 @@ export class DFWriteTransaction {
   }
 
   public async commit(): Promise<DynamoItem | null> {
+    // we want to restore this to its original state if we need to re-try our commit
+    // preCommit handlers may add their own operations, but won't expect those operations to be
+    // there if the commit fails and is re-tried
+    const ogSecondaryOperations = [...this.secondaryOperations];
+    const ogPreCommitHandlers = [...this.preCommitHandlers];
+
     await Promise.all(this.preCommitHandlers.map((x) => x()));
 
     if (this.secondaryOperations.length === 0) {
@@ -121,6 +127,13 @@ export class DFWriteTransaction {
               );
             }
             this.retryCount += 1;
+
+            // TODO: could/should test this
+            // restore the original state of the transaction
+            // so that pre-commit handlers and secondary operations are re-run
+            // against a 'clean slate'
+            this.secondaryOperations = ogSecondaryOperations;
+            this.preCommitHandlers = ogPreCommitHandlers;
 
             return this.commit();
           }
@@ -179,6 +192,13 @@ export class DFWriteTransaction {
                 );
               }
               this.retryCount += 1;
+
+              // TODO: could/should test this
+              // restore the original state of the transaction
+              // so that pre-commit handlers and secondary operations are re-run
+              // against a 'clean slate'
+              this.secondaryOperations = ogSecondaryOperations;
+              this.preCommitHandlers = ogPreCommitHandlers;
 
               return this.commit();
             }
