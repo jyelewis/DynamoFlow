@@ -856,6 +856,8 @@ describe("DFSecondaryIndexExt", () => {
     }
   );
 
+  it.todo("Throws if trying to insert an item that is missing keys");
+
   describe("entityRequiresMigration", () => {
     const table = new DFTable(testDbConfigWithPrefix());
 

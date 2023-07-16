@@ -265,6 +265,7 @@ export class DFWriteTransaction {
       : primaryOperationReturnValue;
   }
 
+  // kind of annoying that this isn't typed (transactions used directly in applications)
   public async commitWithReturn(): Promise<DynamoItem> {
     // typescript wrapper
     if (this.primaryOperation.type !== "Update") {

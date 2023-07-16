@@ -927,54 +927,43 @@ describe("DFCollection", () => {
       it.concurrent("Can retrieveBatch", async () => {
         const thingsCollection = await thingsCollectionProm;
 
-        const { items, unprocessedKeys } = await thingsCollection.retrieveBatch(
-          [
-            {
-              groupId: 1,
-              thingId: 1,
-            },
-            {
-              groupId: 2,
-              thingId: 2,
-            },
-            {
-              groupId: 2,
-              thingId: 3,
-            },
-          ]
-        );
+        const things = await thingsCollection.retrieveBatch([
+          {
+            groupId: 1,
+            thingId: 1,
+          },
+          {
+            groupId: 2,
+            thingId: 2,
+          },
+          {
+            groupId: 2,
+            thingId: 3,
+          },
+        ]);
 
-        expect(unprocessedKeys).toEqual([]);
-        expect(items).toHaveLength(3);
+        expect(things).toHaveLength(3);
 
-        // ordering is not guaranteed
-        expect(items).toEqual(
-          expect.arrayContaining([
-            { groupId: 1, thingId: 1 },
-            { groupId: 2, thingId: 2 },
-            { groupId: 2, thingId: 3 },
-          ])
-        );
+        expect(things).toEqual([
+          { groupId: 1, thingId: 1 },
+          { groupId: 2, thingId: 2 },
+          { groupId: 2, thingId: 3 },
+        ]);
       });
 
       it.concurrent("Can retrieveBatch with single item", async () => {
         const thingsCollection = await thingsCollectionProm;
 
-        const { items, unprocessedKeys } = await thingsCollection.retrieveBatch(
-          [
-            {
-              groupId: 1,
-              thingId: 1,
-            },
-          ]
-        );
+        const things = await thingsCollection.retrieveBatch([
+          {
+            groupId: 1,
+            thingId: 1,
+          },
+        ]);
 
-        expect(unprocessedKeys).toEqual([]);
-        expect(items).toHaveLength(1);
+        expect(things).toHaveLength(1);
 
-        expect(items).toEqual(
-          expect.arrayContaining([{ groupId: 1, thingId: 1 }])
-        );
+        expect(things).toEqual([{ groupId: 1, thingId: 1 }]);
       });
     });
   });

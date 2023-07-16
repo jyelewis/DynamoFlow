@@ -8,10 +8,26 @@ A practical & extendable DynamoDB client for TypeScript applications.
 
 
 ## Why?
-...
+Unlike many other database technologies, DynamoDB expects your data management logic to live in the application layer.
+Rather than providing built-in features such as unique fields, foreign keys, or cascading deletes,
+DynamoDB provides the foundational technologies to implement these features yourself.
+
+Rather than picking which of these features we do and don't include, DynaFlow provides a set of tools to make it easy to implement these features yourself.
+We also provide a set of ready-to-go extensions for common patters, such as unique fields, foreign keys, secondary indexes & timestamping
 
 ## Features
-...
+ * Supports & encourages [single table design](https://aws.amazon.com/blogs/database/single-table-vs-multi-table-design-in-amazon-dynamodb/)
+ * Abstracts your different item types into [collections](docs/DFCollection.md)
+ * [Transactions](src/DFWriteTransaction.ts)
+ * [Unique constraints](src/extensions/DFUniqueFieldExt.ts)
+ * [Foreign keys](src/extensions/DFForeignKeyExt.ts)
+ * [Secondary indexes](src/extensions/DFSecondaryIndexExt.ts)
+ * [Timestamping](src/extensions/DFTimestampExt.ts)
+ * [Zod validation](src/extensions/DFZodValidationExt.ts)
+ * [TTL](src/extensions/DFTtlExt.ts)
+ * Extendable via [extensions](docs/Collection%20extensions.md)
+ * On the fly schema [migrations](src/extensions/DFMigrationExt.ts)
+ * Scan / batch schema [migrations](src/extensions/DFMigrationExt.ts)
 
 ## Getting Started
 
@@ -113,4 +129,6 @@ const retrievedProject = await projectsCollection.retrieveOne({
   }
 });
 ```
+
+For a more comprehensive example, take a look at the included [Messaging app](src/examples/messaging_app) demo.
 

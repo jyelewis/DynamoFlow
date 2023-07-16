@@ -31,6 +31,9 @@ devDependencies:
   jest:
     specifier: ^29.5.0
     version: 29.5.0(@types/node@18.16.9)(ts-node@10.9.1)
+  p-map:
+    specifier: ^6.0.0
+    version: 6.0.0
   prettier:
     specifier: ^2.8.8
     version: 2.8.8
@@ -40,6 +43,9 @@ devDependencies:
   typescript:
     specifier: ^5.0.4
     version: 5.0.4
+  ulid:
+    specifier: ^2.3.0
+    version: 2.3.0
   zod:
     specifier: ^3.21.4
     version: 3.21.4
@@ -3501,6 +3507,11 @@ packages:
       p-limit: 3.1.0
     dev: true
 
+  /p-map@6.0.0:
+    resolution: {integrity: sha512-T8BatKGY+k5rU+Q/GTYgrEf2r4xRMevAN5mtXc2aPc4rS1j3s+vWTaO2Wag94neXuCAUAs8cxBL9EeB5EA6diw==}
+    engines: {node: '>=16'}
+    dev: true
+
   /p-try@2.2.0:
     resolution: {integrity: sha512-R4nPAVTAU0B9D35/Gk3uJf/7XYbQcyohSKdvAxIRSNghFl4e71hVoGnBNQz9cWaXxO2I10KTC+3jMdvvoKw6dQ==}
     engines: {node: '>=6'}
@@ -3901,6 +3912,11 @@ packages:
   /typescript@5.0.4:
     resolution: {integrity: sha512-cW9T5W9xY37cc+jfEnaUvX91foxtHkza3Nw3wkoF4sSlKn0MONdkdEndig/qPBWXNkmplh3NzayQzCiHM4/hqw==}
     engines: {node: '>=12.20'}
+    hasBin: true
+    dev: true
+
+  /ulid@2.3.0:
+    resolution: {integrity: sha512-keqHubrlpvT6G2wH0OEfSW4mquYRcbe/J8NMmveoQOjUqmo+hXtO+ORCpWhdbZ7k72UtY61BL7haGxW6enBnjw==}
     hasBin: true
     dev: true
 

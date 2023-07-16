@@ -296,52 +296,88 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     return items[0];
   }
 
-  public async retrieveBatch(keys: Array<Partial<Entity>>): Promise<{
-    items: Entity[];
-    unprocessedKeys: Array<Partial<Entity>>;
-  }> {
-    const res = await this.table.client.batchGet({
-      RequestItems: {
-        [this.table.tableName]: {
-          Keys: keys.map((key) => {
-            const [pk, sk] = generateIndexStrings(
-              this.config.name,
-              this.config.partitionKey,
-              this.config.sortKey,
-              key
-            );
-            return {
-              _PK: pk,
-              _SK: sk,
-            };
-          }),
-        },
-      },
+  public async retrieveBatch(keys: Array<Partial<Entity>>): Promise<Entity[]> {
+    const requestedPrimaryKeys = keys.map((key) => {
+      const [pk, sk] = generateIndexStrings(
+        this.config.name,
+        this.config.partitionKey,
+        this.config.sortKey,
+        key
+      );
+      return {
+        _PK: pk,
+        _SK: sk,
+      };
     });
 
-    // the spec says this is possible, but I've never seen it happen
-    /* istanbul ignore next */
-    if (res.Responses === undefined) {
-      throw new Error("No responses returned from batchGet");
-    }
+    // should never take more than 2.5 requests to get 100 400kb items
+    // we may need to retry further if we get throttled though
+    // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html#limits-api
+    let retriesRemaining = 5;
+    let rawUnsortedItems: EntityWithMetadata[] = [];
 
-    const parsedEntities: Entity[] = await Promise.all(
-      res.Responses[this.table.tableName].map((x) =>
-        this.entityFromRawDynamoItem(x)
-      )
+    const fetchPksAndAddToUnsortedList = async (
+      primaryKeys: Array<{ _PK: string; _SK: string }>
+    ) => {
+      retriesRemaining -= 1;
+      /* istanbul ignore next */
+      if (retriesRemaining <= 0) {
+        throw new Error("Too many retries");
+      }
+
+      const res = await this.table.client.batchGet({
+        RequestItems: {
+          [this.table.tableName]: {
+            Keys: primaryKeys,
+          },
+        },
+      });
+
+      // the spec says this is possible, but I've never seen it happen
+      /* istanbul ignore next */
+      if (res.Responses === undefined || !res.Responses[this.table.tableName]) {
+        throw new Error("No responses returned from batchGet");
+      }
+
+      rawUnsortedItems = rawUnsortedItems.concat(
+        res.Responses[this.table.tableName]
+      );
+
+      // slightly clean up this API by always returning a single array of keys
+      // the spec says this is possible, but I've never seen it happen
+      /* istanbul ignore next */
+      const unprocessedKeys: Array<{ _PK: string; _SK: string }> =
+        (res.UnprocessedKeys &&
+          res.UnprocessedKeys[this.table.tableName] &&
+          (res.UnprocessedKeys[this.table.tableName].Keys as Array<{
+            _PK: string;
+            _SK: string;
+          }>)) ||
+        [];
+
+      // TODO: honestly not sure how we can integration test this without loading a table with a lot of data
+      /* istanbul ignore next */
+      if (unprocessedKeys.length > 0) {
+        // process more items!
+        await fetchPksAndAddToUnsortedList(unprocessedKeys);
+      }
+    };
+
+    // will recursively fetch any failed items
+    await fetchPksAndAddToUnsortedList(requestedPrimaryKeys);
+
+    const sortedEntities: Entity[] = await Promise.all(
+      requestedPrimaryKeys
+        .map(
+          ({ _PK, _SK }) =>
+            rawUnsortedItems.find((x) => x._PK === _PK && x._SK === _SK)!
+        )
+        .map((entityWithMetadata) =>
+          this.entityFromRawDynamoItem(entityWithMetadata)
+        )
     );
 
-    return {
-      items: parsedEntities,
-      unprocessedKeys:
-        // slightly clean up this API by always returning a single array of keys
-        // the spec says this is possible, but I've never seen it happen
-        /* istanbul ignore next */
-        ((res.UnprocessedKeys &&
-          res.UnprocessedKeys[this.table.tableName] &&
-          res.UnprocessedKeys[this.table.tableName]
-            .Keys) as Partial<Entity>[]) || [],
-    };
+    return sortedEntities;
   }
 
   // basically the same as entityFromDynamo row, however it will ALWAYS run migrations
