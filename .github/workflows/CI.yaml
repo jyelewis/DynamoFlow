@@ -3,7 +3,7 @@ on:
 
 name: Test & publish
 jobs:
-  lint-and-test:
+  test-and-publish:
     runs-on: ubuntu-latest
 
     steps:
@@ -67,4 +67,4 @@ jobs:
 
       - name: Publish to NPM
         if: github.ref == 'refs/heads/main'
-        run: npm run publish
+        run: npm publish
