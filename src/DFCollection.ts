@@ -261,16 +261,22 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     });
     const entities = result.Items as EntityWithMetadata[];
 
+    // TODO: test me
+    const filteredEntities = this.extensions.reduce(
+      (entities, ext) => ext.filterQueryResults(query, entities),
+      entities
+    );
+
     // run extensions on all items & strip metadata
     if (query.returnRaw) {
       return {
-        items: entities as Entity[],
+        items: filteredEntities as Entity[],
         lastEvaluatedKey: result.LastEvaluatedKey,
       };
     }
 
     const parsedEntities = await Promise.all(
-      entities.map((x) => this.entityFromRawDynamoItem(x))
+      filteredEntities.map((x) => this.entityFromRawDynamoItem(x))
     );
 
     return {

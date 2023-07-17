@@ -63,7 +63,8 @@ export interface Query<Entity extends SafeEntity<Entity>> {
       | { $lte: Entity[key] }
       | { $gt: Entity[key] }
       | { $gte: Entity[key] }
-      | { $beginsWith: Entity[key] };
+      | { $beginsWith: Entity[key] }
+      | { $custom: any };
   };
   filter?: Partial<Record<keyof Entity, DFConditionValue>>;
   limit?: number;

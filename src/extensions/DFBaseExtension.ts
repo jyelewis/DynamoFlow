@@ -48,6 +48,14 @@ export abstract class DFBaseExtension<Entity extends SafeEntity<Entity>> {
     return undefined;
   }
 
+  // TODO: test me
+  public filterQueryResults(
+    query: Query<Entity>,
+    entitiesWithMetadata: EntityWithMetadata[]
+  ): EntityWithMetadata[] {
+    return entitiesWithMetadata;
+  }
+
   public entityRequiresMigration(entity: EntityWithMetadata): boolean {
     return false;
   }
