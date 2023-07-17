@@ -9,8 +9,10 @@ import { DFWriteTransaction } from "../DFWriteTransaction.js";
 import { isDynamoValue } from "../utils/isDynamoValue.js";
 import { DFCollection } from "../DFCollection.js";
 import { DFConditionalCheckFailedError } from "../errors/DFConditionalCheckFailedError.js";
+import { DFWriteTransactionFailedError } from "../errors/DFWriteTransactionFailedError.js";
 
 // TODO: test
+// TODO: move away from the nested collection thing, too much storage overhead
 
 export class DFUniqueConstraintConflictError extends Error {
   constructor(uniqueField: string) {
@@ -75,6 +77,7 @@ export class DFUniqueConstraintExt<
         throw new DFUniqueConstraintConflictError(this.uniqueField as string);
       }
 
+      /* istanbul ignore next */
       throw err;
     };
 
@@ -113,12 +116,21 @@ export class DFUniqueConstraintExt<
     }
 
     transaction.addPreCommitHandler(async () => {
-      const existingItem: any = this.collection.retrieveOne({
-        where: transaction.primaryUpdateOperation.key as any,
-        returnRaw: true,
-      });
+      // we always need to pre-fetch the item
+      // we can't know if there is an existing value we need to remove the unique item for
+      const existingItem: Entity | any | null =
+        await this.collection.retrieveOne({
+          where: key,
+          returnRaw: true,
+        });
+      if (existingItem === null) {
+        throw new DFWriteTransactionFailedError(
+          transaction,
+          "Item was deleted while being updated"
+        );
+      }
 
-      const oldUniqueFieldValue = existingItem[this.uniqueField as any];
+      const oldUniqueFieldValue = existingItem[this.uniqueField];
       if (uniqueFieldValue === oldUniqueFieldValue) {
         // no change to unique value
         return;
@@ -126,6 +138,8 @@ export class DFUniqueConstraintExt<
 
       if (oldUniqueFieldValue !== undefined && oldUniqueFieldValue !== null) {
         // we have an old unique value to delete
+        // if a transaction is retried any modifications we made here last time
+        // would have been reverted, so we can safely re-add the delete sub transaction
         transaction.addSecondaryTransaction(
           this.uniqueConstraintCollection.deleteTransaction({
             val: oldUniqueFieldValue,
@@ -150,8 +164,8 @@ export class DFUniqueConstraintExt<
         // no unique value to store
       }
 
-      // TODO: this is very duplicated code
       // store a new unique value
+      // the error if this item already exists is different to the error if the item we're updating & _wc doesn't match
       const newUniqueConstraintTransaction =
         this.uniqueConstraintCollection.insertTransaction({
           val: uniqueFieldValue as any,
@@ -163,8 +177,10 @@ export class DFUniqueConstraintExt<
           throw new DFUniqueConstraintConflictError(this.uniqueField as string);
         }
 
+        /* istanbul ignore next */
         throw err;
       };
+
       transaction.addSecondaryTransaction(newUniqueConstraintTransaction);
     });
   }
@@ -180,7 +196,7 @@ export class DFUniqueConstraintExt<
   public migrateEntity(
     entity: EntityWithMetadata,
     transaction: DFWriteTransaction
-  ): void | Promise<void> {
+  ): void {
     const uniqueFieldValue = entity[this.uniqueField as string];
     if (uniqueFieldValue === undefined || uniqueFieldValue === null) {
       // field doesn't exist or is null, no need to store any items in unique index

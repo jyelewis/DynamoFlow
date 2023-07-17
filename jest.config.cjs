@@ -14,10 +14,10 @@ module.exports = {
   maxWorkers: 4,
   coverageThreshold: {
     global: {
-      branches: 90,
-      functions: 95,
-      lines: 95,
-      statements: 95,
+      branches: 95,
+      functions: 97,
+      lines: 98,
+      statements: 97,
     },
   },
 };
