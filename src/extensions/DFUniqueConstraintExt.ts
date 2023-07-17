@@ -177,6 +177,7 @@ export class DFUniqueConstraintExt<
           throw new DFUniqueConstraintConflictError(this.uniqueField as string);
         }
 
+        /* istanbul ignore next */
         throw err;
       };
 
