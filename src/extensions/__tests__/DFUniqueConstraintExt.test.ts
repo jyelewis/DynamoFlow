@@ -330,6 +330,94 @@ describe("DFUniqueConstraintExt", () => {
       );
     });
 
+    it.concurrent(
+      "Throws if updating to a unique field value that is already in use",
+      async () => {
+        const table = new DFTable(testDbConfigWithPrefix());
+        const uniqueEmailExt = new DFUniqueConstraintExt<User>("email");
+        const usersCollection = table.createCollection<User>({
+          name: "users",
+          partitionKey: "id",
+          extensions: [uniqueEmailExt],
+        });
+
+        await Promise.all([
+          usersCollection.insert(user1),
+          usersCollection.insert(user2),
+        ]);
+
+        await expect(
+          usersCollection.update(
+            {
+              id: user1.id,
+            },
+            {
+              email: user2.email,
+            }
+          )
+        ).rejects.toThrow("Unique constraint violation on field 'email'");
+      }
+    );
+
+    it.concurrent("Handles item being deleted mid-update", async () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const uniqueEmailExt = new DFUniqueConstraintExt<User>("email");
+      const usersCollection = table.createCollection<User>({
+        name: "users",
+        partitionKey: "id",
+        extensions: [uniqueEmailExt],
+      });
+
+      await usersCollection.insert({
+        ...user1,
+        email: "1@gmail.com",
+      });
+
+      const transaction = usersCollection.updateTransaction(
+        {
+          id: user1.id,
+        },
+        {
+          email: "2@gmail.com",
+        }
+      );
+
+      // trick here, use a pre-commit handler to delete the item right before this update commits
+      let numPreCommitRuns = 0;
+      transaction.addPreCommitHandler(async () => {
+        numPreCommitRuns++;
+
+        // only interrupt on the first run
+        if (numPreCommitRuns === 1) {
+          await usersCollection.delete({
+            id: user1.id,
+          });
+        }
+      });
+
+      await expect(uniqueEmailExt.valueExists("1@gmail.com")).resolves.toEqual(
+        true
+      );
+      await expect(uniqueEmailExt.valueExists("2@gmail.com")).resolves.toEqual(
+        false
+      );
+
+      await expect(transaction.commit()).rejects.toThrow(
+        "Item was deleted while being updated"
+      );
+
+      // should have had to retry once
+      expect(numPreCommitRuns).toEqual(2);
+
+      // both emails should be available, because our item was deleted
+      await expect(uniqueEmailExt.valueExists("1@gmail.com")).resolves.toEqual(
+        false
+      );
+      await expect(uniqueEmailExt.valueExists("2@gmail.com")).resolves.toEqual(
+        false
+      );
+    });
+
     it("Throws if updating with a non literal value", () => {
       const table = new DFTable(testDbConfigWithPrefix());
       const uniqueEmailExt = new DFUniqueConstraintExt<User>("email");
@@ -377,7 +465,119 @@ describe("DFUniqueConstraintExt", () => {
     });
   });
 
-  // describe("onDelete");
+  describe("onDelete", () => {
+    it.concurrent("Can delete item with unique value", async () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const uniqueEmailExt = new DFUniqueConstraintExt<User>("email");
+      const usersCollection = table.createCollection<User>({
+        name: "users",
+        partitionKey: "id",
+        extensions: [uniqueEmailExt],
+      });
+
+      await expect(uniqueEmailExt.valueExists(user1.email!)).resolves.toEqual(
+        false
+      );
+
+      await usersCollection.insert(user1);
+
+      await expect(uniqueEmailExt.valueExists(user1.email!)).resolves.toEqual(
+        true
+      );
+
+      await usersCollection.delete({ id: user1.id });
+
+      await expect(uniqueEmailExt.valueExists(user1.email!)).resolves.toEqual(
+        false
+      );
+    });
+
+    it.concurrent("Can delete item with null unique value", async () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const uniqueEmailExt = new DFUniqueConstraintExt<User>("email");
+      const usersCollection = table.createCollection<User>({
+        name: "users",
+        partitionKey: "id",
+        extensions: [uniqueEmailExt],
+      });
+
+      await expect(uniqueEmailExt.valueExists(user1.email!)).resolves.toEqual(
+        false
+      );
+
+      await usersCollection.insert({
+        ...user1,
+        email: null,
+      });
+
+      await expect(uniqueEmailExt.valueExists(user1.email!)).resolves.toEqual(
+        false
+      );
+
+      await usersCollection.delete({ id: user1.id });
+
+      await expect(uniqueEmailExt.valueExists(user1.email!)).resolves.toEqual(
+        false
+      );
+    });
+
+    it.concurrent("Handles already deleted items", async () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const uniqueEmailExt = new DFUniqueConstraintExt<User>("email");
+      const usersCollection = table.createCollection<User>({
+        name: "users",
+        partitionKey: "id",
+        extensions: [uniqueEmailExt],
+      });
+
+      await expect(uniqueEmailExt.valueExists(user1.email!)).resolves.toEqual(
+        false
+      );
+
+      expect(await uniqueEmailExt.valueExists(user1.email!)).toEqual(false);
+      await usersCollection.insert(user1);
+
+      expect(await uniqueEmailExt.valueExists(user1.email!)).toEqual(true);
+
+      await usersCollection.delete({ id: user1.id });
+
+      expect(await uniqueEmailExt.valueExists(user1.email!)).toEqual(false);
+
+      // delete again (someone else has already deleted this item)
+      await usersCollection.delete({ id: user1.id });
+
+      expect(await uniqueEmailExt.valueExists(user1.email!)).toEqual(false);
+    });
+
+    it.concurrent("Handles interrupted deletes", async () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const uniqueEmailExt = new DFUniqueConstraintExt<User>("email");
+      const usersCollection = table.createCollection<User>({
+        name: "users",
+        partitionKey: "id",
+        extensions: [uniqueEmailExt],
+      });
+
+      await expect(uniqueEmailExt.valueExists(user1.email!)).resolves.toEqual(
+        false
+      );
+
+      await usersCollection.insert(user1);
+
+      const transaction = usersCollection.deleteTransaction({ id: user1.id });
+
+      // use a pre-commit handler to interrupt this transaction and delete the item
+      transaction.addPreCommitHandler(async () => {
+        await usersCollection.delete({ id: user1.id });
+      });
+
+      // shouldn't crash
+      await transaction.commit();
+
+      // item should be removed from index
+      expect(await uniqueEmailExt.valueExists(user1.email!)).toEqual(false);
+    });
+  });
 
   describe("migrateEntity", () => {
     it.each([

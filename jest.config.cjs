@@ -8,16 +8,22 @@ module.exports = {
     "(.*)\\.js$": "$1",
   },
   transform: {
-    "^.+\\.(t|j)sx?$": "@swc/jest",
+    "^.+\\.(t|j)sx?$": ["@swc/jest", {
+      // https://github.com/swc-project/swc/issues/3854
+      jsc: {
+        target: 'es2021',
+      }
+    }],
   },
   setupFiles: ["<rootDir>/jest.globalSetup.js"],
   maxWorkers: 4,
   coverageThreshold: {
     global: {
-      branches: 95,
-      functions: 97,
-      lines: 98,
-      statements: 97,
+      branches: 100,
+      functions: 100,
+      lines: 100,
+      // TODO: work out why istanbul doesn't like zod schema definitions
+      statements: 99,
     },
   },
 };

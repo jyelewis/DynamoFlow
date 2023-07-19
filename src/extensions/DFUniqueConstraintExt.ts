@@ -11,7 +11,6 @@ import { DFCollection } from "../DFCollection.js";
 import { DFConditionalCheckFailedError } from "../errors/DFConditionalCheckFailedError.js";
 import { DFWriteTransactionFailedError } from "../errors/DFWriteTransactionFailedError.js";
 
-// TODO: test
 // TODO: move away from the nested collection thing, too much storage overhead
 
 export class DFUniqueConstraintConflictError extends Error {
@@ -148,6 +147,7 @@ export class DFUniqueConstraintExt<
 
         // fail our write if the item is updated between our read & write
         // if so we'll request a re-try of the transaction
+        /* istanbul ignore next */
         transaction.primaryUpdateOperation.condition =
           transaction.primaryUpdateOperation.condition || {};
         transaction.primaryUpdateOperation.condition._wc = existingItem._wc;
@@ -156,6 +156,7 @@ export class DFUniqueConstraintExt<
             return RETRY_TRANSACTION;
           }
 
+          /* istanbul ignore next */
           throw err;
         };
       }
@@ -186,11 +187,26 @@ export class DFUniqueConstraintExt<
   }
 
   public onDelete(key: Partial<Entity>, transaction: DFWriteTransaction) {
-    // TODO: complete this
-    // TODO: need to fetch the item first
-    // this.uniqueConstraintCollection.deleteTransaction({
-    //   val: key
-    // })
+    transaction.addPreCommitHandler(async () => {
+      const existingItem = await this.collection.retrieveOne({
+        where: key,
+      });
+      if (existingItem === null) {
+        // item already deleted by someone else! Nothing for us to do
+        return;
+      }
+
+      const uniqueValue = existingItem[this.uniqueField] as any;
+
+      // delete our unique constraint item as well
+      if (uniqueValue !== null) {
+        transaction.addSecondaryTransaction(
+          this.uniqueConstraintCollection.deleteTransaction({
+            val: uniqueValue,
+          })
+        );
+      }
+    });
   }
 
   public migrateEntity(

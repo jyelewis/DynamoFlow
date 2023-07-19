@@ -1,7 +1,7 @@
 import { EntityWithMetadata, SafeEntity, UpdateValue } from "../types/types.js";
 import { DFBaseExtension } from "./DFBaseExtension.js";
 import { DFWriteTransaction } from "../DFWriteTransaction.js";
-import z from "zod";
+import type z from "zod";
 import { isDynamoValue } from "../utils/isDynamoValue.js";
 
 export class DFZodValidationExt<

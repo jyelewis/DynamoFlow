@@ -856,7 +856,67 @@ describe("DFSecondaryIndexExt", () => {
     }
   );
 
-  it.todo("Throws if trying to insert an item that is missing keys");
+  it("Throws if trying to insert an item that is missing keys but included in index", async () => {
+    const table = new DFTable(testDbConfigWithPrefix());
+
+    const usersCollection = table.createCollection<User>({
+      name: `user`,
+      partitionKey: "id",
+      extensions: [
+        new DFSecondaryIndexExt({
+          indexName: "name",
+          dynamoIndex: "GSI1",
+          partitionKey: "lastName",
+          sortKey: "firstName",
+          includeInIndex: [() => true, []],
+        }),
+      ],
+    });
+
+    const user1: User = {
+      id: 1,
+      firstName: "Jye",
+      // lastName: "Lewis",
+      isActivated: true,
+      userName: null,
+      age: null,
+      lastUpdated: null,
+    } as any;
+
+    expect(() => usersCollection.insertTransaction(user1)).toThrow(
+      "Missing required value for lastName in index"
+    );
+  });
+
+  it("Doesn't throw if trying to insert an item that is missing keys but not included in index", () => {
+    const table = new DFTable(testDbConfigWithPrefix());
+
+    const usersCollection = table.createCollection<User>({
+      name: `user`,
+      partitionKey: "id",
+      extensions: [
+        new DFSecondaryIndexExt({
+          indexName: "name",
+          dynamoIndex: "GSI1",
+          partitionKey: "lastName",
+          sortKey: "firstName",
+          includeInIndex: [() => false, []],
+        }),
+      ],
+    });
+
+    const user1: User = {
+      id: 1,
+      firstName: "Jye",
+      // lastName: "Lewis",
+      isActivated: true,
+      userName: null,
+      age: null,
+      lastUpdated: null,
+    } as any;
+
+    expect(() => usersCollection.insertTransaction(user1)).not.toThrow();
+  });
 
   describe("entityRequiresMigration", () => {
     const table = new DFTable(testDbConfigWithPrefix());

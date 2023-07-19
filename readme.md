@@ -40,8 +40,9 @@ My personal favourites are
 ## Getting Started
 
 1. Install the package: `npm install --save dynamoflow` or `yarn add dynamoflow`
-2. Start DynamoDB Local `docker run -p 8000:8000 amazon/dynamodb-local` (or copy our example [docker-compose.yml](docker-compose.yml) file)
-3. Create a [DFTable](https://github.com/jyelewis/DynamoFlow/blob/main/docs/DFTable.md) instance
+2. Install the Amazon SDK, if not already installed `npm install --save @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb` or `yarn add @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb`
+3. Start DynamoDB Local `docker run -p 8000:8000 amazon/dynamodb-local` (or copy our example [docker-compose.yml](docker-compose.yml) file)
+4. Create a [DFTable](https://github.com/jyelewis/DynamoFlow/blob/main/docs/DFTable.md) instance
     1. Following [single table design](https://aws.amazon.com/blogs/database/single-table-vs-multi-table-design-in-amazon-dynamodb/), your application will likely only have one DFTable instance
     2. AWS credentials are loaded from the v3 SDK
 ```typescript
