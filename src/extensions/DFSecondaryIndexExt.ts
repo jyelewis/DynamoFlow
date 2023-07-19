@@ -31,7 +31,7 @@ export class DFSecondaryIndexExt<
   private readonly includeInIndexKeys: string[];
 
   public constructor(
-    protected readonly config: DFSecondaryIndexExtConfig<Entity>
+    public readonly config: DFSecondaryIndexExtConfig<Entity>
   ) {
     super();
 
@@ -185,7 +185,7 @@ export class DFSecondaryIndexExt<
         // apply any changes from the update before we generate the new GSI keys
         entityWithSomeProperties = {
           ...existingItem,
-          ...entityUpdate,
+          ...entityWithSomeProperties,
         } as EntityWithMetadata;
 
         primaryUpdateOperation.errorHandler = (err) => {
