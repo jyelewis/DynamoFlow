@@ -968,6 +968,60 @@ describe("DFCollection", () => {
     });
   });
 
+  describe("Merging transactions", () => {
+    // this is all handled in DFWriteTransaction and tested completely there
+    // however we want to make sure that the objects we produce can be merged
+    // (i.e. $inc operation is supported for _wc)
+
+    it("Can merge transactions", () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const usersCollection = table.createCollection<User>({
+        name: `user`,
+        partitionKey: "id",
+      });
+
+      const transaction = usersCollection.updateTransaction(
+        { id: 1 },
+        {
+          firstName: "Jye",
+          lastName: { $setIfNotExists: "Lewis" },
+        }
+      );
+
+      transaction.addSecondaryTransaction(
+        usersCollection.updateTransaction(
+          { id: 1 },
+          {
+            lastName: { $setIfNotExists: "Lewis" },
+            age: 10,
+          }
+        )
+      );
+
+      expect(transaction.secondaryOperations.length).toEqual(0);
+      expect(transaction.primaryOperation).toEqual({
+        key: expect.any(Object),
+        type: "Update",
+        updateValues: {
+          age: 10,
+          firstName: "Jye",
+          lastName: {
+            $setIfNotExists: "Lewis",
+          },
+          _wc: {
+            $inc: 2,
+          },
+        },
+        condition: {
+          _PK: {
+            $exists: true,
+          },
+        },
+        errorHandler: expect.any(Function),
+      });
+    });
+  });
+
   describe("migrateEntityWithMetadata", () => {
     it.concurrent(
       "Runs all migration functions and persists item",

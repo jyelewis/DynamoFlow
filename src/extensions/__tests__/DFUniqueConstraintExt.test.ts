@@ -585,7 +585,7 @@ describe("DFUniqueConstraintExt", () => {
       [null, 0],
       [user1.email, 1],
     ])(
-      "Does nothing if the entity does not have the field",
+      "Only creates unique index item if the value is defined (%p)",
       (email, expectedSecondaryTransactions) => {
         const table = new DFTable(testDbConfigWithPrefix());
         const uniqueEmailExt = new DFUniqueConstraintExt<User>("email");
@@ -597,7 +597,10 @@ describe("DFUniqueConstraintExt", () => {
 
         const migrationTransaction = table.createTransaction({
           type: "Update",
-          key: {},
+          key: {
+            _PK: "my-item",
+            _SK: "my-item",
+          },
           updateValues: {},
         });
 

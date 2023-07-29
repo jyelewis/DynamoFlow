@@ -24,24 +24,24 @@ const user1: User = {
   numProjects: 0,
 };
 
-const user2: User = {
-  id: "user-2",
-  name: "Jane doe",
-  numActiveProjects: 0,
-  numInactiveProjects: 0,
-  numProjects: 0,
-};
+// const user2: User = {
+//   id: "user-2",
+//   name: "Jane doe",
+//   numActiveProjects: 0,
+//   numInactiveProjects: 0,
+//   numProjects: 0,
+// };
 
 const project1Active: Project = {
   id: "project-1",
   userId: user1.id,
   isActive: true,
 };
-const project1Inactive: Project = {
-  id: "project-2",
-  userId: user1.id,
-  isActive: false,
-};
+// const project1Inactive: Project = {
+//   id: "project-2",
+//   userId: user1.id,
+//   isActive: false,
+// };
 
 const createCollections = () => {
   const table = new DFTable(testDbConfigWithPrefix());
@@ -135,10 +135,9 @@ describe("DFForeignCountExt", () => {
 
       const transaction = projectsCollection.insertTransaction(project1Active);
 
-      // TODO: this is failing because we don't collapse transactions operating on the same item
-      //       into a single item update
-      // we should have 2 secondary operation to update user.numProjects & user.numActiveProjects
-      expect(transaction.secondaryOperations.length).toEqual(2);
+      // we should have 1 secondary operation to update user.numProjects & user.numActiveProjects
+      // 2 were added, however these are collapsed into a single update because they are against the same key (user)
+      expect(transaction.secondaryOperations.length).toEqual(1);
 
       await transaction.commit();
 
