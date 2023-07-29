@@ -14,6 +14,7 @@ import assert from "assert";
 import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
 import { isDynamoValue } from "./utils/isDynamoValue.js";
 import { DFConditionalCheckFailedError } from "./errors/DFConditionalCheckFailedError.js";
+import { deepEqual } from "./utils/deepEqual.js";
 
 const MAX_TRANSACTION_RETRIES = 5;
 
@@ -43,19 +44,122 @@ export class DFWriteTransaction {
     public primaryOperation: DFWritePrimaryOperation
   ) {}
 
+  public get operations(): DFWriteSecondaryOperation[] {
+    return [this.primaryOperation, ...this.secondaryOperations];
+  }
+
   public get primaryUpdateOperation(): DFUpdateOperation {
     assert(this.primaryOperation.type === "Update");
     return this.primaryOperation as DFUpdateOperation;
   }
 
   public addSecondaryOperation(op: DFWriteSecondaryOperation) {
-    // or even take a callback to handle an error
+    // Ah, problem.. write count is always included & always dynamic
+    // TODO: write test for merging on DFCollection
+
+    if (op.type === "Update") {
+      // search for an existing update operation for this same key
+      const existingOperation = this.operations.find(
+        (existingOp) =>
+          existingOp.type === "Update" &&
+          Object.entries(existingOp.key).every(
+            ([key, value]) => op.key[key] === value
+          )
+      ) as DFUpdateOperation | undefined;
+
+      if (existingOperation !== undefined) {
+        // merge this operation into the existing one, rather than adding another operation
+        assert(op.type === "Update");
+
+        // merge update values
+        Object.entries(op.updateValues).forEach(([key, value]) => {
+          // flatten increment operations
+          if (
+            typeof value === "object" &&
+            !isDynamoValue(value) &&
+            "$inc" in value
+          ) {
+            // read existing value, default to 0
+            // TODO: we could do this the way we usually do it.. where we fetch existing or default and mutate
+            const existingValue = (existingOperation.updateValues[
+              key
+              // TODO: fix typings
+            ] as any) || { $inc: 0 };
+
+            // TODO: fix typings
+            const newValue = existingValue.$inc + (value as any).$inc;
+
+            existingOperation.updateValues[key] = { $inc: newValue };
+
+            return;
+          }
+
+          if (
+            key in existingOperation.updateValues &&
+            !deepEqual(
+              existingOperation.updateValues[key],
+              op.updateValues[key]
+            )
+          ) {
+            throw new Error(
+              `Field '${key}' cannot be updated twice to a different value within the same transaction`
+            );
+          }
+
+          existingOperation.updateValues[key] = value;
+        });
+
+        if (op.successHandlers) {
+          const successHandlers = existingOperation.successHandlers || [];
+
+          // push any new success handlers onto the existing operation
+          op.successHandlers.forEach((handler) => {
+            if (successHandlers.indexOf(handler) === -1) {
+              successHandlers.push(handler);
+            }
+          });
+
+          existingOperation.successHandlers = successHandlers;
+        }
+
+        if (op.errorHandler && !existingOperation.errorHandler) {
+          // if we don't have an error handler, but the new operation has provided one, take the new one
+          // otherwise leave the old one
+          existingOperation.errorHandler = op.errorHandler;
+        }
+
+        if (op.condition) {
+          Object.entries(op.condition).forEach(([key, value]) => {
+            const existingCondition = existingOperation.condition || {};
+            existingOperation.condition = existingCondition;
+
+            if (
+              op.condition &&
+              key in existingCondition &&
+              !deepEqual(existingCondition[key], op.condition[key])
+            ) {
+              throw new Error(
+                `Condition for field '${key}' cannot be specified twice with a different value within the same transaction`
+              );
+            }
+
+            existingCondition[key] = value;
+          });
+        }
+
+        return;
+      }
+    }
+
     this.secondaryOperations.push(op);
   }
 
   public addSecondaryTransaction(secondaryTransaction: DFWriteTransaction) {
-    this.secondaryOperations.push(secondaryTransaction.primaryOperation);
-    this.secondaryOperations.push(...secondaryTransaction.secondaryOperations);
+    this.addSecondaryOperation(secondaryTransaction.primaryOperation);
+    for (const secondaryOperation of secondaryTransaction.secondaryOperations) {
+      this.addSecondaryOperation(secondaryOperation);
+    }
+
     this.preCommitHandlers.push(...secondaryTransaction.preCommitHandlers);
 
     // leave their resultTransformer behind, only needed for the primary item

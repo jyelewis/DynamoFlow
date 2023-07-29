@@ -1,7 +1,9 @@
+/* istanbul ignore file */
+// TODO: complete me, this is a WIP
+
 import {
   DynamoItem,
   EntityWithMetadata,
-  Query,
   SafeEntity,
   UpdateValue,
 } from "../types/types.js";
@@ -12,6 +14,7 @@ import { DFWriteTransaction } from "../DFWriteTransaction.js";
 
 // TODO: test me
 // TODO: support migrations
+// TODO: can we write a helper, or build optimistic locking into DFCollection instead? We're doing the same thing here again
 
 export interface DFForeignCountExtConfig<
   Entity extends SafeEntity<Entity>,

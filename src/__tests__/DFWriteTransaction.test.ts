@@ -2883,4 +2883,818 @@ describe("DFWriteTransaction", () => {
       }
     );
   });
+
+  describe("Flattens operations on the same object into a single operation", () => {
+    it("2 operations on a single item", () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          age: 10,
+        },
+      });
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: 10,
+        },
+      });
+    });
+
+    it("2 operations on a single item, 1 operation on second item", () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+      });
+
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          firstName: "Jye",
+          lastName: "Lewis",
+        },
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          age: 10,
+        },
+      });
+
+      // we should only have a single secondary operation (creating user1)
+      expect(transaction.secondaryOperations.length).toEqual(1);
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: 10,
+        },
+      });
+    });
+
+    it("Throws if 2 operations on a single item try to modify the same field with different values", () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      expect(() =>
+        transaction.addSecondaryOperation({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user2`,
+            _SK: "USER#user2",
+          },
+          updateValues: {
+            firstName: "Jye",
+          },
+        })
+      ).toThrow(
+        "Field 'firstName' cannot be updated twice to a different value within the same transaction"
+      );
+    });
+
+    it("Allows 2 operations on a single item to modify the same field with equal values", () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+        },
+      });
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+      });
+    });
+
+    it("Flattens operations from different transactions on the same object into a single operation", () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+      });
+
+      const secondaryTransaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          age: 10,
+        },
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryTransaction(secondaryTransaction);
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: 10,
+        },
+      });
+    });
+
+    it("Merges success handlers (first only)", () => {
+      const handler1 = async () => {};
+
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+        successHandlers: [handler1],
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          age: 10,
+        },
+      });
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: 10,
+        },
+        successHandlers: [handler1],
+      });
+    });
+
+    it("Merges success handlers (second only)", () => {
+      const handler1 = async () => {};
+
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          age: 10,
+        },
+        successHandlers: [handler1],
+      });
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: 10,
+        },
+        successHandlers: [handler1],
+      });
+    });
+
+    it("Merges success handlers with de-duplication", () => {
+      const handler1 = async () => {};
+      const handler2 = async () => {};
+      const handler3 = async () => {};
+
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+        successHandlers: [handler1, handler2],
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          age: 10,
+        },
+        successHandlers: [handler2, handler3],
+      });
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: 10,
+        },
+        successHandlers: [handler1, handler2, handler3],
+      });
+    });
+
+    it("Merges error handlers (first only)", () => {
+      const handler1 = async () => RETRY_TRANSACTION;
+
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+        errorHandler: handler1,
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          age: 10,
+        },
+      });
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: 10,
+        },
+        errorHandler: handler1,
+      });
+    });
+
+    it("Merges error handlers (second only)", () => {
+      const handler1 = async () => RETRY_TRANSACTION;
+
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          age: 10,
+        },
+        errorHandler: handler1,
+      });
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: 10,
+        },
+        errorHandler: handler1,
+      });
+    });
+
+    it("Merges error handlers (both only)", () => {
+      const handler1 = async () => RETRY_TRANSACTION;
+      const handler2 = async () => RETRY_TRANSACTION;
+
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+        errorHandler: handler1,
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          age: 10,
+        },
+        errorHandler: handler2,
+      });
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: 10,
+        },
+        errorHandler: handler1,
+      });
+    });
+
+    it("Merges condition expressions (first only)", () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+        condition: {
+          value1: 10,
+        },
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          age: 10,
+        },
+      });
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: 10,
+        },
+        condition: {
+          value1: 10,
+        },
+      });
+    });
+
+    it("Merges condition expressions (second only)", () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          age: 10,
+        },
+        condition: {
+          value2: 20,
+        },
+      });
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: 10,
+        },
+        condition: {
+          value2: 20,
+        },
+      });
+    });
+
+    it("Merges condition expressions (both)", () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+        condition: {
+          value1: 10,
+        },
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          age: 10,
+        },
+        condition: {
+          value2: 20,
+        },
+      });
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: 10,
+        },
+        condition: {
+          value1: 10,
+          value2: 20,
+        },
+      });
+    });
+
+    it("Merges $inc operations in update expressions", () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: { $inc: 1 },
+        },
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          age: { $inc: 1 },
+        },
+      });
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: { $inc: 2 },
+        },
+      });
+    });
+
+    it("Allows additional condition expression against the same key if the condition is equal", () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+        condition: {
+          value1: 10,
+        },
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      transaction.addSecondaryOperation({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          age: 10,
+        },
+        condition: {
+          value1: 10,
+        },
+      });
+
+      // the primary operation (creating user2) should have the age update merged
+      expect(transaction.primaryOperation).toEqual({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+          age: 10,
+        },
+        condition: {
+          value1: 10,
+        },
+      });
+    });
+
+    it("Throws if a conflicting condition expression is added", () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user2`,
+          _SK: "USER#user2",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+        condition: {
+          value1: 10,
+        },
+      });
+
+      // because we are updating the same item twice (user2)
+      // this operation should be flattened into a single transaction item
+      expect(() =>
+        transaction.addSecondaryOperation({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user2`,
+            _SK: "USER#user2",
+          },
+          updateValues: {
+            age: 10,
+          },
+          condition: {
+            value1: 15,
+          },
+        })
+      ).toThrow(
+        "Condition for field 'value1' cannot be specified twice with a different value within the same transaction"
+      );
+    });
+  });
 });
