@@ -54,9 +54,7 @@ export class DFWriteTransaction {
   }
 
   public addSecondaryOperation(op: DFWriteSecondaryOperation) {
-    // Ah, problem.. write count is always included & always dynamic
-    // TODO: write test for merging on DFCollection
-
+    // try to collapse this operation into an existing one
     if (op.type === "Update") {
       // search for an existing update operation for this same key
       const existingOperation = this.operations.find(
@@ -72,41 +70,37 @@ export class DFWriteTransaction {
         assert(op.type === "Update");
 
         // merge update values
-        Object.entries(op.updateValues).forEach(([key, value]) => {
+        Object.entries(op.updateValues).forEach(([key, newValue]) => {
           // flatten increment operations
+          const existingValue = existingOperation.updateValues[key];
           if (
-            typeof value === "object" &&
-            !isDynamoValue(value) &&
-            "$inc" in value
+            typeof existingValue === "object" &&
+            existingValue !== null &&
+            "$inc" in existingValue &&
+            typeof newValue === "object" &&
+            newValue !== null &&
+            "$inc" in newValue
           ) {
-            // read existing value, default to 0
-            // TODO: we could do this the way we usually do it.. where we fetch existing or default and mutate
-            const existingValue = (existingOperation.updateValues[
-              key
-              // TODO: fix typings
-            ] as any) || { $inc: 0 };
+            const existingInc = existingValue.$inc as number;
+            const newInc = newValue.$inc as number;
 
-            // TODO: fix typings
-            const newValue = existingValue.$inc + (value as any).$inc;
-
-            existingOperation.updateValues[key] = { $inc: newValue };
+            existingOperation.updateValues[key] = {
+              $inc: existingInc + newInc,
+            };
 
             return;
           }
 
           if (
             key in existingOperation.updateValues &&
-            !deepEqual(
-              existingOperation.updateValues[key],
-              op.updateValues[key]
-            )
+            !deepEqual(existingValue, op.updateValues[key])
           ) {
             throw new Error(
               `Field '${key}' cannot be updated twice to a different value within the same transaction`
             );
           }
 
-          existingOperation.updateValues[key] = value;
+          existingOperation.updateValues[key] = newValue;
         });
 
         if (op.successHandlers) {
