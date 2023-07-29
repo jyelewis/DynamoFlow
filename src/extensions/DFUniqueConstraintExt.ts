@@ -11,8 +11,6 @@ import { DFCollection } from "../DFCollection.js";
 import { DFConditionalCheckFailedError } from "../errors/DFConditionalCheckFailedError.js";
 import { DFWriteTransactionFailedError } from "../errors/DFWriteTransactionFailedError.js";
 
-// TODO: move away from the nested collection thing, too much storage overhead
-
 export class DFUniqueConstraintConflictError extends Error {
   constructor(uniqueField: string) {
     super(`Unique constraint violation on field '${uniqueField}'`);
