@@ -4,6 +4,8 @@
 import {
   DynamoItem,
   EntityWithMetadata,
+  Query,
+  RETRY_TRANSACTION,
   SafeEntity,
   UpdateValue,
 } from "../types/types.js";
@@ -11,30 +13,37 @@ import { DFBaseExtension } from "./DFBaseExtension.js";
 import { DFCollection } from "../DFCollection.js";
 import { isDynamoValue } from "../utils/isDynamoValue.js";
 import { DFWriteTransaction } from "../DFWriteTransaction.js";
+import { DFConditionalCheckFailedError } from "../errors/DFConditionalCheckFailedError.js";
 
-// TODO: test me
 // TODO: support migrations
-// TODO: can we write a helper, or build optimistic locking into DFCollection instead? We're doing the same thing here again
 
 export interface DFForeignCountExtConfig<
   Entity extends SafeEntity<Entity>,
   ForeignEntity extends SafeEntity<ForeignEntity>
 > {
-  // TODO: circular references (what if I also want a cascade delete here? Which extension gets defined first?)
-  //       maybe this could accept a function that returns the collection on demand
-  foreignCollection: DFCollection<ForeignEntity>;
+  foreignCollection:
+    | DFCollection<ForeignEntity>
+    // can optionally pass a getter function, to allow circular references between collections
+    | (() => DFCollection<ForeignEntity>);
   countField: keyof Entity;
   foreignEntityToLocalKey: [
     (foreignEntity: ForeignEntity) => null | Partial<Entity>,
     Array<keyof ForeignEntity>
   ];
-  // queryForForeignEntities: (localEntity: Entity) => Query<ForeignEntity>;
+  queryForForeignEntities?: (localEntity: Entity) => Query<ForeignEntity>;
 }
 
 export class DFForeignCountExt<
   Entity extends SafeEntity<Entity>,
   ForeignEntity extends SafeEntity<ForeignEntity>
 > extends DFBaseExtension<Entity> {
+  // lazy loaded in init(), to allow circular references between collections to be resolved
+  public foreignCollection!: DFCollection<ForeignEntity>;
+  public remoteExtension!: DFInternalForeignCountRemoteExt<
+    Entity,
+    ForeignEntity
+  >;
+
   public constructor(
     public readonly config: DFForeignCountExtConfig<Entity, ForeignEntity>
   ) {
@@ -44,15 +53,21 @@ export class DFForeignCountExt<
   public init(collection: DFCollection<Entity>) {
     super.init(collection);
 
-    // install a remote extension to monitor for changes against foreign items
-    // TODO: risk double initing here, is that an issue?
-    const foreignCollectionMonitoringExtension =
-      new DFInternalForeignCountRemoteExt(this.config, this.collection);
-    foreignCollectionMonitoringExtension.init(this.config.foreignCollection);
+    this.foreignCollection =
+      typeof this.config.foreignCollection === "function"
+        ? this.config.foreignCollection()
+        : this.config.foreignCollection;
 
-    this.config.foreignCollection.extensions.push(
-      foreignCollectionMonitoringExtension
+    // install a remote extension to monitor for changes against foreign items
+    this.remoteExtension = new DFInternalForeignCountRemoteExt(
+      this.config,
+      this.collection,
+      this.foreignCollection
     );
+
+    this.remoteExtension.init(this.foreignCollection);
+
+    this.foreignCollection.extensions.push(this.remoteExtension);
   }
 }
 
@@ -62,9 +77,11 @@ class DFInternalForeignCountRemoteExt<
   Entity extends SafeEntity<Entity>,
   ForeignEntity extends SafeEntity<ForeignEntity>
 > extends DFBaseExtension<ForeignEntity> {
+  public maxMigrationQueryPages = 15;
   public constructor(
     public readonly config: DFForeignCountExtConfig<Entity, ForeignEntity>,
-    public readonly countingCollection: DFCollection<Entity>
+    public readonly countingCollection: DFCollection<Entity>,
+    public readonly foreignCollection: DFCollection<ForeignEntity>
   ) {
     super();
   }
@@ -121,10 +138,10 @@ class DFInternalForeignCountRemoteExt<
     });
 
     transaction.addPreCommitHandler(async () => {
-      const existingItem = await this.config.foreignCollection.retrieveOne({
+      const existingItem = (await this.foreignCollection.retrieveOne({
         where: key,
         returnRaw: true,
-      });
+      })) as EntityWithMetadata;
       if (existingItem === null) {
         throw new Error("Entity does not exist");
       }
@@ -150,9 +167,22 @@ class DFInternalForeignCountRemoteExt<
         return;
       }
 
+      // TODO: test this
+      const primaryCondition =
+        transaction.primaryUpdateOperation.condition || {};
+      primaryCondition._wc = existingItem._wc;
+
+      transaction.primaryOperation.errorHandler = (err: any) => {
+        // TODO: test this
+        if (err instanceof DFConditionalCheckFailedError) {
+          return RETRY_TRANSACTION;
+        }
+
+        /* istanbul ignore next */
+        throw err;
+      };
+
       // decrement the count from oldLocalKey
-      // TODO: aaah what if we have multiple counts causing multiple updates to the same item in a transaction...
-      //       could we move this merge logic into addSecondaryTransaction...? (write a test for this and fix in DFWriteTransaction)
       if (oldLocalKey !== null) {
         transaction.addSecondaryTransaction(
           this.countingCollection.updateTransaction(oldLocalKey, {
@@ -177,7 +207,7 @@ class DFInternalForeignCountRemoteExt<
     transaction: DFWriteTransaction
   ) {
     transaction.addPreCommitHandler(async () => {
-      const existingItem = await this.config.foreignCollection.retrieveOne({
+      const existingItem = await this.foreignCollection.retrieveOne({
         where: key,
         returnRaw: true,
       });
@@ -202,5 +232,50 @@ class DFInternalForeignCountRemoteExt<
         } as any)
       );
     });
+  }
+
+  // TODO: test me
+  public async migrateEntity(
+    entity: EntityWithMetadata,
+    transaction: DFWriteTransaction
+  ): Promise<void> {
+    if (this.config.queryForForeignEntities === undefined) {
+      // cannot migrate without queryForForeignEntities provided
+      return;
+    }
+
+    const foreignQuery = this.config.queryForForeignEntities(entity as Entity);
+    // save some processing, no need to process the actual items
+    // would be nice to have a way to not return any fields, we don't need the data
+    foreignQuery.returnRaw = true;
+
+    let numberOfForeignItems = 0;
+    let completedQuery = false;
+
+    for (let i = 0; i < this.maxMigrationQueryPages; i++) {
+      const { items, lastEvaluatedKey } =
+        await this.foreignCollection.retrieveManyWithPagination(foreignQuery);
+
+      numberOfForeignItems += items.length;
+      foreignQuery.exclusiveStartKey = lastEvaluatedKey;
+
+      if (lastEvaluatedKey === null) {
+        completedQuery = true;
+        break;
+      }
+    }
+
+    if (!completedQuery) {
+      console.warn(
+        "Unable to re-compute foreign count, too many pages of foreign items"
+      );
+      return;
+    }
+
+    if (entity[this.config.countField as string] !== numberOfForeignItems) {
+      transaction.primaryUpdateOperation.updateValues[
+        this.config.countField as string
+      ] = numberOfForeignItems;
+    }
   }
 }
