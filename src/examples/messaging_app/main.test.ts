@@ -241,11 +241,13 @@ describe("Example: Messaging App", () => {
     const oldestMessage = c12LastMessages[c12LastMessages.length - 1];
 
     // search for 2 more messages, older than the last oldest message we had
+    console.log("--------------------------------------");
     const c12SecondLastMessages = await getMessagesForConversation(
       conversation12.id,
       2,
       oldestMessage.sentAt
     );
+    console.log("--------------------------------------");
 
     expect(c12SecondLastMessages.map((msg) => msg.text)).toEqual([
       "Hey there",

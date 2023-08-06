@@ -1,5 +1,8 @@
 # Release notes
 
+# 1.3.1
+ * Fixed bug in complex query expressions: https://github.com/jyelewis/DynamoFlow/issues/14
+
 # 1.3.0
  * Experimental extension `DFForeignCountExt` now supports migrations
  * Fixed double hash SK issue: https://github.com/jyelewis/DynamoFlow/issues/4

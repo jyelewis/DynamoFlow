@@ -262,6 +262,128 @@ describe("generateQueryExpression", () => {
     );
   });
 
+  it.concurrent("String + Boolean sort key (true)", () => {
+    const query = {
+      where: {
+        userId: "user1",
+        name: "JoeBot",
+        isActivated: true,
+      },
+    };
+
+    return testExpression(
+      generateQueryExpression(
+        "users",
+        "userId",
+        ["name", "isActivated"],
+        query
+      ),
+      {
+        keyConditionExpression: "#PK = :pk AND begins_with(#SK, :value)",
+        expressionAttributeNames: {
+          "#PK": "_PK",
+          "#SK": "_SK",
+        },
+        expressionAttributeValues: {
+          ":pk": "users#user1#",
+          ":value": "users#joebot#1#",
+        },
+        indexName: undefined,
+      }
+    );
+  });
+
+  it.concurrent("String + Boolean sort key (false)", () => {
+    const query = {
+      where: {
+        userId: "user1",
+        name: "JoeBot",
+        isActivated: false,
+      },
+    };
+
+    return testExpression(
+      generateQueryExpression(
+        "users",
+        "userId",
+        ["name", "isActivated"],
+        query
+      ),
+      {
+        keyConditionExpression: "#PK = :pk AND begins_with(#SK, :value)",
+        expressionAttributeNames: {
+          "#PK": "_PK",
+          "#SK": "_SK",
+        },
+        expressionAttributeValues: {
+          ":pk": "users#user1#",
+          ":value": "users#joebot#0#",
+        },
+        indexName: undefined,
+      }
+    );
+  });
+
+  it.concurrent("Literal + literal + undefined", () => {
+    const query = {
+      where: { portalId: "portal1", username: "JoeBot", isActivated: true },
+    };
+
+    return testExpression(
+      generateQueryExpression(
+        "users",
+        "portalId",
+        ["username", "isActivated", "age"],
+        query
+      ),
+      {
+        keyConditionExpression: "#PK = :pk AND begins_with(#SK, :value)",
+        expressionAttributeNames: {
+          "#PK": "_PK",
+          "#SK": "_SK",
+        },
+        expressionAttributeValues: {
+          ":pk": "users#portal1#",
+          ":value": "users#joebot#1#",
+        },
+        indexName: undefined,
+      }
+    );
+  });
+
+  it.concurrent(
+    "Undefined after dynamic query (Bug found in Example: Messaging App)",
+    () => {
+      const query = {
+        where: {
+          conversationId: "01H74D9Y067Q25Y7FGW9NZKS3W",
+          sentAt: { $lt: "2023-08-06T03:12:27.735Z" },
+        },
+      };
+
+      return testExpression(
+        generateQueryExpression(
+          "message",
+          "conversationId",
+          ["sentAt", "userId"],
+          query
+        ),
+        {
+          keyConditionExpression: "#PK = :pk AND #SK < :value",
+          expressionAttributeNames: {
+            "#PK": "_PK",
+            "#SK": "_SK",
+          },
+          expressionAttributeValues: {
+            ":pk": "message#01h74d9y067q25y7fgw9nzks3w#",
+            ":value": "message#2023-08-06t03:12:27.735z#",
+          },
+          indexName: undefined,
+        }
+      );
+    }
+  );
+
   it("Throws if any partition key values are missing", () => {
     const query: Query<any> = {
       where: {
