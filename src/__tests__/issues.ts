@@ -174,7 +174,7 @@ describe("Issues", () => {
       age: number;
     }
 
-    it.concurrent.failing(
+    it.concurrent(
       "Doesn't store double hashes on the end of sort key",
       async () => {
         const table = new DFTable(testDbConfigWithPrefix());

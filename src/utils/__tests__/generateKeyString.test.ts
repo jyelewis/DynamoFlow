@@ -13,6 +13,10 @@ const testObject = {
 };
 
 describe("generateKeyString", () => {
+  it("No fields", () => {
+    expect(generateKeyString([], testObject)).toMatchInlineSnapshot(`""`);
+  });
+
   it("Single fields", () => {
     expect(generateKeyString(["userId"], testObject)).toMatchInlineSnapshot(
       `"asdf-qwer#"`
