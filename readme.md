@@ -22,6 +22,9 @@ A practical & extendable DynamoDB client for TypeScript applications.
 * On the fly schema [migrations](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFMigrationExt.ts)
 * Scan / batch schema [migrations](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFMigrationExt.ts)
 
+## Experimental features
+* [Foreign counts](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFForeignCountExt.ts)
+
 ## Why?
 Unlike many other database technologies, DynamoDB expects your data management logic to live in the application layer.
 Rather than providing built-in features such as unique fields, foreign keys, or cascading deletes,
