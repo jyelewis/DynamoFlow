@@ -20,5 +20,9 @@ export function generateKeyString(
   // all index segments end with #
   // this allows us to find all matching items with a strict eq comparison
   // by performing begins_with(#SK, :`value1#value2#`)
+  if (indexString === "") {
+    // dont add hash suffix if there are no keys
+    return "";
+  }
   return indexString + "#";
 }
