@@ -141,11 +141,6 @@ export async function getMessagesForConversation(
   limit?: number,
   before?: string
 ): Promise<Message[]> {
-  console.log("Where", {
-    conversationId,
-    sentAt: before ? { $lt: before } : undefined,
-  });
-
   return await messagesCollection.retrieveMany({
     where: {
       conversationId,
