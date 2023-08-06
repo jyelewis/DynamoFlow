@@ -18,12 +18,10 @@ A practical & extendable DynamoDB client for TypeScript applications.
 * [Timestamping](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFTimestampsExt.ts)
 * [Zod validation](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFZodValidationExt.ts)
 * [TTL](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFTtlExt.ts)
+* [Foreign counts](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFForeignCountExt.ts)
 * Extendable via [extensions](https://github.com/jyelewis/DynamoFlow/blob/main/docs/Collection%20extensions.md)
 * On the fly schema [migrations](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFMigrationExt.ts)
 * Scan / batch schema [migrations](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFMigrationExt.ts)
-
-## Experimental features
-* [Foreign counts](https://github.com/jyelewis/DynamoFlow/blob/main/src/extensions/DFForeignCountExt.ts)
 
 ## Why?
 Unlike many other database technologies, DynamoDB expects your data management logic to live in the application layer.

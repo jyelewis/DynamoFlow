@@ -20,9 +20,7 @@ export {
   DFUniqueConstraintConflictError,
 } from "./extensions/DFUniqueConstraintExt.js";
 export { DFZodValidationExt } from "./extensions/DFZodValidationExt.js";
-
-// experimental extensions, still a work in progress
 export {
-  DFForeignCountExt as _experimental_DFForeignCountExt,
-  DFForeignCountExtConfig as _experimental_DFForeignCountExtConfig,
+  DFForeignCountExt,
+  DFForeignCountExtConfig,
 } from "./extensions/DFForeignCountExt.js";

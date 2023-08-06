@@ -1,6 +1,3 @@
-/* istanbul ignore file */
-// TODO: complete me, this is a WIP
-
 import {
   DynamoItem,
   EntityWithMetadata,
@@ -14,8 +11,6 @@ import { DFCollection } from "../DFCollection.js";
 import { isDynamoValue } from "../utils/isDynamoValue.js";
 import { DFWriteTransaction } from "../DFWriteTransaction.js";
 import { DFConditionalCheckFailedError } from "../errors/DFConditionalCheckFailedError.js";
-
-// TODO: support migrations
 
 export interface DFForeignCountExtConfig<
   Entity extends SafeEntity<Entity>,
@@ -43,6 +38,7 @@ export class DFForeignCountExt<
     Entity,
     ForeignEntity
   >;
+  public maxMigrationQueryPages = 15;
 
   public constructor(
     public readonly config: DFForeignCountExtConfig<Entity, ForeignEntity>
@@ -69,6 +65,55 @@ export class DFForeignCountExt<
 
     this.foreignCollection.extensions.push(this.remoteExtension);
   }
+
+  // migration lives on the counting entity (we then query the counted items to validate)
+  public async migrateEntity(
+    entity: EntityWithMetadata,
+    transaction: DFWriteTransaction
+  ): Promise<void> {
+    if (this.config.queryForForeignEntities === undefined) {
+      // cannot migrate without queryForForeignEntities provided
+      return;
+    }
+
+    const foreignQuery = this.config.queryForForeignEntities(entity as Entity);
+    // save some processing, no need to process the actual items
+    // would be nice to have a way to not return any fields, we don't need the data
+    foreignQuery.returnRaw = true;
+
+    let numberOfForeignItems = 0;
+    let completedQuery = false;
+
+    for (let i = 0; i < this.maxMigrationQueryPages; i++) {
+      const { items, lastEvaluatedKey } =
+        await this.foreignCollection.retrieveManyWithPagination(foreignQuery);
+
+      numberOfForeignItems += items.length;
+      foreignQuery.exclusiveStartKey = lastEvaluatedKey;
+
+      if (lastEvaluatedKey === undefined) {
+        completedQuery = true;
+        break;
+      }
+    }
+
+    if (!completedQuery) {
+      this.logWarning(
+        "Unable to re-compute foreign count, too many pages of foreign items"
+      );
+
+      return;
+    }
+
+    transaction.primaryUpdateOperation.updateValues[
+      this.config.countField as string
+    ] = numberOfForeignItems;
+  }
+
+  /* istanbul ignore next */
+  public logWarning(message: string) {
+    console.warn("[DFForeignCountExt]", message);
+  }
 }
 
 // gets installed into the foreign collection
@@ -77,7 +122,6 @@ class DFInternalForeignCountRemoteExt<
   Entity extends SafeEntity<Entity>,
   ForeignEntity extends SafeEntity<ForeignEntity>
 > extends DFBaseExtension<ForeignEntity> {
-  public maxMigrationQueryPages = 15;
   public constructor(
     public readonly config: DFForeignCountExtConfig<Entity, ForeignEntity>,
     public readonly countingCollection: DFCollection<Entity>,
@@ -167,13 +211,12 @@ class DFInternalForeignCountRemoteExt<
         return;
       }
 
-      // TODO: test this
+      /* istanbul ignore next */
       const primaryCondition =
         transaction.primaryUpdateOperation.condition || {};
       primaryCondition._wc = existingItem._wc;
 
       transaction.primaryOperation.errorHandler = (err: any) => {
-        // TODO: test this
         if (err instanceof DFConditionalCheckFailedError) {
           return RETRY_TRANSACTION;
         }
@@ -232,50 +275,5 @@ class DFInternalForeignCountRemoteExt<
         } as any)
       );
     });
-  }
-
-  // TODO: test me
-  public async migrateEntity(
-    entity: EntityWithMetadata,
-    transaction: DFWriteTransaction
-  ): Promise<void> {
-    if (this.config.queryForForeignEntities === undefined) {
-      // cannot migrate without queryForForeignEntities provided
-      return;
-    }
-
-    const foreignQuery = this.config.queryForForeignEntities(entity as Entity);
-    // save some processing, no need to process the actual items
-    // would be nice to have a way to not return any fields, we don't need the data
-    foreignQuery.returnRaw = true;
-
-    let numberOfForeignItems = 0;
-    let completedQuery = false;
-
-    for (let i = 0; i < this.maxMigrationQueryPages; i++) {
-      const { items, lastEvaluatedKey } =
-        await this.foreignCollection.retrieveManyWithPagination(foreignQuery);
-
-      numberOfForeignItems += items.length;
-      foreignQuery.exclusiveStartKey = lastEvaluatedKey;
-
-      if (lastEvaluatedKey === null) {
-        completedQuery = true;
-        break;
-      }
-    }
-
-    if (!completedQuery) {
-      console.warn(
-        "Unable to re-compute foreign count, too many pages of foreign items"
-      );
-      return;
-    }
-
-    if (entity[this.config.countField as string] !== numberOfForeignItems) {
-      transaction.primaryUpdateOperation.updateValues[
-        this.config.countField as string
-      ] = numberOfForeignItems;
-    }
   }
 }

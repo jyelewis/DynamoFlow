@@ -1,7 +1,10 @@
 # Release notes
 
+# 1.4.0
+ * New DFForeignCountExt available
+
 # 1.3.2
- * Confirmed 
+ * Confirmed https://github.com/jyelewis/DynamoFlow/issues/12 could not be exploited
 
 # 1.3.1
  * Fixed bug in complex query expressions: https://github.com/jyelewis/DynamoFlow/issues/14
