@@ -355,7 +355,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
           }>)) ||
         [];
 
-      // TODO: honestly not sure how we can integration test this without loading a table with a lot of data
+      // honestly not sure how we can integration test this without loading a table with a lot of data
       /* istanbul ignore next */
       if (unprocessedKeys.length > 0) {
         // process more items!
@@ -438,6 +438,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       };
     };
 
+    // TODO: could optimise this by only writing items that actually have required updates
     // create write transaction
     const transaction = this.table.createTransaction(createPrimaryOperation());
 
