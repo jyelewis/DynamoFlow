@@ -92,7 +92,6 @@ describe("Issues", () => {
           sortKey: ["username", "isActivated", "age"],
         });
 
-        // TODO: this isn't testing the way we want it too (should not be passing right now)
         await usersCollection.insert({
           portalId: "portal1",
           username: "JoeBot#true",
@@ -120,6 +119,7 @@ describe("Issues", () => {
             username: "JoeBot#true",
             isActivated: false,
           },
+          returnRaw: true,
         });
 
         expect(readUser?.username).toEqual("JoeBot#true");

@@ -1,5 +1,8 @@
 # Release notes
 
+# 1.3.2
+ * Confirmed 
+
 # 1.3.1
  * Fixed bug in complex query expressions: https://github.com/jyelewis/DynamoFlow/issues/14
 
