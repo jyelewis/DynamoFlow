@@ -2,11 +2,12 @@ import { DFTable } from "../../DFTable.js";
 import { testDbConfigWithPrefix } from "../../testHelpers/testDbConfigs.js";
 import { DFForeignCountExt } from "../DFForeignCountExt.js";
 import { DFSecondaryIndexExt } from "../DFSecondaryIndexExt.js";
+import { EntityWithMetadata } from "../../types/types.js";
 
 interface User {
   id: string;
   name: string;
-  numProjects: number;
+  numProjects: null | number;
   numActiveProjects: number;
   numInactiveProjects: number;
 }
@@ -40,6 +41,12 @@ const project1: Project = {
   isActive: true,
   name: "Project 1",
 };
+const project2: Project = {
+  id: "project-2",
+  userId: user1.id,
+  isActive: false,
+  name: "Project 2",
+};
 
 const createCollections = () => {
   const table = new DFTable(testDbConfigWithPrefix());
@@ -68,6 +75,12 @@ const createCollections = () => {
             project.userId !== null ? { id: project.userId } : null,
           ["userId"],
         ],
+        queryForForeignEntities: (user) => ({
+          index: "byUser",
+          where: {
+            userId: user.id,
+          },
+        }),
       }),
       new DFForeignCountExt<User, Project>({
         foreignCollection: projectsCollection,
@@ -178,6 +191,123 @@ describe("DFForeignCountExt", () => {
       expect(transaction.secondaryOperations.length).toEqual(0);
       expect(transaction.preCommitHandlers.length).toEqual(0);
     });
+
+    it("Throws if the foreign value is updated with an update expression", () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const projectsCollection = table.createCollection<Project>({
+        name: "projects",
+        partitionKey: "id",
+      });
+
+      table.createCollection<User>({
+        name: "users",
+        partitionKey: "id",
+        extensions: [
+          new DFForeignCountExt<User, Project>({
+            foreignCollection: projectsCollection,
+            countField: "numProjects",
+            foreignEntityToLocalKey: [
+              (project) =>
+                project.userId !== null ? { id: project.userId } : null,
+              ["userId"],
+            ],
+            queryForForeignEntities: (user) => ({
+              index: "byUser",
+              where: {
+                userId: user.id,
+              },
+            }),
+          }),
+        ],
+      });
+
+      expect(() =>
+        projectsCollection.updateTransaction(
+          {
+            userId: project1.userId,
+            id: project1.id,
+          },
+          {
+            userId: { $inc: 5 },
+          }
+        )
+      ).toThrowError("Cannot use dynamic update expression for key userId");
+    });
+
+    it.concurrent("Throws if entity is deleted mid-transaction", async () => {
+      const { usersCollection, projectsCollection } = createCollections();
+
+      await usersCollection.insert(user1);
+      await projectsCollection.insert(project1);
+
+      const transaction = projectsCollection.updateTransaction(
+        {
+          id: project1.id,
+        },
+        {
+          userId: null,
+        }
+      );
+
+      transaction.addPreCommitHandler(async () => {
+        await projectsCollection.delete({ id: project1.id });
+      });
+
+      await expect(transaction.commit()).rejects.toThrow(
+        "Entity does not exist"
+      );
+    });
+
+    it.concurrent(
+      "Auto re-tries if entity is updated mid-transaction",
+      async () => {
+        const { usersCollection, projectsCollection } = createCollections();
+
+        await usersCollection.insert(user1);
+        await usersCollection.insert(user2);
+        await projectsCollection.insert(project1);
+
+        const transaction = projectsCollection.updateTransaction(
+          {
+            id: project1.id,
+          },
+          {
+            userId: user2.id,
+          }
+        );
+
+        let hasInterrupted = false;
+        transaction.addPreCommitHandler(async () => {
+          if (hasInterrupted) {
+            // only interrupt once
+            return;
+          }
+          hasInterrupted = true;
+
+          await projectsCollection.update(
+            { id: project1.id },
+            {
+              name: "New name",
+            }
+          );
+        });
+
+        await transaction.commit();
+
+        const updatedEntity = await projectsCollection.retrieveOne({
+          where: {
+            id: project1.id,
+          },
+        });
+
+        expect(updatedEntity).toEqual({
+          id: "project-1",
+          userId: user2.id,
+          isActive: true,
+          name: "New name",
+        });
+      }
+    );
 
     it.concurrent.each([
       // null[active] -> null[active]
@@ -673,5 +803,90 @@ describe("DFForeignCountExt", () => {
     });
   });
 
-  // TODO: implement & test migrations
+  describe("migrations", () => {
+    it.concurrent("Standard migration to update count", async () => {
+      const { usersCollection, projectsCollection } = createCollections();
+
+      await usersCollection.insert(user1);
+      await projectsCollection.insert(project1);
+      await projectsCollection.insert(project2);
+
+      await usersCollection.update(
+        {
+          id: user1.id,
+        },
+        {
+          numProjects: null,
+        }
+      );
+
+      const userWithNoProjects = (await usersCollection.retrieveOne({
+        where: user1,
+        returnRaw: true,
+      })) as unknown as EntityWithMetadata;
+      expect(userWithNoProjects?.numProjects).toEqual(null);
+
+      await usersCollection.migrateEntityWithMetadata(userWithNoProjects);
+
+      const userWithProjects = (await usersCollection.retrieveOne({
+        where: user1,
+        returnRaw: true,
+      })) as unknown as EntityWithMetadata;
+
+      expect(userWithProjects?.numProjects).toEqual(2);
+    });
+
+    it.concurrent(
+      "Does not migrate if too many pages are required",
+      async () => {
+        const { usersCollection, projectsCollection } = createCollections();
+
+        // configure the extension to trigger hitting the limit with only 2 items
+        const foreignCountExt = usersCollection
+          .extensions[0] as DFForeignCountExt<User, Project>;
+
+        foreignCountExt.maxMigrationQueryPages = 1;
+        foreignCountExt.config.queryForForeignEntities = (user) => ({
+          index: "byUser",
+          limit: 1,
+          where: {
+            userId: user.id,
+          },
+        });
+
+        await usersCollection.insert(user1);
+        await projectsCollection.insert(project1);
+        await projectsCollection.insert(project2);
+
+        await usersCollection.update(
+          {
+            id: user1.id,
+          },
+          {
+            numProjects: null,
+          }
+        );
+
+        const userWithNoProjects = (await usersCollection.retrieveOne({
+          where: user1,
+          returnRaw: true,
+        })) as unknown as EntityWithMetadata;
+        expect(userWithNoProjects?.numProjects).toEqual(null);
+
+        foreignCountExt.logWarning = jest.fn();
+
+        await usersCollection.migrateEntityWithMetadata(userWithNoProjects);
+
+        expect(foreignCountExt.logWarning).toHaveBeenCalled();
+
+        const userWithProjects = (await usersCollection.retrieveOne({
+          where: user1,
+          returnRaw: true,
+        })) as unknown as EntityWithMetadata;
+
+        // should not have migrated
+        expect(userWithProjects?.numProjects).toEqual(null);
+      }
+    );
+  });
 });
