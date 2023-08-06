@@ -54,9 +54,15 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
       );
     }
 
-    if (sortValue === undefined) {
+    if (!queryIsComplete && sortValue === undefined) {
       // we're done! not looking for anything further
+      // mark the query as in-complete though, as we still need to write our sortKeyBase into the query
+      queryExpression.keyConditionExpression = `#PK = :pk AND begins_with(#SK, :value)`;
+      queryExpression.expressionAttributeValues[":value"] = `${sortKeyBase}#`;
       queryIsComplete = true;
+    }
+
+    if (sortValue === undefined) {
       continue; // continue to check the dev hasn't provided any more values though
     }
 

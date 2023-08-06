@@ -49,7 +49,7 @@ describe("Issues", () => {
     );
 
     // BUG: this boolean check is not working (no malicious input)
-    it.concurrent.failing(
+    it.concurrent(
       "Normal behaviour, no malicious input (not activated)",
       async () => {
         const table = new DFTable(testDbConfigWithPrefix());
@@ -82,7 +82,7 @@ describe("Issues", () => {
     );
 
     // VULNERABILITY: User can craft a malicious username to make it look like they are activated (via sort key)
-    it.concurrent.failing(
+    it.concurrent(
       "PK: [portalId] SK: [username, isActivated, age]",
       async () => {
         const table = new DFTable(testDbConfigWithPrefix());
@@ -92,6 +92,7 @@ describe("Issues", () => {
           sortKey: ["username", "isActivated", "age"],
         });
 
+        // TODO: this isn't testing the way we want it too (should not be passing right now)
         await usersCollection.insert({
           portalId: "portal1",
           username: "JoeBot#true",
