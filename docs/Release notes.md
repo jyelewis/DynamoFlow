@@ -1,5 +1,13 @@
 # Release notes
 
+# 1.3.0
+ * Experimental extension `DFForeignCountExt` now supports migrations
+ * Fixed double hash SK issue: https://github.com/jyelewis/DynamoFlow/issues/4
+
+## 1.2.2
+## 1.2.1
+ * CI Configuration
+
 ## 1.2.0
  * DFWriteTransaction now automatically merges operations on the same item within the same transaction
  * Removed dependency on `@aws-sdk/util-dynamodb` and `zod`
