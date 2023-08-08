@@ -15,6 +15,7 @@ import { DFCondition, DFWritePrimaryOperation } from "./types/operations.js";
 import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
 import { DFConditionalCheckFailedError } from "./errors/DFConditionalCheckFailedError.js";
 import { ensureArray } from "./utils/ensureArray.js";
+import { isDynamoValue } from "./utils/isDynamoValue.js";
 
 export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
   name: string;
@@ -384,9 +385,9 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   // entityFromDynamoRow will only run migrations if an extension says it's out of date
   public async migrateEntityWithMetadata(
     entityWithMetadata: DynamoItem
-  ): Promise<Entity> {
+  ): Promise<DynamoItem> {
+    const { _PK, _SK, ...nonKeyProperties } = entityWithMetadata;
     const createPrimaryOperation: () => DFWritePrimaryOperation = () => {
-      const { _PK, _SK, ...nonKeyProperties } = entityWithMetadata;
       return {
         type: "Update",
         key: {
@@ -438,9 +439,9 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       };
     };
 
-    // TODO: could optimise this by only writing items that actually have required updates
     // create write transaction
     const transaction = this.table.createTransaction(createPrimaryOperation());
+    const preMigrateValues = nonKeyProperties;
 
     // ask all our extensions to migrate this item
     // we can commit all migrates in one go
@@ -452,7 +453,38 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       );
     });
 
-    const migratedEntity = await transaction.commitWithReturn();
+    // TODO: whats the point of both this and 'should migrate entity'? Can they be collapsed into one concept?
+
+    // TODO: this has broken things
+    // TODO: test me
+
+    // check whether we need to actually write any changes
+    // if no properties have changed, we can just skip this one
+    const entityHasChanged = Object.entries(
+      transaction.primaryUpdateOperation.updateValues
+    ).some(([key, newValue]) => {
+      if (key === "_wc") {
+        // no need to bump _wc if nothing else has changed
+        return false;
+      }
+      if (!isDynamoValue(newValue)) {
+        // dynamic updates always require a write
+        return true;
+      }
+
+      if (newValue !== preMigrateValues[key]) {
+        // new literal value does not match old literal value
+        return true;
+      }
+    });
+
+    let migratedEntity = entityWithMetadata;
+    if (entityHasChanged) {
+      // remove the entityFromDynamoItem result transformer
+      // this function returns the raw dynamoItem
+      transaction.resultTransformer = undefined;
+      migratedEntity = await transaction.commitWithReturn();
+    }
 
     // check our migration was successful
     // if this returns false, it's possible we are stuck in a loop with an extension
@@ -465,7 +497,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       }
     }
 
-    return this.entityFromRawDynamoItem(migratedEntity);
+    return migratedEntity;
   }
 
   // runs postRetrieve hooks for all extensions & strip metadata
