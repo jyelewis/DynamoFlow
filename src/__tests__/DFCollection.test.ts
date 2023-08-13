@@ -3,6 +3,8 @@ import { DFSecondaryIndexExt } from "../extensions/DFSecondaryIndexExt.js";
 import { DFMigrationExt } from "../extensions/DFMigrationExt.js";
 import { DFBaseExtension } from "../extensions/DFBaseExtension.js";
 import { testDbConfigWithPrefix } from "../testHelpers/testDbConfigs.js";
+import { EntityWithMetadata } from "../types/types.js";
+import { DFWriteTransaction } from "../DFWriteTransaction.js";
 
 interface User {
   id: number;
@@ -1022,7 +1024,7 @@ describe("DFCollection", () => {
     });
   });
 
-  describe("migrateEntityWithMetadata", () => {
+  describe("Migrations", () => {
     it.concurrent(
       "Runs all migration functions and persists item",
       async () => {
@@ -1075,6 +1077,11 @@ describe("DFCollection", () => {
           }
         );
         expect(migratedEntity).toEqual({
+          _PK: expect.any(String),
+          _SK: expect.any(String),
+          _c: expect.any(String),
+          _v: 1,
+          _wc: 2,
           groupId: 1,
           thingId: 1,
           sum: 2,
@@ -1120,6 +1127,9 @@ describe("DFCollection", () => {
           returnRaw: true,
         });
 
+        // bump version to ensure migration function will write a new value
+        migrationExtension.config.version++;
+
         await expect(
           thingsCollection.migrateEntityWithMetadata({
             _PK: insertedThing._PK,
@@ -1147,16 +1157,23 @@ describe("DFCollection", () => {
           migrateEntity: async (version, entity: any) => {
             numMigrationsRun++;
 
-            // oopsie someone is trying to delete this item during a slow migration process
+            // oopsie someone is trying to update this item during a slow migration process
             // (wouldn't usually literally happen in the migration function, but maybe another web-request came in)
             if (entity.num === 1) {
               // we expect this migration will fail because someone else wrote to the item
-              await thingsCollection.update(
-                { groupId: entity.groupId, thingId: entity.thingId },
-                {
-                  num: 2,
-                }
-              );
+              const interruptUpdateTransaction =
+                await thingsCollection.updateTransaction(
+                  { groupId: entity.groupId, thingId: entity.thingId },
+                  {
+                    num: 2,
+                  }
+                );
+              // avoid migrating this item while we are interrupting
+              // simulate an older version of this same coding running in parallel
+              // which isn't aware of this newly available migration
+              interruptUpdateTransaction.resultTransformer = undefined;
+
+              await interruptUpdateTransaction.commit();
             }
 
             return {};
@@ -1188,10 +1205,21 @@ describe("DFCollection", () => {
 
         expect(numMigrationsRun).toEqual(0);
 
+        // ensure we have a migration to write
+        migrationExtension.config.version++;
         const migratedEntity = await thingsCollection.migrateEntityWithMetadata(
           insertedThing
         );
+        // 1: original run (will be interrupted & fail)
+        // 2: second run (should succeed)
+        expect(numMigrationsRun).toEqual(2);
+
         expect(migratedEntity).toEqual({
+          _PK: expect.any(String),
+          _SK: expect.any(String),
+          _c: expect.any(String),
+          _v: 2,
+          _wc: 3, // insert, interrupt update, successful migration
           groupId: 1,
           thingId: 1,
           num: 2,
@@ -1212,8 +1240,11 @@ describe("DFCollection", () => {
             return enabledBadExtensionBehaviour;
           }
 
-          public migrateEntity() {
-            // no need to actually change anything
+          public migrateEntity(
+            entity: EntityWithMetadata,
+            transaction: DFWriteTransaction
+          ) {
+            // no need to actually update anything
           }
         }
 
@@ -1271,6 +1302,178 @@ describe("DFCollection", () => {
         ).rejects.toThrow(
           "Extension BadExt still requires migration after migration was run"
         );
+      }
+    );
+
+    it.concurrent("Doesn't write if no fields are updated", async () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+
+      const migrationExtension = new DFMigrationExt<
+        Thing & { sum: null | number }
+      >({
+        version: 1,
+        migrateEntity: () => {
+          return {};
+        },
+      });
+
+      const thingsCollection = table.createCollection<
+        Thing & { sum: null | number }
+      >({
+        name: `things-migration`,
+        partitionKey: "groupId",
+        sortKey: "thingId",
+        extensions: [migrationExtension],
+      });
+
+      await thingsCollection.insert({ groupId: 1, thingId: 1, sum: null });
+      const insertedThing: any = await thingsCollection.retrieveOne({
+        where: {
+          groupId: 1,
+          thingId: 1,
+        },
+        returnRaw: true,
+      });
+
+      const migratedEntity = await thingsCollection.migrateEntityWithMetadata({
+        _PK: insertedThing._PK,
+        _SK: insertedThing._SK,
+        _c: insertedThing._SK,
+        _wc: insertedThing._wc,
+        _v: insertedThing._v,
+        groupId: 1,
+        thingId: 1,
+      });
+      expect(migratedEntity).toEqual({
+        _PK: expect.any(String),
+        _SK: expect.any(String),
+        _c: expect.any(String),
+        _v: 1,
+        _wc: 1, // we expect this to NOT increment, as we shouldn't write a no-op update
+        groupId: 1,
+        thingId: 1,
+      });
+    });
+
+    it.concurrent(
+      "Doesn't write if updated fields match existing fields",
+      async () => {
+        const table = new DFTable(testDbConfigWithPrefix());
+
+        const migrationExtension = new DFMigrationExt<
+          Thing & { sum: null | number }
+        >({
+          version: 1,
+          migrateEntity: (version, entity: any) => {
+            if (version === 1) {
+              // migrate version 1 -> 2
+              // set the sum property
+              return {
+                groupId: entity.groupId,
+                thingId: entity.thingId,
+              };
+            }
+
+            return {};
+          },
+        });
+
+        const thingsCollection = table.createCollection<
+          Thing & { sum: null | number }
+        >({
+          name: `things-migration`,
+          partitionKey: "groupId",
+          sortKey: "thingId",
+          extensions: [migrationExtension],
+        });
+
+        await thingsCollection.insert({ groupId: 1, thingId: 1, sum: null });
+        const insertedThing: any = await thingsCollection.retrieveOne({
+          where: {
+            groupId: 1,
+            thingId: 1,
+          },
+          returnRaw: true,
+        });
+
+        const migratedEntity = await thingsCollection.migrateEntityWithMetadata(
+          {
+            _PK: insertedThing._PK,
+            _SK: insertedThing._SK,
+            _c: insertedThing._SK,
+            _wc: insertedThing._wc,
+            _v: insertedThing._v,
+            groupId: 1,
+            thingId: 1,
+          }
+        );
+        expect(migratedEntity).toEqual({
+          _PK: expect.any(String),
+          _SK: expect.any(String),
+          _c: expect.any(String),
+          _v: 1,
+          _wc: 1, // we expect this to NOT increment, as we shouldn't write a no-op update
+          groupId: 1,
+          thingId: 1,
+        });
+      }
+    );
+
+    it.concurrent(
+      "Always writes if dynamic update expressions are used",
+      async () => {
+        const table = new DFTable(testDbConfigWithPrefix());
+
+        const migrationExtension = new DFMigrationExt<
+          Thing & { sum: null | number }
+        >({
+          version: 1,
+          migrateEntity: (version, entity: any) => {
+            if (version === 1) {
+              // migrate version 1 -> 2
+              // set the sum property
+              return {
+                groupId: entity.groupId,
+                thingId: entity.thingId,
+                sum: { $setIfNotExists: entity.groupId + entity.thingId },
+              };
+            }
+
+            return {};
+          },
+        });
+
+        const thingsCollection = table.createCollection<
+          Thing & { sum: null | number }
+        >({
+          name: `things-migration`,
+          partitionKey: "groupId",
+          sortKey: "thingId",
+          extensions: [migrationExtension],
+        });
+
+        await thingsCollection.insert({ groupId: 1, thingId: 1, sum: 2 });
+        const insertedThing: any = await thingsCollection.retrieveOne({
+          where: {
+            groupId: 1,
+            thingId: 1,
+          },
+          returnRaw: true,
+        });
+
+        const migratedEntity = await thingsCollection.migrateEntityWithMetadata(
+          insertedThing
+        );
+        expect(migratedEntity).toEqual({
+          _PK: expect.any(String),
+          _SK: expect.any(String),
+          _c: expect.any(String),
+          _v: 1,
+          _wc: 2, // even though the entity is identical, our conditional write forces an update
+          groupId: 1,
+          thingId: 1,
+          sum: 2,
+        });
       }
     );
   });

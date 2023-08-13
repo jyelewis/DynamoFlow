@@ -16,6 +16,9 @@ import { conditionToConditionExpression } from "./utils/conditionToConditionExpr
 import { DFConditionalCheckFailedError } from "./errors/DFConditionalCheckFailedError.js";
 import { ensureArray } from "./utils/ensureArray.js";
 import { isDynamoValue } from "./utils/isDynamoValue.js";
+// import { EntityNotChanged } from "./errors/EntityNotChanged.js";
+
+const ENTITY_NOT_CHANGED = Symbol("Entity not changed");
 
 export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
   name: string;
@@ -386,8 +389,8 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   public async migrateEntityWithMetadata(
     entityWithMetadata: DynamoItem
   ): Promise<DynamoItem> {
-    const { _PK, _SK, ...nonKeyProperties } = entityWithMetadata;
     const createPrimaryOperation: () => DFWritePrimaryOperation = () => {
+      const { _PK, _SK, ...nonKeyProperties } = entityWithMetadata;
       return {
         type: "Update",
         key: {
@@ -441,7 +444,6 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
     // create write transaction
     const transaction = this.table.createTransaction(createPrimaryOperation());
-    const preMigrateValues = nonKeyProperties;
 
     // ask all our extensions to migrate this item
     // we can commit all migrates in one go
@@ -451,39 +453,47 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
           extension.migrateEntity(entityWithMetadata, transaction)
         )
       );
+
+      // check whether we need to actually write any changes
+      // if no properties have changed, we can just skip this one
+      const entityHasChanged = Object.entries(
+        transaction.primaryUpdateOperation.updateValues
+      ).some(([key, newValue]) => {
+        if (key === "_wc") {
+          // no need to bump _wc if nothing else has changed
+          return false;
+        }
+        if (!isDynamoValue(newValue)) {
+          // dynamic updates always require a write
+          return true;
+        }
+
+        if (newValue !== entityWithMetadata[key]) {
+          // new literal value does not match old literal value
+          return true;
+        }
+      });
+
+      if (entityHasChanged === false) {
+        // bail on the write, why waste the WCUs
+        throw ENTITY_NOT_CHANGED;
+      }
     });
 
-    // TODO: whats the point of both this and 'should migrate entity'? Can they be collapsed into one concept?
-
-    // TODO: this has broken things
-    // TODO: test me
-
-    // check whether we need to actually write any changes
-    // if no properties have changed, we can just skip this one
-    const entityHasChanged = Object.entries(
-      transaction.primaryUpdateOperation.updateValues
-    ).some(([key, newValue]) => {
-      if (key === "_wc") {
-        // no need to bump _wc if nothing else has changed
-        return false;
-      }
-      if (!isDynamoValue(newValue)) {
-        // dynamic updates always require a write
-        return true;
-      }
-
-      if (newValue !== preMigrateValues[key]) {
-        // new literal value does not match old literal value
-        return true;
-      }
-    });
-
-    let migratedEntity = entityWithMetadata;
-    if (entityHasChanged) {
+    let migratedEntity: EntityWithMetadata | undefined;
+    try {
       // remove the entityFromDynamoItem result transformer
       // this function returns the raw dynamoItem
       transaction.resultTransformer = undefined;
       migratedEntity = await transaction.commitWithReturn();
+    } catch (e) {
+      if (e === ENTITY_NOT_CHANGED) {
+        // no need to actually write any changes
+        // just return the entity as-is
+        migratedEntity = entityWithMetadata;
+      } else {
+        throw e;
+      }
     }
 
     // check our migration was successful
