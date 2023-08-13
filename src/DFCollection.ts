@@ -16,7 +16,6 @@ import { conditionToConditionExpression } from "./utils/conditionToConditionExpr
 import { DFConditionalCheckFailedError } from "./errors/DFConditionalCheckFailedError.js";
 import { ensureArray } from "./utils/ensureArray.js";
 import { isDynamoValue } from "./utils/isDynamoValue.js";
-// import { EntityNotChanged } from "./errors/EntityNotChanged.js";
 
 const ENTITY_NOT_CHANGED = Symbol("Entity not changed");
 
