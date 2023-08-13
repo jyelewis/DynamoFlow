@@ -5,7 +5,7 @@ export function generateIndexStrings(
   collectionName: string,
   partitionKeys: string | string[],
   sortKeys: undefined | string | string[],
-  entity: Partial<DynamoItem>
+  entity: Partial<DynamoItem>,
 ): [string, string] {
   return [
     `${collectionName}#${generateKeyString(partitionKeys, entity)}`,

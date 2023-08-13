@@ -124,7 +124,7 @@ describe("DFTable", () => {
           },
           {
             allowOverwrite: true,
-          }
+          },
         );
       };
 
@@ -136,7 +136,7 @@ describe("DFTable", () => {
           },
           {
             allowOverwrite: true,
-          }
+          },
         );
       };
 
@@ -188,10 +188,10 @@ describe("DFTable", () => {
         expect(itemsReceived.length).toEqual(allItems.length + 1);
         expect(
           allItems.every((item) =>
-            itemsReceived.some((x) => x.entity.id === item.id)
-          )
+            itemsReceived.some((x) => x.entity.id === item.id),
+          ),
         ).toEqual(true);
-      }
+      },
     );
 
     it.concurrent(
@@ -219,10 +219,10 @@ describe("DFTable", () => {
         expect(itemsReceived.length).toEqual(allItems.length + 1);
         expect(
           allItems.every((item) =>
-            itemsReceived.some((x) => x.entity.id === item.id)
-          )
+            itemsReceived.some((x) => x.entity.id === item.id),
+          ),
         ).toEqual(true);
-      }
+      },
     );
 
     it.concurrent(
@@ -251,10 +251,10 @@ describe("DFTable", () => {
         expect(itemsReceived.length).toEqual(allItems.length + 1);
         expect(
           allItems.every((item) =>
-            itemsReceived.some((x) => x.entity.id === item.id)
-          )
+            itemsReceived.some((x) => x.entity.id === item.id),
+          ),
         ).toEqual(true);
-      }
+      },
     );
 
     it.concurrent("Applies filterExpression _c = 'users'", async () => {
@@ -277,12 +277,12 @@ describe("DFTable", () => {
 
       // check we got all items once
       expect(itemsReceived.length).toEqual(
-        allItems.filter((x) => "firstName" in x).length
+        allItems.filter((x) => "firstName" in x).length,
       );
       expect(
         itemsReceived.every((x) =>
-          allItems.some((item) => x.entity.id === item.id)
-        )
+          allItems.some((item) => x.entity.id === item.id),
+        ),
       ).toEqual(true);
     });
 
@@ -340,7 +340,7 @@ describe("DFTable", () => {
         expect(itemsReceived.length).toEqual(1);
         expect(itemsReceived[0].collection).toStrictEqual(usersCollection);
         expect(itemsReceived[0].entity.lastName).toEqual("Fring");
-      }
+      },
     );
 
     it.concurrent("Exists early if STOP_SCAN is returned", async () => {
@@ -399,10 +399,10 @@ describe("DFTable", () => {
                   },
                   {
                     fullName: `${entity.firstName} ${entity.lastName}`,
-                  }
+                  },
                 );
               }
-            })
+            }),
           );
         },
       });
@@ -426,9 +426,10 @@ describe("DFTable", () => {
         returnRaw: true, // so we can trigger manual migrations
         processBatch: async (items: FullTableScanItem[]) => {
           await Promise.all(
-            items.map(({ entity, collection }) =>
-              collection?.migrateEntityWithMetadata(entity)
-            )
+            items.map(
+              ({ entity, collection }) =>
+                collection?.migrateEntityWithMetadata(entity),
+            ),
           );
         },
       });
@@ -455,7 +456,7 @@ describe("DFTable", () => {
       expect(
         // should only get things from the users collection
         // as that is the only thing that writes to this index
-        itemsReceived.every((x) => x.collection === usersCollection)
+        itemsReceived.every((x) => x.collection === usersCollection),
       ).toEqual(true);
     });
 
@@ -485,16 +486,16 @@ describe("DFTable", () => {
 
         // should exist both before and after this function is called
         const tablesBeforeCreate = await existingTable.client.send(
-          new ListTablesCommand({})
+          new ListTablesCommand({}),
         );
         expect(tablesBeforeCreate.TableNames).toContain(
-          existingTable.tableName
+          existingTable.tableName,
         );
 
         await existingTable.createTableIfNotExists();
 
         const tablesAfterCreate = await existingTable.client.send(
-          new ListTablesCommand({})
+          new ListTablesCommand({}),
         );
         expect(tablesAfterCreate.TableNames).toContain(existingTable.tableName);
       });
@@ -504,26 +505,26 @@ describe("DFTable", () => {
 
         // should exist both before and after this function is called
         const tablesBeforeCreate = await createdInTestTable.client.send(
-          new ListTablesCommand({})
+          new ListTablesCommand({}),
         );
         expect(tablesBeforeCreate.TableNames).not.toContain(
-          createdInTestTable.tableName
+          createdInTestTable.tableName,
         );
 
         await createdInTestTable.createTableIfNotExists();
 
         const tablesAfterCreate = await createdInTestTable.client.send(
-          new ListTablesCommand({})
+          new ListTablesCommand({}),
         );
         expect(tablesAfterCreate.TableNames).toContain(
-          createdInTestTable.tableName
+          createdInTestTable.tableName,
         );
 
         // delete the table so tests can run again
         await createdInTestTable.client.send(
           new DeleteTableCommand({
             TableName: createdInTestTable.tableName,
-          })
+          }),
         );
       });
 
@@ -532,26 +533,26 @@ describe("DFTable", () => {
 
         // should exist both before and after this function is called
         const tablesBeforeCreate = await createdInTestTable.client.send(
-          new ListTablesCommand({})
+          new ListTablesCommand({}),
         );
         expect(tablesBeforeCreate.TableNames).not.toContain(
-          createdInTestTable.tableName
+          createdInTestTable.tableName,
         );
 
         await createdInTestTable.createTableIfNotExists();
 
         const tablesAfterCreate = await createdInTestTable.client.send(
-          new ListTablesCommand({})
+          new ListTablesCommand({}),
         );
         expect(tablesAfterCreate.TableNames).toContain(
-          createdInTestTable.tableName
+          createdInTestTable.tableName,
         );
 
         // delete the table so tests can run again
         await createdInTestTable.client.send(
           new DeleteTableCommand({
             TableName: createdInTestTable.tableName,
-          })
+          }),
         );
       });
     });

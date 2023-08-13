@@ -81,7 +81,7 @@ export interface FullTableScanItem {
 }
 export type FullTableScan = {
   processBatch: (
-    items: FullTableScanItem[]
+    items: FullTableScanItem[],
   ) => Promise<void | typeof STOP_SCAN>;
   filter?: Record<string, DFConditionValue>;
   maxBatchSize?: number;

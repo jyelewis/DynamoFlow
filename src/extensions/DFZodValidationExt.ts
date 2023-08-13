@@ -5,7 +5,7 @@ import type z from "zod";
 import { isDynamoValue } from "../utils/isDynamoValue.js";
 
 export class DFZodValidationExt<
-  Entity extends SafeEntity<Entity>
+  Entity extends SafeEntity<Entity>,
 > extends DFBaseExtension<Entity> {
   constructor(
     public readonly config: {
@@ -14,7 +14,7 @@ export class DFZodValidationExt<
       validateOnInsert?: boolean;
       validateOnUpdate?: boolean;
       validateOnRetrieve?: boolean;
-    }
+    },
   ) {
     super();
 
@@ -33,14 +33,14 @@ export class DFZodValidationExt<
       // we can't really handle this case
       // as any insert/update will use the retrieve processor to return a value to the user
       throw new Error(
-        "If validateOnRetrieve is enabled, validateOnInsert & validateOnUpdate must also be enabled"
+        "If validateOnRetrieve is enabled, validateOnInsert & validateOnUpdate must also be enabled",
       );
     }
   }
 
   public onInsert(
     entityWithMetadata: EntityWithMetadata,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ) {
     if (!this.config.validateOnInsert) {
       // insert validation disabled
@@ -53,7 +53,7 @@ export class DFZodValidationExt<
   public onUpdate(
     key: Partial<Entity>,
     entityUpdate: Record<string, UpdateValue>,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ) {
     if (!this.config.validateOnUpdate) {
       return;
@@ -89,7 +89,7 @@ export class DFZodValidationExt<
     Object.keys(entityWithMetadata)
       .filter((x) => !x.startsWith("_"))
       .forEach(
-        (key) => (entity[key] = entityWithMetadata[key as keyof Entity])
+        (key) => (entity[key] = entityWithMetadata[key as keyof Entity]),
       );
 
     // this will both validate the entity & clean up any non standard values for type (i.e 1 => true)

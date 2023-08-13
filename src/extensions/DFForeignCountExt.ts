@@ -14,7 +14,7 @@ import { DFConditionalCheckFailedError } from "../errors/DFConditionalCheckFaile
 
 export interface DFForeignCountExtConfig<
   Entity extends SafeEntity<Entity>,
-  ForeignEntity extends SafeEntity<ForeignEntity>
+  ForeignEntity extends SafeEntity<ForeignEntity>,
 > {
   foreignCollection:
     | DFCollection<ForeignEntity>
@@ -23,14 +23,14 @@ export interface DFForeignCountExtConfig<
   countField: keyof Entity;
   foreignEntityToLocalKey: [
     (foreignEntity: ForeignEntity) => null | Partial<Entity>,
-    Array<keyof ForeignEntity>
+    Array<keyof ForeignEntity>,
   ];
   queryForForeignEntities?: (localEntity: Entity) => Query<ForeignEntity>;
 }
 
 export class DFForeignCountExt<
   Entity extends SafeEntity<Entity>,
-  ForeignEntity extends SafeEntity<ForeignEntity>
+  ForeignEntity extends SafeEntity<ForeignEntity>,
 > extends DFBaseExtension<Entity> {
   // lazy loaded in init(), to allow circular references between collections to be resolved
   public foreignCollection!: DFCollection<ForeignEntity>;
@@ -41,7 +41,7 @@ export class DFForeignCountExt<
   public maxMigrationQueryPages = 15;
 
   public constructor(
-    public readonly config: DFForeignCountExtConfig<Entity, ForeignEntity>
+    public readonly config: DFForeignCountExtConfig<Entity, ForeignEntity>,
   ) {
     super();
   }
@@ -58,7 +58,7 @@ export class DFForeignCountExt<
     this.remoteExtension = new DFInternalForeignCountRemoteExt(
       this.config,
       this.collection,
-      this.foreignCollection
+      this.foreignCollection,
     );
 
     this.remoteExtension.init(this.foreignCollection);
@@ -69,7 +69,7 @@ export class DFForeignCountExt<
   // migration lives on the counting entity (we then query the counted items to validate)
   public async migrateEntity(
     entity: EntityWithMetadata,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ): Promise<void> {
     if (this.config.queryForForeignEntities === undefined) {
       // cannot migrate without queryForForeignEntities provided
@@ -99,7 +99,7 @@ export class DFForeignCountExt<
 
     if (!completedQuery) {
       this.logWarning(
-        "Unable to re-compute foreign count, too many pages of foreign items"
+        "Unable to re-compute foreign count, too many pages of foreign items",
       );
 
       return;
@@ -120,22 +120,22 @@ export class DFForeignCountExt<
 // allowing us to monitor updates & update the local collection
 class DFInternalForeignCountRemoteExt<
   Entity extends SafeEntity<Entity>,
-  ForeignEntity extends SafeEntity<ForeignEntity>
+  ForeignEntity extends SafeEntity<ForeignEntity>,
 > extends DFBaseExtension<ForeignEntity> {
   public constructor(
     public readonly config: DFForeignCountExtConfig<Entity, ForeignEntity>,
     public readonly countingCollection: DFCollection<Entity>,
-    public readonly foreignCollection: DFCollection<ForeignEntity>
+    public readonly foreignCollection: DFCollection<ForeignEntity>,
   ) {
     super();
   }
 
   public onInsert(
     foreignEntity: EntityWithMetadata,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ) {
     const localKey = this.config.foreignEntityToLocalKey[0](
-      foreignEntity as ForeignEntity
+      foreignEntity as ForeignEntity,
     );
 
     if (localKey === null) {
@@ -147,18 +147,18 @@ class DFInternalForeignCountRemoteExt<
       this.countingCollection.updateTransaction(localKey, {
         // one more matching item
         [this.config.countField]: { $inc: 1 },
-      } as any)
+      } as any),
     );
   }
 
   public onUpdate(
     key: Partial<ForeignEntity>,
     entityUpdate: Record<string, UpdateValue>,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ) {
     const countDependentFields = this.config.foreignEntityToLocalKey[1];
     const hasSomeFields = countDependentFields.some(
-      (key) => key in entityUpdate
+      (key) => key in entityUpdate,
     );
     if (!hasSomeFields) {
       // dependent fields haven't changed, no need to update anything
@@ -176,7 +176,7 @@ class DFInternalForeignCountRemoteExt<
             key as string
           } because ${this.countingCollection.config.name}.${
             this.config.countField as string
-          } requires a literal value to maintain counts`
+          } requires a literal value to maintain counts`,
         );
       }
     });
@@ -200,10 +200,10 @@ class DFInternalForeignCountRemoteExt<
       const entityWithRequiredProperties = entityWithSomeProperties;
 
       const oldLocalKey = this.config.foreignEntityToLocalKey[0](
-        existingItem as ForeignEntity
+        existingItem as ForeignEntity,
       );
       const newLocalKey = this.config.foreignEntityToLocalKey[0](
-        entityWithRequiredProperties as ForeignEntity
+        entityWithRequiredProperties as ForeignEntity,
       );
 
       if (oldLocalKey === newLocalKey) {
@@ -230,7 +230,7 @@ class DFInternalForeignCountRemoteExt<
         transaction.addSecondaryTransaction(
           this.countingCollection.updateTransaction(oldLocalKey, {
             [this.config.countField]: { $inc: -1 },
-          } as any)
+          } as any),
         );
       }
 
@@ -239,7 +239,7 @@ class DFInternalForeignCountRemoteExt<
         transaction.addSecondaryTransaction(
           this.countingCollection.updateTransaction(newLocalKey, {
             [this.config.countField]: { $inc: 1 },
-          } as any)
+          } as any),
         );
       }
     });
@@ -247,7 +247,7 @@ class DFInternalForeignCountRemoteExt<
 
   public onDelete(
     key: Partial<ForeignEntity>,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ) {
     transaction.addPreCommitHandler(async () => {
       const existingItem = await this.foreignCollection.retrieveOne({
@@ -260,7 +260,7 @@ class DFInternalForeignCountRemoteExt<
       }
 
       const oldLocalKey = this.config.foreignEntityToLocalKey[0](
-        existingItem as ForeignEntity
+        existingItem as ForeignEntity,
       );
 
       if (oldLocalKey === null) {
@@ -272,7 +272,7 @@ class DFInternalForeignCountRemoteExt<
       transaction.addSecondaryTransaction(
         this.countingCollection.updateTransaction(oldLocalKey, {
           [this.config.countField]: { $inc: -1 },
-        } as any)
+        } as any),
       );
     });
   }

@@ -117,7 +117,7 @@ describe("DFWriteTransaction", () => {
           firstName: "Joe",
           lastName: "Lewis",
         });
-      }
+      },
     );
 
     it.concurrent(
@@ -172,7 +172,7 @@ describe("DFWriteTransaction", () => {
           lastName: "Lewis 2",
           age: 11,
         });
-      }
+      },
     );
 
     it.concurrent(
@@ -226,7 +226,7 @@ describe("DFWriteTransaction", () => {
           lastName: "Lewis 2",
           age: 11,
         });
-      }
+      },
     );
 
     it.concurrent(
@@ -281,7 +281,7 @@ describe("DFWriteTransaction", () => {
           lastName: "Lewis 2",
           age: 10,
         });
-      }
+      },
     );
 
     it.concurrent(
@@ -338,7 +338,7 @@ describe("DFWriteTransaction", () => {
           lastName: "Lewis 2",
           age: 11,
         });
-      }
+      },
     );
 
     it.concurrent(
@@ -402,7 +402,7 @@ describe("DFWriteTransaction", () => {
           lastName: "Lewis",
           age: 1,
         });
-      }
+      },
     );
 
     it.concurrent(
@@ -442,7 +442,7 @@ describe("DFWriteTransaction", () => {
         });
 
         await expect(transaction.commit()).rejects.toThrow(
-          "Custom message from error handler"
+          "Custom message from error handler",
         );
 
         expect(successHandler).not.toHaveBeenCalled();
@@ -456,7 +456,7 @@ describe("DFWriteTransaction", () => {
           },
         });
         expect(postTestGet.Item).toEqual(undefined);
-      }
+      },
     );
 
     it.concurrent("Executes single delete transaction", async () => {
@@ -538,7 +538,7 @@ describe("DFWriteTransaction", () => {
           },
         });
         await expect(transaction.commit()).rejects.toThrow(
-          "Conditional check failed"
+          "Conditional check failed",
         );
 
         const postTestGet = await table.client.get({
@@ -550,7 +550,7 @@ describe("DFWriteTransaction", () => {
         });
         // item should not have been deleted (transaction failed)
         expect(postTestGet.Item).not.toBeUndefined();
-      }
+      },
     );
 
     it.concurrent("Throws if operation type is unknown", async () => {
@@ -570,7 +570,7 @@ describe("DFWriteTransaction", () => {
       });
 
       await expect(transaction.commit()).rejects.toThrow(
-        "Unknown operation type"
+        "Unknown operation type",
       );
     });
   });
@@ -1637,7 +1637,7 @@ describe("DFWriteTransaction", () => {
             },
           },
         });
-      }
+      },
     );
 
     it.concurrent(
@@ -1660,9 +1660,9 @@ describe("DFWriteTransaction", () => {
         });
 
         await expect(transaction.commit()).rejects.toThrow(
-          "Invalid key, cannot start index lookup"
+          "Invalid key, cannot start index lookup",
         );
-      }
+      },
     );
 
     it.concurrent("Throws if update expression is not recognised", async () => {
@@ -1681,7 +1681,7 @@ describe("DFWriteTransaction", () => {
       });
 
       await expect(transaction.commit()).rejects.toThrow(
-        `Invalid update operation: {"$unknownOperation":123}`
+        `Invalid update operation: {"$unknownOperation":123}`,
       );
     });
   });
@@ -1817,7 +1817,7 @@ describe("DFWriteTransaction", () => {
         });
 
         await expect(transaction.commit()).rejects.toThrow(
-          "ConditionalCheckFailed"
+          "ConditionalCheckFailed",
         );
 
         const postTestGet1 = await table.client.get({
@@ -1836,7 +1836,7 @@ describe("DFWriteTransaction", () => {
         });
         expect(postTestGet1.Item).toEqual(undefined);
         expect(postTestGet2.Item).toEqual(undefined);
-      }
+      },
     );
 
     it.concurrent(
@@ -1912,7 +1912,7 @@ describe("DFWriteTransaction", () => {
 
         // check that item 2 was re-used, and we didn't retrieve it twice
         expect(
-          successHandler2.mock.calls[0][0] === successHandler3.mock.calls[0][0]
+          successHandler2.mock.calls[0][0] === successHandler3.mock.calls[0][0],
         ).toBe(true);
 
         const postTestGet1 = await table.client.get({
@@ -1931,7 +1931,7 @@ describe("DFWriteTransaction", () => {
         });
         expect(postTestGet1.Item).not.toEqual(undefined);
         expect(postTestGet2.Item).not.toEqual(undefined);
-      }
+      },
     );
 
     it.concurrent("Executes delete+delete transaction", async () => {
@@ -2145,9 +2145,9 @@ describe("DFWriteTransaction", () => {
         });
 
         await expect(transaction.commit()).rejects.toThrow(
-          "Conditional check caught and re-thrown"
+          "Conditional check caught and re-thrown",
         );
-      }
+      },
     );
 
     it.concurrent(
@@ -2222,7 +2222,7 @@ describe("DFWriteTransaction", () => {
         });
         expect(postTestGet1.Item).toEqual(undefined);
         expect(postTestGet2.Item).toEqual(undefined);
-      }
+      },
     );
 
     it.concurrent(
@@ -2262,9 +2262,9 @@ describe("DFWriteTransaction", () => {
         });
 
         await expect(transaction.commit()).rejects.toThrow(
-          "Transaction operation error handler returned invalid response. Error handlers must throw an error themselves, or return RETRY_TRANSACTION"
+          "Transaction operation error handler returned invalid response. Error handlers must throw an error themselves, or return RETRY_TRANSACTION",
         );
-      }
+      },
     );
 
     it.concurrent("Throws if operation type is unknown", async () => {
@@ -2294,7 +2294,7 @@ describe("DFWriteTransaction", () => {
       });
 
       await expect(transaction.commit()).rejects.toThrow(
-        "Unknown operation type"
+        "Unknown operation type",
       );
     });
 
@@ -2312,9 +2312,9 @@ describe("DFWriteTransaction", () => {
           },
         });
         await expect(transaction.commitWithReturn()).rejects.toThrowError(
-          "Cannot call commitWithReturn() on a transaction with no primary operation of type 'Update'"
+          "Cannot call commitWithReturn() on a transaction with no primary operation of type 'Update'",
         );
-      }
+      },
     );
   });
 
@@ -2452,7 +2452,7 @@ describe("DFWriteTransaction", () => {
           firstName: "Jye2", // changed by the pre-commit hook
           lastName: "Lewis",
         });
-      }
+      },
     );
 
     it.concurrent("Re-runs pre-commit on re-try", async () => {
@@ -2488,7 +2488,7 @@ describe("DFWriteTransaction", () => {
         errorHandler: (err, op: DFUpdateOperation) => {
           const currentUserNum = parseInt(
             (op.key as any)._PK.split("USER#user")[1],
-            10
+            10,
           );
 
           (op.key as any) = {
@@ -2550,7 +2550,7 @@ describe("DFWriteTransaction", () => {
         errorHandler: (err, op: DFUpdateOperation) => {
           const currentUserNum = parseInt(
             (op.key as any)._PK.split("USER#user")[1],
-            10
+            10,
           );
 
           (op.key as any) = {
@@ -2621,7 +2621,7 @@ describe("DFWriteTransaction", () => {
           errorHandler: (err, op: DFUpdateOperation) => {
             const currentUserNum = parseInt(
               (op.key as any)._PK.split("USER#user")[1],
-              10
+              10,
             );
 
             (op.key as any) = {
@@ -2655,7 +2655,7 @@ describe("DFWriteTransaction", () => {
           firstName: "Jye",
           lastName: "Lewis",
         });
-      }
+      },
     );
 
     it.concurrent(
@@ -2685,9 +2685,9 @@ describe("DFWriteTransaction", () => {
         });
 
         await expect(transaction.commit()).rejects.toThrow(
-          "Transaction operation error handler returned invalid response. Error handlers must throw an error themselves, or return RETRY_TRANSACTION"
+          "Transaction operation error handler returned invalid response. Error handlers must throw an error themselves, or return RETRY_TRANSACTION",
         );
-      }
+      },
     );
 
     it.concurrent("Throws if too many re-tries are attempted", async () => {
@@ -2715,7 +2715,7 @@ describe("DFWriteTransaction", () => {
       });
 
       await expect(transaction.commit()).rejects.toThrow(
-        "Write transaction failed: Max retries exceeded"
+        "Write transaction failed: Max retries exceeded",
       );
     });
 
@@ -2754,7 +2754,7 @@ describe("DFWriteTransaction", () => {
           errorHandler: (err, op: DFUpdateOperation) => {
             const currentUserNum = parseInt(
               (op.key as any)._PK.split("USER#user")[1],
-              10
+              10,
             );
 
             (op.key as any) = {
@@ -2785,7 +2785,7 @@ describe("DFWriteTransaction", () => {
           firstName: "Joe",
           lastName: "Bot",
         });
-      }
+      },
     );
 
     it.concurrent(
@@ -2826,9 +2826,9 @@ describe("DFWriteTransaction", () => {
         });
 
         await expect(transaction.commit()).rejects.toThrow(
-          "Write transaction failed: Max retries exceeded"
+          "Write transaction failed: Max retries exceeded",
         );
-      }
+      },
     );
   });
 
@@ -2947,7 +2947,7 @@ describe("DFWriteTransaction", () => {
         expect(preCommit2).toHaveBeenCalled();
         expect(preCommit3).toHaveBeenCalled();
         expect(preCommit4).toHaveBeenCalled();
-      }
+      },
     );
   });
 
@@ -3083,9 +3083,9 @@ describe("DFWriteTransaction", () => {
           updateValues: {
             firstName: "Jye",
           },
-        })
+        }),
       ).toThrow(
-        "Field 'firstName' cannot be updated twice to a different value within the same transaction"
+        "Field 'firstName' cannot be updated twice to a different value within the same transaction",
       );
     });
 
@@ -3206,9 +3206,9 @@ describe("DFWriteTransaction", () => {
           updateValues: {
             metadata: { $setIfNotExists: { age: 11 } },
           },
-        })
+        }),
       ).toThrow(
-        "Field 'metadata' cannot be updated twice to a different value within the same transaction"
+        "Field 'metadata' cannot be updated twice to a different value within the same transaction",
       );
     });
 
@@ -3928,9 +3928,9 @@ describe("DFWriteTransaction", () => {
           condition: {
             value1: 15,
           },
-        })
+        }),
       ).toThrow(
-        "Condition for field 'value1' cannot be specified twice with a different value within the same transaction"
+        "Condition for field 'value1' cannot be specified twice with a different value within the same transaction",
       );
     });
   });

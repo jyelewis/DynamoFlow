@@ -57,7 +57,7 @@ export type DFWriteTransactionErrorHandler<Operation extends DFWriteOperation> =
       | DFWriteTransactionFailedError
       | DFConditionalCheckFailedError
       | CancellationReason,
-    op: Operation
+    op: Operation,
   ) => symbol | Promise<symbol>;
 
 export type DFUpdateOperation = {

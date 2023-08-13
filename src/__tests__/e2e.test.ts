@@ -64,7 +64,7 @@ describe("E2E tests", () => {
         where: {
           id: 1,
         },
-      })
+      }),
     ).resolves.toEqual({
       id: 1,
       firstName: "Jye",
@@ -81,7 +81,7 @@ describe("E2E tests", () => {
         where: {
           email: "jye.lewis@propelleraero.com.au",
         },
-      })
+      }),
     ).resolves.toEqual({
       id: 1,
       firstName: "Jye",
@@ -99,7 +99,7 @@ describe("E2E tests", () => {
           lastName: "Lewis",
           firstName: { $beginsWith: "J" },
         },
-      })
+      }),
     ).resolves.toEqual({
       id: 1,
       firstName: "Jye",
@@ -123,8 +123,8 @@ describe("E2E tests", () => {
         },
         {
           numProjects: { $inc: 1 },
-        }
-      )
+        },
+      ),
     );
 
     const savedProject = await projectInsertTransaction.commit();
@@ -143,7 +143,7 @@ describe("E2E tests", () => {
           id: 1,
         },
         consistentRead: true,
-      })
+      }),
     ).resolves.toEqual({
       id: 1,
       firstName: "Jye",
@@ -271,7 +271,7 @@ describe("E2E tests", () => {
         where: {
           id: user1.id,
         },
-      })
+      }),
     ).resolves.toEqual(user1);
 
     await expect(
@@ -279,7 +279,7 @@ describe("E2E tests", () => {
         where: {
           portalId: portal1.id,
         },
-      })
+      }),
     ).resolves.toEqual([site1]);
 
     await expect(
@@ -288,7 +288,7 @@ describe("E2E tests", () => {
         where: {
           portalId: portal1.id,
         },
-      })
+      }),
     ).resolves.toEqual([user1]);
 
     await expect(
@@ -297,7 +297,7 @@ describe("E2E tests", () => {
           siteId: site1.id,
           id: "4W6K",
         },
-      })
+      }),
     ).resolves.toEqual(survey2);
 
     await expect(
@@ -307,7 +307,7 @@ describe("E2E tests", () => {
           siteId: site1.id,
           dateCaptured: { $gt: "2023" },
         },
-      })
+      }),
     ).resolves.toEqual([survey1]);
 
     await expect(
@@ -317,7 +317,7 @@ describe("E2E tests", () => {
           country: "Australia",
           state: "NSW",
         },
-      })
+      }),
     ).resolves.toEqual([portal1]);
 
     // search for items by location
@@ -329,7 +329,7 @@ describe("E2E tests", () => {
           state: "NSW",
           postcode: { $betweenIncl: [2000, 2030] },
         },
-      })
+      }),
     ).resolves.toEqual([portal1]);
 
     // search for items by location, with a filter
@@ -344,7 +344,7 @@ describe("E2E tests", () => {
         filter: {
           name: { $contains: "construct" },
         },
-      })
+      }),
     ).resolves.toEqual([portal1]);
 
     await expect(
@@ -358,7 +358,7 @@ describe("E2E tests", () => {
         filter: {
           name: { $contains: "and sons" },
         },
-      })
+      }),
     ).resolves.toEqual([]);
 
     await expect(
@@ -369,7 +369,7 @@ describe("E2E tests", () => {
           state: "TX",
           postcode: { $betweenIncl: [2000, 2030] },
         },
-      })
+      }),
     ).resolves.toEqual([]);
 
     await expect(
@@ -380,7 +380,7 @@ describe("E2E tests", () => {
           state: "NSW",
           postcode: { $betweenIncl: [2500, 2530] },
         },
-      })
+      }),
     ).resolves.toEqual([]);
   });
 });

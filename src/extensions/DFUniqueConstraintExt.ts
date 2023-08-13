@@ -22,7 +22,7 @@ interface UniqueConstraintItem {
 }
 
 export class DFUniqueConstraintExt<
-  Entity extends SafeEntity<Entity>
+  Entity extends SafeEntity<Entity>,
 > extends DFBaseExtension<Entity> {
   private uniqueConstraintCollection!: DFCollection<UniqueConstraintItem>;
   public constructor(public readonly uniqueField: keyof Entity) {
@@ -40,7 +40,7 @@ export class DFUniqueConstraintExt<
       {
         name: `${collection.config.name}_unique_${this.uniqueField as string}`,
         partitionKey: "val",
-      }
+      },
     );
   }
 
@@ -58,7 +58,7 @@ export class DFUniqueConstraintExt<
       throw new Error(
         `Field '${
           this.uniqueField as string
-        }' can only be a string or number due to DFUniqueConstraintExt`
+        }' can only be a string or number due to DFUniqueConstraintExt`,
       );
     }
 
@@ -84,7 +84,7 @@ export class DFUniqueConstraintExt<
   public onUpdate(
     key: Partial<Entity>,
     entityUpdate: Record<string, UpdateValue>,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ) {
     const uniqueFieldValue = entityUpdate[this.uniqueField as string];
     if (uniqueFieldValue === undefined) {
@@ -96,7 +96,7 @@ export class DFUniqueConstraintExt<
       throw new Error(
         `Field '${
           this.uniqueField as string
-        }' cannot be updated with dynamic values due to DFUniqueConstraintExt`
+        }' cannot be updated with dynamic values due to DFUniqueConstraintExt`,
       );
     }
 
@@ -108,7 +108,7 @@ export class DFUniqueConstraintExt<
       throw new Error(
         `Field '${
           this.uniqueField as string
-        }' can only be a string, number or null due to DFUniqueConstraintExt`
+        }' can only be a string, number or null due to DFUniqueConstraintExt`,
       );
     }
 
@@ -123,7 +123,7 @@ export class DFUniqueConstraintExt<
       if (existingItem === null) {
         throw new DFWriteTransactionFailedError(
           transaction,
-          "Item was deleted while being updated"
+          "Item was deleted while being updated",
         );
       }
 
@@ -140,7 +140,7 @@ export class DFUniqueConstraintExt<
         transaction.addSecondaryTransaction(
           this.uniqueConstraintCollection.deleteTransaction({
             val: oldUniqueFieldValue,
-          })
+          }),
         );
 
         // fail our write if the item is updated between our read & write
@@ -170,7 +170,7 @@ export class DFUniqueConstraintExt<
           val: uniqueFieldValue as any,
         });
       newUniqueConstraintTransaction.primaryOperation.errorHandler = (
-        err: any
+        err: any,
       ) => {
         if (err instanceof DFConditionalCheckFailedError) {
           throw new DFUniqueConstraintConflictError(this.uniqueField as string);
@@ -201,7 +201,7 @@ export class DFUniqueConstraintExt<
         transaction.addSecondaryTransaction(
           this.uniqueConstraintCollection.deleteTransaction({
             val: uniqueValue,
-          })
+          }),
         );
       }
     });
@@ -209,7 +209,7 @@ export class DFUniqueConstraintExt<
 
   public migrateEntity(
     entity: EntityWithMetadata,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ): void {
     const uniqueFieldValue = entity[this.uniqueField as string];
     if (uniqueFieldValue === undefined || uniqueFieldValue === null) {
@@ -225,8 +225,8 @@ export class DFUniqueConstraintExt<
         },
         {
           allowOverwrite: true,
-        }
-      )
+        },
+      ),
     );
   }
 

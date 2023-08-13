@@ -47,6 +47,6 @@ export function valueToSortableString(value: DynamoValue): string {
   }
 
   throw new Error(
-    `Value of type ${typeof value} is not a string, number, boolean or null`
+    `Value of type ${typeof value} is not a string, number, boolean or null`,
   );
 }

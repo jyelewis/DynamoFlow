@@ -1,5 +1,10 @@
 # Release notes
 
+# 1.4.2
+ * Update all dependencies
+ * Reformat all code against prettier 3.0.1
+ * Add security policy to repository 
+
 # 1.4.1
  * Allow non-async preCommitHandlers
  * Fixed bug where postRetrieve handler wasn't provided entity metadata if the entity had just been migrated

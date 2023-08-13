@@ -9,7 +9,7 @@ import { isDynamoValue } from "./isDynamoValue.js";
 // not super flexible, but can always fallback to "raw"
 
 export function conditionToConditionExpression(
-  condition: undefined | DFCondition
+  condition: undefined | DFCondition,
 ): ConditionExpressionProperties {
   if (condition === undefined || Object.keys(condition).length === 0) {
     return {
@@ -82,7 +82,7 @@ export function conditionToConditionExpression(
           expressionAttributeValues[`:exp${index}_lte`] =
             conditionValue.$betweenIncl[1];
           expressionParts.push(
-            `#exp${index} BETWEEN :exp${index}_gte AND :exp${index}_lte`
+            `#exp${index} BETWEEN :exp${index}_gte AND :exp${index}_lte`,
           );
           return;
         }
@@ -95,7 +95,7 @@ export function conditionToConditionExpression(
           });
 
           expressionParts.push(
-            `#exp${index} IN (${expressionItems.join(",")})`
+            `#exp${index} IN (${expressionItems.join(",")})`,
           );
           return;
         }
@@ -111,25 +111,27 @@ export function conditionToConditionExpression(
 
           Object.assign(
             expressionAttributeNames,
-            conditionValue.$raw.expressionAttributeNames
+            conditionValue.$raw.expressionAttributeNames,
           );
           Object.assign(
             expressionAttributeValues,
-            conditionValue.$raw.expressionAttributeValues
+            conditionValue.$raw.expressionAttributeValues,
           );
           expressionParts.push(conditionValue.$raw.conditionExpression);
           return;
         }
 
         throw new Error(
-          `Unknown filter/condition '${key}: ${JSON.stringify(conditionValue)}'`
+          `Unknown filter/condition '${key}: ${JSON.stringify(
+            conditionValue,
+          )}'`,
         );
       }
 
       // raw value, default to $eq
       expressionAttributeValues[`:exp${index}`] = conditionValue;
       expressionParts.push(`#exp${index} = :exp${index}`);
-    }
+    },
   );
 
   return {

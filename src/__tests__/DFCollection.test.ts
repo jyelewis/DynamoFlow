@@ -28,14 +28,14 @@ describe("DFCollection", () => {
         table.createCollection<User>({
           name: "user",
           partitionKey: "id",
-        })
+        }),
       ).not.toThrow();
 
       expect(() =>
         table.createCollection<User>({
           name: "user",
           partitionKey: "id",
-        })
+        }),
       ).toThrow("already exists in this table");
     });
   });
@@ -87,9 +87,9 @@ describe("DFCollection", () => {
             firstName: "Jye",
             lastName: "Lewis",
             isActivated: true,
-          })
+          }),
         ).rejects.toThrow("Entity already exists");
-      }
+      },
     );
 
     it.concurrent(
@@ -114,7 +114,7 @@ describe("DFCollection", () => {
             firstName: "Joe",
             lastName: "Bot",
             isActivated: false,
-          })
+          }),
         );
 
         const insertedUser = await transaction.commitWithReturn();
@@ -138,7 +138,7 @@ describe("DFCollection", () => {
           lastName: "Bot",
           isActivated: false,
         });
-      }
+      },
     );
 
     it.concurrent("Stores _wc and _c metadata properties", async () => {
@@ -198,7 +198,7 @@ describe("DFCollection", () => {
         {
           firstName: "Jye 2",
           age: { $inc: 10 },
-        }
+        },
       );
       expect(updatedUser).toEqual({
         id: 1,
@@ -225,10 +225,10 @@ describe("DFCollection", () => {
             {
               firstName: "Jye 2",
               age: { $inc: 10 },
-            }
-          )
+            },
+          ),
         ).rejects.toThrow("Entity does not exist");
-      }
+      },
     );
 
     it.concurrent("Throws if updating a field used within key", async () => {
@@ -254,8 +254,8 @@ describe("DFCollection", () => {
             id: 2,
             firstName: "Jye 2",
             age: { $inc: 10 },
-          }
-        )
+          },
+        ),
       ).rejects.toThrow("Cannot update read-only field id");
     });
 
@@ -288,7 +288,7 @@ describe("DFCollection", () => {
           {
             firstName: "Jye 2",
             age: { $inc: 10 },
-          }
+          },
         );
         transaction.addSecondaryTransaction(
           usersCollection.updateTransaction(
@@ -297,8 +297,8 @@ describe("DFCollection", () => {
             },
             {
               isActivated: true,
-            }
-          )
+            },
+          ),
         );
 
         const updatedUser = await transaction.commit();
@@ -323,7 +323,7 @@ describe("DFCollection", () => {
           lastName: "Bot",
           isActivated: true,
         });
-      }
+      },
     );
 
     it.concurrent("Updates _wc", async () => {
@@ -348,7 +348,7 @@ describe("DFCollection", () => {
         {
           firstName: "Jye 2",
           age: { $inc: 10 },
-        }
+        },
       );
       const rawUser = await usersCollection.retrieveOne({
         where: {
@@ -506,7 +506,7 @@ describe("DFCollection", () => {
             },
           });
           expect(things).toEqual([]);
-        }
+        },
       );
 
       it.concurrent("Can retrieveMany from secondary index", async () => {
@@ -534,11 +534,11 @@ describe("DFCollection", () => {
               where: {
                 thingId: 2,
               },
-            })
+            }),
           ).rejects.toThrow(
-            "No extensions available to handle querying by index 'miscIndex'"
+            "No extensions available to handle querying by index 'miscIndex'",
           );
-        }
+        },
       );
 
       it.concurrent("Can retrieveOne with specific key", async () => {
@@ -572,7 +572,7 @@ describe("DFCollection", () => {
             },
           });
           expect(thing).toEqual(null);
-        }
+        },
       );
 
       it.concurrent("Can retrieveOne from secondary index", async () => {
@@ -788,7 +788,7 @@ describe("DFCollection", () => {
               groupId: 1,
               thingId: 3,
             },
-          })
+          }),
         ).resolves.toEqual([{ groupId: 1, thingId: 3, sum: null }]);
 
         expect(migrationsRun).toEqual(0);
@@ -802,7 +802,7 @@ describe("DFCollection", () => {
               groupId: 1,
               thingId: 3,
             },
-          })
+          }),
         ).resolves.toEqual([{ groupId: 1, thingId: 3, sum: 4 }]);
 
         expect(migrationsRun).toEqual(1);
@@ -814,7 +814,7 @@ describe("DFCollection", () => {
               groupId: 1,
               thingId: 3,
             },
-          })
+          }),
         ).resolves.toEqual([{ groupId: 1, thingId: 3, sum: 4 }]);
 
         expect(migrationsRun).toEqual(1);
@@ -862,7 +862,7 @@ describe("DFCollection", () => {
               groupId: 1,
               thingId: 3,
             },
-          })
+          }),
         ).resolves.toEqual([{ groupId: 1, thingId: 3 }]);
 
         expect(postRetrievesRun).toEqual(3 * 1);
@@ -873,7 +873,7 @@ describe("DFCollection", () => {
             where: {
               groupId: 1,
             },
-          })
+          }),
         ).resolves.toEqual(expect.any(Array));
 
         expect(postRetrievesRun).toEqual(3 * 3);
@@ -987,7 +987,7 @@ describe("DFCollection", () => {
         {
           firstName: "Jye",
           lastName: { $setIfNotExists: "Lewis" },
-        }
+        },
       );
 
       transaction.addSecondaryTransaction(
@@ -996,8 +996,8 @@ describe("DFCollection", () => {
           {
             lastName: { $setIfNotExists: "Lewis" },
             age: 10,
-          }
-        )
+          },
+        ),
       );
 
       expect(transaction.secondaryOperations.length).toEqual(0);
@@ -1074,7 +1074,7 @@ describe("DFCollection", () => {
             _v: insertedThing._v,
             groupId: 1,
             thingId: 1,
-          }
+          },
         );
         expect(migratedEntity).toEqual({
           _PK: expect.any(String),
@@ -1086,7 +1086,7 @@ describe("DFCollection", () => {
           thingId: 1,
           sum: 2,
         });
-      }
+      },
     );
 
     it.concurrent(
@@ -1139,11 +1139,11 @@ describe("DFCollection", () => {
             _v: insertedThing._v,
             groupId: 1,
             thingId: 1,
-          })
+          }),
         ).rejects.toThrowError(
-          "Item was deleted while migration was in progress, migration cancelled"
+          "Item was deleted while migration was in progress, migration cancelled",
         );
-      }
+      },
     );
 
     it.concurrent(
@@ -1166,7 +1166,7 @@ describe("DFCollection", () => {
                   { groupId: entity.groupId, thingId: entity.thingId },
                   {
                     num: 2,
-                  }
+                  },
                 );
               // avoid migrating this item while we are interrupting
               // simulate an older version of this same coding running in parallel
@@ -1208,7 +1208,7 @@ describe("DFCollection", () => {
         // ensure we have a migration to write
         migrationExtension.config.version++;
         const migratedEntity = await thingsCollection.migrateEntityWithMetadata(
-          insertedThing
+          insertedThing,
         );
         // 1: original run (will be interrupted & fail)
         // 2: second run (should succeed)
@@ -1227,7 +1227,7 @@ describe("DFCollection", () => {
 
         // one migration should have run, but failed to commit because of the write, then the second succeeded
         expect(numMigrationsRun).toEqual(2);
-      }
+      },
     );
 
     it.concurrent(
@@ -1242,7 +1242,7 @@ describe("DFCollection", () => {
 
           public migrateEntity(
             entity: EntityWithMetadata,
-            transaction: DFWriteTransaction
+            transaction: DFWriteTransaction,
           ) {
             // no need to actually update anything
           }
@@ -1268,11 +1268,11 @@ describe("DFCollection", () => {
 
         enabledBadExtensionBehaviour = true;
         await expect(
-          thingsCollection.migrateEntityWithMetadata(insertedThing)
+          thingsCollection.migrateEntityWithMetadata(insertedThing),
         ).rejects.toThrow(
-          "Extension BadExt still requires migration after migration was run"
+          "Extension BadExt still requires migration after migration was run",
         );
-      }
+      },
     );
 
     it.concurrent(
@@ -1298,11 +1298,11 @@ describe("DFCollection", () => {
         });
 
         await expect(
-          thingsCollection.insert({ groupId: 1, thingId: 1 })
+          thingsCollection.insert({ groupId: 1, thingId: 1 }),
         ).rejects.toThrow(
-          "Extension BadExt still requires migration after migration was run"
+          "Extension BadExt still requires migration after migration was run",
         );
-      }
+      },
     );
 
     it.concurrent("Doesn't write if no fields are updated", async () => {
@@ -1405,7 +1405,7 @@ describe("DFCollection", () => {
             _v: insertedThing._v,
             groupId: 1,
             thingId: 1,
-          }
+          },
         );
         expect(migratedEntity).toEqual({
           _PK: expect.any(String),
@@ -1416,7 +1416,7 @@ describe("DFCollection", () => {
           groupId: 1,
           thingId: 1,
         });
-      }
+      },
     );
 
     it.concurrent(
@@ -1462,7 +1462,7 @@ describe("DFCollection", () => {
         });
 
         const migratedEntity = await thingsCollection.migrateEntityWithMetadata(
-          insertedThing
+          insertedThing,
         );
         expect(migratedEntity).toEqual({
           _PK: expect.any(String),
@@ -1474,7 +1474,7 @@ describe("DFCollection", () => {
           thingId: 1,
           sum: 2,
         });
-      }
+      },
     );
   });
 });

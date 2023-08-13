@@ -30,18 +30,18 @@ export abstract class DFBaseExtension<Entity extends SafeEntity<Entity>> {
 
   public onInsert(
     entity: EntityWithMetadata,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ): void {}
 
   public onUpdate(
     key: Partial<Entity>,
     entityUpdate: Record<string, UpdateValue>,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ): void {}
 
   public onDelete(
     key: Partial<Entity>,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ): void {}
 
   public onQuery(query: Query<Entity>): void {
@@ -54,7 +54,7 @@ export abstract class DFBaseExtension<Entity extends SafeEntity<Entity>> {
 
   public migrateEntity(
     entity: EntityWithMetadata,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ): void | Promise<void> {}
 
   public postRetrieve(entity: EntityWithMetadata): void | Promise<void> {}

@@ -24,14 +24,14 @@ export interface DFSecondaryIndexExtConfig<Entity extends SafeEntity<Entity>> {
 }
 
 export class DFSecondaryIndexExt<
-  Entity extends SafeEntity<Entity>
+  Entity extends SafeEntity<Entity>,
 > extends DFBaseExtension<Entity> {
   private readonly pkKeys: string[];
   private readonly skKeys: string[];
   private readonly includeInIndexKeys: string[];
 
   public constructor(
-    public readonly config: DFSecondaryIndexExtConfig<Entity>
+    public readonly config: DFSecondaryIndexExtConfig<Entity>,
   ) {
     super();
 
@@ -54,7 +54,7 @@ export class DFSecondaryIndexExt<
     // validate the index being used here exists on the database
     if (!this.collection.table.config.GSIs.includes(this.config.dynamoIndex)) {
       throw new Error(
-        `GSI '${this.config.dynamoIndex}' not defined for this DB`
+        `GSI '${this.config.dynamoIndex}' not defined for this DB`,
       );
     }
 
@@ -65,19 +65,19 @@ export class DFSecondaryIndexExt<
       .some(
         (ext) =>
           (ext as DFSecondaryIndexExt<any>).config.dynamoIndex ===
-          this.config.dynamoIndex
+          this.config.dynamoIndex,
       );
 
     if (dynamoIndexAlreadyUsed) {
       throw new Error(
-        `'${this.config.dynamoIndex}' already used by another index on collection ${this.collection.config.name}`
+        `'${this.config.dynamoIndex}' already used by another index on collection ${this.collection.config.name}`,
       );
     }
   }
 
   public onInsert(
     entity: EntityWithMetadata,
-    _transaction: DFWriteTransaction
+    _transaction: DFWriteTransaction,
   ): void {
     if (
       this.config.includeInIndex &&
@@ -100,7 +100,7 @@ export class DFSecondaryIndexExt<
   public onUpdate(
     key: Partial<Entity>,
     entityUpdate: Record<string, UpdateValue>,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ): void {
     // collect all the properties we can
     // we'll use these to compute the new GSI keys if needed & possible
@@ -120,10 +120,10 @@ export class DFSecondaryIndexExt<
           // we could support this if needed
           // we'd just need to implement emulateDDBUpdate() ourselves, with all possible updates
           throw new Error(
-            `Secondary index key '${key}' cannot accept dynamic updates`
+            `Secondary index key '${key}' cannot accept dynamic updates`,
           );
         }
-      }
+      },
     );
 
     // janky API, but this allows us to append a condition expression to the update
@@ -220,7 +220,7 @@ export class DFSecondaryIndexExt<
       this.collection.config.name,
       this.config.partitionKey,
       this.config.sortKey,
-      query
+      query,
     );
 
     // tell Dynamo to use the GSI rather than the primary table
@@ -269,7 +269,7 @@ export class DFSecondaryIndexExt<
 
   public migrateEntity(
     entity: EntityWithMetadata,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ) {
     // call our includeInIndex function if provided
     const includeInIndex =

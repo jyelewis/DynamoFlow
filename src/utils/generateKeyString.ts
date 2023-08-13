@@ -3,7 +3,7 @@ import { valueToSortableString } from "./valueToSortableString.js";
 
 export function generateKeyString(
   indexKeys: string | string[],
-  entity: Partial<DynamoItem>
+  entity: Partial<DynamoItem>,
 ): string {
   const indexKeysAsArray = Array.isArray(indexKeys) ? indexKeys : [indexKeys];
   const indexString = indexKeysAsArray

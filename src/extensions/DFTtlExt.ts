@@ -11,13 +11,13 @@ import { isDynamoValue } from "../utils/isDynamoValue.js";
 import { DFCondition } from "../types/operations.js";
 
 export class DFTtlExt<
-  Entity extends SafeEntity<Entity>
+  Entity extends SafeEntity<Entity>,
 > extends DFBaseExtension<Entity> {
   public constructor(
     public readonly config: {
       expiresAtField: keyof Entity;
       filterExpired?: boolean;
-    }
+    },
   ) {
     super();
   }
@@ -46,7 +46,7 @@ export class DFTtlExt<
 
   public onInsert(
     entity: EntityWithMetadata,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ): void {
     const expiryFieldValue = entity[this.config.expiresAtField as string];
     if (expiryFieldValue) {
@@ -57,7 +57,7 @@ export class DFTtlExt<
   public onUpdate(
     key: Partial<Entity>,
     entityUpdate: Record<string, UpdateValue>,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ): void {
     const expiryFieldUpdateValue =
       entityUpdate[this.config.expiresAtField as string];
@@ -83,7 +83,7 @@ export class DFTtlExt<
       throw new Error(
         `TTL field '${
           this.config.expiresAtField as string
-        }' cannot accept dynamic updates`
+        }' cannot accept dynamic updates`,
       );
     }
 

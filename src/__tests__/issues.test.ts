@@ -45,7 +45,7 @@ describe("Issues", () => {
         });
 
         expect(user?.username).toEqual("JoeBot");
-      }
+      },
     );
 
     // BUG: this boolean check is not working (no malicious input)
@@ -78,7 +78,7 @@ describe("Issues", () => {
 
         // user is not activated, should not be returned
         expect(user).toEqual(null);
-      }
+      },
     );
 
     // VULNERABILITY: User can craft a malicious username to make it look like they are activated (via sort key)
@@ -123,7 +123,7 @@ describe("Issues", () => {
         });
 
         expect(readUser?.username).toEqual("JoeBot#true");
-      }
+      },
     );
 
     it.concurrent("PK: [username, isActivated] SK: [age]", async () => {
@@ -201,7 +201,7 @@ describe("Issues", () => {
 
         expect(user._PK).toEqual(`${usersCollection.config.name}#user-1#`);
         expect(user._SK).toEqual(`${usersCollection.config.name}#`);
-      }
+      },
     );
   });
 });

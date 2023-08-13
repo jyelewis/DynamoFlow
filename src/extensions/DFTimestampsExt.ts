@@ -3,20 +3,20 @@ import { DFWriteTransaction } from "../DFWriteTransaction.js";
 import { EntityWithMetadata, SafeEntity, UpdateValue } from "../types/types.js";
 
 export class DFTimestampsExt<
-  Entity extends SafeEntity<Entity>
+  Entity extends SafeEntity<Entity>,
 > extends DFBaseExtension<Entity> {
   public constructor(
     public readonly config: {
       createdAtField?: keyof Entity;
       updatedAtField?: keyof Entity;
-    }
+    },
   ) {
     super();
   }
 
   public onInsert(
     entity: EntityWithMetadata,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ): void | Promise<void> {
     const now = new Date().toISOString();
 
@@ -40,7 +40,7 @@ export class DFTimestampsExt<
   public onUpdate(
     key: Partial<Entity>,
     entityUpdate: Record<string, UpdateValue>,
-    transaction: DFWriteTransaction
+    transaction: DFWriteTransaction,
   ): void | Promise<void> {
     // ensure no one can update createdAt, if we're in control of the field
     if (this.config.createdAtField) {

@@ -8,14 +8,14 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
   collectionName: string,
   partitionKeys: string | string[],
   sortKeys: undefined | string | string[],
-  query: Query<Entity>
+  query: Query<Entity>,
 ): PartialQueryExpression {
   // will throw if required values are not provided
   const pk = `${collectionName}#${generateKeyString(
     partitionKeys,
     // casting as we assume PKs are all given as literals
     // if they aren't generateKeyString will throw
-    query.where as any
+    query.where as any,
   )}`;
 
   let queryIsComplete = false;
@@ -50,7 +50,7 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
 
     if (sortValue !== undefined && queryIsComplete) {
       throw new Error(
-        `Cannot query on ${sortKey} after a range query or missing a previous parameter value`
+        `Cannot query on ${sortKey} after a range query or missing a previous parameter value`,
       );
     }
 
@@ -80,16 +80,16 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
     // non-literal, query values
     if (isDynamoValue(sortValue)) {
       throw new Error(
-        `Invalid query where filter provided "${sortKey}": ${sortValue}`
+        `Invalid query where filter provided "${sortKey}": ${sortValue}`,
       );
     }
 
     if ("$betweenIncl" in sortValue) {
       const gte = `${sortKeyBase}#${valueToSortableString(
-        sortValue.$betweenIncl[0]
+        sortValue.$betweenIncl[0],
       )}#`;
       const lte = `${sortKeyBase}#${valueToSortableString(
-        sortValue.$betweenIncl[1]
+        sortValue.$betweenIncl[1],
       )}#`;
 
       // store the final query we need to send
@@ -104,7 +104,7 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
 
     if ("$beginsWith" in sortValue) {
       const value = `${sortKeyBase}#${valueToSortableString(
-        sortValue.$beginsWith
+        sortValue.$beginsWith,
       )}`;
 
       // store the final query we need to send
@@ -162,8 +162,8 @@ export function generateQueryExpression<Entity extends SafeEntity<Entity>>(
     // how'd they get here?
     throw new Error(
       `Invalid query where filter provided "${sortKey}": ${JSON.stringify(
-        sortValue
-      )}`
+        sortValue,
+      )}`,
     );
   }
 
