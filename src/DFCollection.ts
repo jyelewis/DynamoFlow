@@ -15,6 +15,9 @@ import { DFCondition, DFWritePrimaryOperation } from "./types/operations.js";
 import { conditionToConditionExpression } from "./utils/conditionToConditionExpression.js";
 import { DFConditionalCheckFailedError } from "./errors/DFConditionalCheckFailedError.js";
 import { ensureArray } from "./utils/ensureArray.js";
+import { isDynamoValue } from "./utils/isDynamoValue.js";
+
+const ENTITY_NOT_CHANGED = Symbol("Entity not changed");
 
 export interface DFCollectionConfig<Entity extends SafeEntity<Entity>> {
   name: string;
@@ -384,7 +387,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   // entityFromDynamoRow will only run migrations if an extension says it's out of date
   public async migrateEntityWithMetadata(
     entityWithMetadata: DynamoItem
-  ): Promise<Entity> {
+  ): Promise<DynamoItem> {
     const createPrimaryOperation: () => DFWritePrimaryOperation = () => {
       const { _PK, _SK, ...nonKeyProperties } = entityWithMetadata;
       return {
@@ -438,7 +441,6 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       };
     };
 
-    // TODO: could optimise this by only writing items that actually have required updates
     // create write transaction
     const transaction = this.table.createTransaction(createPrimaryOperation());
 
@@ -450,9 +452,48 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
           extension.migrateEntity(entityWithMetadata, transaction)
         )
       );
+
+      // check whether we need to actually write any changes
+      // if no properties have changed, we can just skip this one
+      const entityHasChanged = Object.entries(
+        transaction.primaryUpdateOperation.updateValues
+      ).some(([key, newValue]) => {
+        if (key === "_wc") {
+          // no need to bump _wc if nothing else has changed
+          return false;
+        }
+        if (!isDynamoValue(newValue)) {
+          // dynamic updates always require a write
+          return true;
+        }
+
+        if (newValue !== entityWithMetadata[key]) {
+          // new literal value does not match old literal value
+          return true;
+        }
+      });
+
+      if (entityHasChanged === false) {
+        // bail on the write, why waste the WCUs
+        throw ENTITY_NOT_CHANGED;
+      }
     });
 
-    const migratedEntity = await transaction.commitWithReturn();
+    let migratedEntity: EntityWithMetadata | undefined;
+    try {
+      // remove the entityFromDynamoItem result transformer
+      // this function returns the raw dynamoItem
+      transaction.resultTransformer = undefined;
+      migratedEntity = await transaction.commitWithReturn();
+    } catch (e) {
+      if (e === ENTITY_NOT_CHANGED) {
+        // no need to actually write any changes
+        // just return the entity as-is
+        migratedEntity = entityWithMetadata;
+      } else {
+        throw e;
+      }
+    }
 
     // check our migration was successful
     // if this returns false, it's possible we are stuck in a loop with an extension
@@ -465,7 +506,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       }
     }
 
-    return this.entityFromRawDynamoItem(migratedEntity);
+    return migratedEntity;
   }
 
   // runs postRetrieve hooks for all extensions & strip metadata

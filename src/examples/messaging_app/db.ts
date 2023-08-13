@@ -112,7 +112,10 @@ export const conversationParticipantsCollection =
         // allow users to find all the conversations they are in
         // ordered by the last message they received
 
-        // TODO: this is going to cause many double writes (changing the lastMessage field)
+        // note this is going to cause many double writes (changing the lastMessage field)
+        // this system is designed for very cheap reading of messages
+        // with more expensive sending of messages
+        // alternate designs could be considered
         indexName: "byUser",
         partitionKey: "userId",
         sortKey: "lastMessageTime",

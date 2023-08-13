@@ -34,7 +34,7 @@ export class DFWriteTransaction {
   // Maybe that's a cleaner way to add meta properties to objects anyway though? idk
   private retryCount = 0;
   public secondaryOperations: DFWriteSecondaryOperation[] = [];
-  public preCommitHandlers: Array<() => Promise<void>> = [];
+  public preCommitHandlers: Array<() => void | Promise<void>> = [];
   public resultTransformer?: (
     item: DynamoItem
   ) => Promise<DynamoItem> | DynamoItem;
@@ -159,7 +159,7 @@ export class DFWriteTransaction {
     // leave their resultTransformer behind, only needed for the primary item
   }
 
-  public addPreCommitHandler(handlerFn: () => Promise<void>) {
+  public addPreCommitHandler(handlerFn: () => void | Promise<void>) {
     // pre-commit handlers will run right before the commit
     // allowing read-before-write operations
     // if the commit fails and is re-tried, the pre-commit handler will be run again
@@ -226,7 +226,6 @@ export class DFWriteTransaction {
             }
             this.retryCount += 1;
 
-            // TODO: could/should test this
             // restore the original state of the transaction
             // so that pre-commit handlers and secondary operations are re-run
             // against a 'clean slate'
@@ -291,7 +290,6 @@ export class DFWriteTransaction {
               }
               this.retryCount += 1;
 
-              // TODO: could/should test this
               // restore the original state of the transaction
               // so that pre-commit handlers and secondary operations are re-run
               // against a 'clean slate'

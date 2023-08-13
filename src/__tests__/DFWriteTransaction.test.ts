@@ -2516,6 +2516,73 @@ describe("DFWriteTransaction", () => {
         lastName: "Bot",
       });
     });
+
+    it.concurrent("Re-sets pre-commit handlers on re-try", async () => {
+      const table = new DFTable(testDbConfigWithPrefix());
+      const keyPrefix = genTestPrefix();
+
+      // set up some data
+      // this will mean we need to label our user "user2" with a transaction auto retry
+      await table.client.put({
+        TableName: table.tableName,
+        Item: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+          firstName: "Jye",
+          lastName: "Lewis",
+        },
+      });
+
+      const transaction = table.createTransaction({
+        type: "Update",
+        key: {
+          _PK: `${keyPrefix}USER#user1`,
+          _SK: "USER#user1",
+        },
+        updateValues: {
+          firstName: "Joe",
+          lastName: "Bot",
+        },
+        // only if this ID isn't taken
+        condition: {
+          _PK: { $exists: false },
+        },
+        errorHandler: (err, op: DFUpdateOperation) => {
+          const currentUserNum = parseInt(
+            (op.key as any)._PK.split("USER#user")[1],
+            10
+          );
+
+          (op.key as any) = {
+            _PK: `${keyPrefix}USER#user${currentUserNum + 1}`,
+            _SK: `USER#user${currentUserNum + 1}`,
+          };
+
+          return RETRY_TRANSACTION;
+        },
+      });
+
+      let preCommitCalls = 0;
+      transaction.addPreCommitHandler(async () => {
+        preCommitCalls += 1;
+
+        // this handler function shouldn't be added twice
+        // even though this line of code runs twice
+        transaction.addPreCommitHandler(() => {});
+      });
+
+      const updatedEntity = await transaction.commit();
+
+      expect(preCommitCalls).toEqual(2);
+      expect(transaction.preCommitHandlers.length).toEqual(2);
+
+      expect(updatedEntity).toEqual({
+        _PK: `${keyPrefix}USER#user2`,
+        _SK: "USER#user2",
+        firstName: "Joe",
+        lastName: "Bot",
+      });
+    });
   });
 
   describe("Transaction error handling & retrying", () => {
