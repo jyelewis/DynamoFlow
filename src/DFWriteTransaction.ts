@@ -290,7 +290,6 @@ export class DFWriteTransaction {
               }
               this.retryCount += 1;
 
-              // TODO: could/should test this
               // restore the original state of the transaction
               // so that pre-commit handlers and secondary operations are re-run
               // against a 'clean slate'
