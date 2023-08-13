@@ -3,6 +3,7 @@
 # 1.4.1
  * Allow non-async preCommitHandlers
  * Fixed bug where postRetrieve handler wasn't provided entity metadata if the entity had just been migrated
+ * Skip writing changes during migration, if the entity has not changed
 
 # 1.4.0
  * New DFForeignCountExt available
