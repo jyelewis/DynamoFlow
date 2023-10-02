@@ -1,12 +1,16 @@
 lockfileVersion: '6.0'
 
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
 devDependencies:
   '@aws-sdk/client-dynamodb':
     specifier: ^3.388.0
     version: 3.388.0
   '@aws-sdk/lib-dynamodb':
     specifier: ^3.388.0
-    version: 3.388.0(@aws-sdk/client-dynamodb@3.388.0)
+    version: 3.423.0(@aws-sdk/client-dynamodb@3.388.0)
   '@swc/core':
     specifier: ^1.3.76
     version: 1.3.76
@@ -332,14 +336,14 @@ packages:
       tslib: 2.6.1
     dev: true
 
-  /@aws-sdk/lib-dynamodb@3.388.0(@aws-sdk/client-dynamodb@3.388.0):
-    resolution: {integrity: sha512-rZHancDnS8CEaIE1RMqhePqdvEZyGUwjmd9d2DKnpCdzIGv+gc/qPzXECnjjoA35ygIwYI8nJfvNRDlrI3LfVw==}
+  /@aws-sdk/lib-dynamodb@3.423.0(@aws-sdk/client-dynamodb@3.388.0):
+    resolution: {integrity: sha512-KKCfb0SxMXQ6HijtDqICBiX1DKqqURwV27m77l7rMYXxYuB50r3+oWHsCua1w7XsNzy5NvTEr2i/OKYm+UTRGA==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       '@aws-sdk/client-dynamodb': ^3.0.0
     dependencies:
       '@aws-sdk/client-dynamodb': 3.388.0
-      '@aws-sdk/util-dynamodb': 3.388.0
+      '@aws-sdk/util-dynamodb': 3.423.0(@aws-sdk/client-dynamodb@3.388.0)
       tslib: 2.6.1
     dev: true
 
@@ -468,10 +472,13 @@ packages:
       tslib: 2.6.1
     dev: true
 
-  /@aws-sdk/util-dynamodb@3.388.0:
-    resolution: {integrity: sha512-NFwzcfK06UHvhzyu/XXZucXN/0cvvTsXppxDmWH+w5OROOT4pM2CLd9FGhS5IwLwORtUA8JNyx1PpGe65DkJIg==}
+  /@aws-sdk/util-dynamodb@3.423.0(@aws-sdk/client-dynamodb@3.388.0):
+    resolution: {integrity: sha512-+hZ6sKqLT5swW8mBEy/b0PuX0CQ/GLPTm1IBn0UkeKrl2SVBGK4f2Mnfk4l15nms5FIxufRpXJa3q/8pgi16pg==}
     engines: {node: '>=14.0.0'}
+    peerDependencies:
+      '@aws-sdk/client-dynamodb': ^3.0.0
     dependencies:
+      '@aws-sdk/client-dynamodb': 3.388.0
       tslib: 2.6.1
     dev: true
 
