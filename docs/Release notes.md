@@ -1,5 +1,10 @@
 # Release notes
 
+# 1.4.3
+ * Fix bug where asynchronous error handlers on transactions containing multiple operations were not awaited
+ * Reformat all code against prettier 3.1
+ * Update all dependencies
+
 # 1.4.2
  * Update all dependencies
  * Reformat all code against prettier 3.0.1
