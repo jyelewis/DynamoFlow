@@ -3,6 +3,22 @@ export { DFWriteTransaction } from "./DFWriteTransaction.js";
 export { DFTable, DFTableConfig } from "./DFTable.js";
 export { DFCollection, DFCollectionConfig } from "./DFCollection.js";
 
+// types & errors
+export {
+  RETRY_TRANSACTION,
+  DynamoValue,
+  UpdateValue,
+  DynamoItem,
+  EntityWithMetadata,
+  STOP_SCAN,
+  FullTableScan,
+  SafeEntity,
+  FullTableScanItem,
+  Query,
+} from "./types/types.js";
+export { DFConditionalCheckFailedError } from "./errors/DFConditionalCheckFailedError.js";
+export { DFWriteTransactionFailedError } from "./errors/DFWriteTransactionFailedError.js";
+
 // built-in extensions
 export { DFBaseExtension } from "./extensions/DFBaseExtension.js";
 export {
