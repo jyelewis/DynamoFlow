@@ -275,7 +275,7 @@ export class DFWriteTransaction {
             : this.secondaryOperations[index - 1];
 
         if (op.errorHandler) {
-          const errorHandlerResponse = op.errorHandler(
+          const errorHandlerResponse = await op.errorHandler(
             userFacingError,
             op as any
           );
