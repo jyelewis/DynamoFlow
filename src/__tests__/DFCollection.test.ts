@@ -1207,9 +1207,8 @@ describe("DFCollection", () => {
 
         // ensure we have a migration to write
         migrationExtension.config.version++;
-        const migratedEntity = await thingsCollection.migrateEntityWithMetadata(
-          insertedThing,
-        );
+        const migratedEntity =
+          await thingsCollection.migrateEntityWithMetadata(insertedThing);
         // 1: original run (will be interrupted & fail)
         // 2: second run (should succeed)
         expect(numMigrationsRun).toEqual(2);
@@ -1461,9 +1460,8 @@ describe("DFCollection", () => {
           returnRaw: true,
         });
 
-        const migratedEntity = await thingsCollection.migrateEntityWithMetadata(
-          insertedThing,
-        );
+        const migratedEntity =
+          await thingsCollection.migrateEntityWithMetadata(insertedThing);
         expect(migratedEntity).toEqual({
           _PK: expect.any(String),
           _SK: expect.any(String),

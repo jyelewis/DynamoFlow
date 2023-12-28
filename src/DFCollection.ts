@@ -32,11 +32,11 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
   constructor(
     public readonly table: DFTable,
-    public readonly config: DFCollectionConfig<Entity>
+    public readonly config: DFCollectionConfig<Entity>,
   ) {
     if (this.config.name in this.table.collections) {
       throw new Error(
-        `Collection '${this.config.name}' already exists in this table`
+        `Collection '${this.config.name}' already exists in this table`,
       );
     }
 
@@ -54,7 +54,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     newEntity: Entity,
     options?: {
       allowOverwrite?: boolean;
-    }
+    },
   ): DFWriteTransaction {
     const entityWithMetadata: EntityWithMetadata = { ...newEntity };
 
@@ -70,7 +70,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       this.config.name,
       this.config.partitionKey,
       this.config.sortKey,
-      entityWithMetadata
+      entityWithMetadata,
     );
     const transaction = this.table.createTransaction({
       type: "Update",
@@ -99,7 +99,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
     // run extensions
     this.extensions.map((extension) =>
-      extension.onInsert(entityWithMetadata, transaction)
+      extension.onInsert(entityWithMetadata, transaction),
     );
 
     // gotta still run postRetrieves on writes
@@ -113,7 +113,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     newEntity: Entity,
     options?: {
       allowOverwrite?: boolean;
-    }
+    },
   ): Promise<Entity> {
     const transaction = this.insertTransaction(newEntity, options);
     return (await transaction.commit()) as Entity;
@@ -121,7 +121,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
   public updateTransaction(
     key: Partial<Entity>,
-    updateFields: Partial<Record<keyof Entity, UpdateValue>>
+    updateFields: Partial<Record<keyof Entity, UpdateValue>>,
   ): DFWriteTransaction {
     // ensure the user isn't trying to update key fields
     // we can update the field, but we can't change the key, it'll just get out of sync
@@ -145,7 +145,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       this.config.name,
       this.config.partitionKey,
       this.config.sortKey,
-      key
+      key,
     );
     const transaction = this.table.createTransaction({
       type: "Update",
@@ -170,7 +170,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
     // run extensions
     this.extensions.map((extension) =>
-      extension.onUpdate(key, updateFieldsWithMetadata, transaction)
+      extension.onUpdate(key, updateFieldsWithMetadata, transaction),
     );
 
     // gotta still run postRetrieves on writes
@@ -181,7 +181,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
   public async update(
     key: Partial<Entity>,
-    updatedEntity: Partial<Record<keyof Entity, UpdateValue>>
+    updatedEntity: Partial<Record<keyof Entity, UpdateValue>>,
   ): Promise<Entity> {
     const transaction = this.updateTransaction(key, updatedEntity);
     return (await transaction.commit()) as Entity;
@@ -195,7 +195,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       this.config.name,
       this.config.partitionKey,
       this.config.sortKey,
-      key
+      key,
     );
 
     const transaction = this.table.createTransaction({
@@ -217,7 +217,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   }
 
   public async retrieveManyWithPagination(
-    query: Query<Entity>
+    query: Query<Entity>,
   ): Promise<{ items: Entity[]; lastEvaluatedKey?: Record<string, any> }> {
     if (query.index === undefined && query.rawExpression === undefined) {
       // default expression against the primary index
@@ -225,7 +225,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
         this.config.name,
         this.config.partitionKey,
         this.config.sortKey,
-        query
+        query,
       );
     }
 
@@ -234,14 +234,14 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
     if (query.rawExpression === undefined) {
       throw new Error(
-        `No extensions available to handle querying by index '${query.index}'`
+        `No extensions available to handle querying by index '${query.index}'`,
       );
     }
     const queryExpression = query.rawExpression;
 
     // filters have the same interface as expressions
     const filterExpression = conditionToConditionExpression(
-      query.filter as DFCondition
+      query.filter as DFCondition,
     );
 
     const result = await this.table.client.query({
@@ -273,7 +273,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     }
 
     const parsedEntities = await Promise.all(
-      entities.map((x) => this.entityFromRawDynamoItem(x))
+      entities.map((x) => this.entityFromRawDynamoItem(x)),
     );
 
     return {
@@ -305,7 +305,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
         this.config.name,
         this.config.partitionKey,
         this.config.sortKey,
-        key
+        key,
       );
       return {
         _PK: pk,
@@ -320,7 +320,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     let rawUnsortedItems: EntityWithMetadata[] = [];
 
     const fetchPksAndAddToUnsortedList = async (
-      primaryKeys: Array<{ _PK: string; _SK: string }>
+      primaryKeys: Array<{ _PK: string; _SK: string }>,
     ) => {
       retriesRemaining -= 1;
       /* istanbul ignore next */
@@ -343,7 +343,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       }
 
       rawUnsortedItems = rawUnsortedItems.concat(
-        res.Responses[this.table.tableName]
+        res.Responses[this.table.tableName],
       );
 
       // slightly clean up this API by always returning a single array of keys
@@ -373,11 +373,11 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
       requestedPrimaryKeys
         .map(
           ({ _PK, _SK }) =>
-            rawUnsortedItems.find((x) => x._PK === _PK && x._SK === _SK)!
+            rawUnsortedItems.find((x) => x._PK === _PK && x._SK === _SK)!,
         )
         .map((entityWithMetadata) =>
-          this.entityFromRawDynamoItem(entityWithMetadata)
-        )
+          this.entityFromRawDynamoItem(entityWithMetadata),
+        ),
     );
 
     return sortedEntities;
@@ -386,7 +386,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
   // basically the same as entityFromDynamo row, however it will ALWAYS run migrations
   // entityFromDynamoRow will only run migrations if an extension says it's out of date
   public async migrateEntityWithMetadata(
-    entityWithMetadata: DynamoItem
+    entityWithMetadata: DynamoItem,
   ): Promise<DynamoItem> {
     const createPrimaryOperation: () => DFWritePrimaryOperation = () => {
       const { _PK, _SK, ...nonKeyProperties } = entityWithMetadata;
@@ -425,7 +425,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
           if (res.Item === undefined) {
             throw new Error(
-              "Item was deleted while migration was in progress, migration cancelled"
+              "Item was deleted while migration was in progress, migration cancelled",
             );
           }
 
@@ -449,14 +449,14 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     transaction.addPreCommitHandler(async () => {
       await Promise.all(
         this.extensions.map((extension) =>
-          extension.migrateEntity(entityWithMetadata, transaction)
-        )
+          extension.migrateEntity(entityWithMetadata, transaction),
+        ),
       );
 
       // check whether we need to actually write any changes
       // if no properties have changed, we can just skip this one
       const entityHasChanged = Object.entries(
-        transaction.primaryUpdateOperation.updateValues
+        transaction.primaryUpdateOperation.updateValues,
       ).some(([key, newValue]) => {
         if (key === "_wc") {
           // no need to bump _wc if nothing else has changed
@@ -501,7 +501,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     for (const ext of this.extensions) {
       if (ext.entityRequiresMigration(migratedEntity)) {
         throw new Error(
-          `Extension ${ext.constructor.name} still requires migration after migration was run`
+          `Extension ${ext.constructor.name} still requires migration after migration was run`,
         );
       }
     }
@@ -511,27 +511,26 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
   // runs postRetrieve hooks for all extensions & strip metadata
   public async entityFromRawDynamoItem(
-    entityWithMetadata: DynamoItem
+    entityWithMetadata: DynamoItem,
   ): Promise<Entity> {
     // check with all extensions to see if any think the entity needs to be migrated
     const entityRequiresMigration = this.extensions.some((extension) =>
       extension.entityRequiresMigration(
-        entityWithMetadata as EntityWithMetadata
-      )
+        entityWithMetadata as EntityWithMetadata,
+      ),
     );
 
     if (entityRequiresMigration) {
       // run migrations
-      entityWithMetadata = await this.migrateEntityWithMetadata(
-        entityWithMetadata
-      );
+      entityWithMetadata =
+        await this.migrateEntityWithMetadata(entityWithMetadata);
     }
 
     // run postRetrieve hooks
     await Promise.all(
       this.extensions.map((extension) =>
-        extension.postRetrieve(entityWithMetadata)
-      )
+        extension.postRetrieve(entityWithMetadata),
+      ),
     );
 
     // remove any keys that start with '_' (strip metadata)
@@ -539,7 +538,7 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     Object.keys(entityWithMetadata)
       .filter((x) => !x.startsWith("_"))
       .forEach(
-        (key) => (entity[key] = entityWithMetadata[key as keyof Entity])
+        (key) => (entity[key] = entityWithMetadata[key as keyof Entity]),
       );
 
     return entity as Entity;

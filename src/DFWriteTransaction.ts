@@ -36,12 +36,12 @@ export class DFWriteTransaction {
   public secondaryOperations: DFWriteSecondaryOperation[] = [];
   public preCommitHandlers: Array<() => void | Promise<void>> = [];
   public resultTransformer?: (
-    item: DynamoItem
+    item: DynamoItem,
   ) => Promise<DynamoItem> | DynamoItem;
 
   public constructor(
     public table: DFTable,
-    public primaryOperation: DFWritePrimaryOperation
+    public primaryOperation: DFWritePrimaryOperation,
   ) {}
 
   public get operations(): DFWriteSecondaryOperation[] {
@@ -61,8 +61,8 @@ export class DFWriteTransaction {
         (existingOp) =>
           existingOp.type === "Update" &&
           Object.entries(existingOp.key).every(
-            ([key, value]) => op.key[key] === value
-          )
+            ([key, value]) => op.key[key] === value,
+          ),
       ) as DFUpdateOperation | undefined;
 
       if (existingOperation !== undefined) {
@@ -96,7 +96,7 @@ export class DFWriteTransaction {
             !deepEqual(existingValue, op.updateValues[key])
           ) {
             throw new Error(
-              `Field '${key}' cannot be updated twice to a different value within the same transaction`
+              `Field '${key}' cannot be updated twice to a different value within the same transaction`,
             );
           }
 
@@ -133,7 +133,7 @@ export class DFWriteTransaction {
               !deepEqual(existingCondition[key], op.condition[key])
             ) {
               throw new Error(
-                `Condition for field '${key}' cannot be specified twice with a different value within the same transaction`
+                `Condition for field '${key}' cannot be specified twice with a different value within the same transaction`,
               );
             }
 
@@ -189,8 +189,8 @@ export class DFWriteTransaction {
           assert(item);
           await Promise.all(
             this.primaryOperation.successHandlers.map((handler) =>
-              handler(item)
-            )
+              handler(item),
+            ),
           );
         }
 
@@ -213,7 +213,7 @@ export class DFWriteTransaction {
           userFacingError,
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore: intentionally didn't want to type PrimaryOperation down to the op type - too much complexity
-          this.primaryOperation
+          this.primaryOperation,
         );
 
         switch (errorHandlerResponse) {
@@ -221,7 +221,7 @@ export class DFWriteTransaction {
             if (this.retryCount >= MAX_TRANSACTION_RETRIES) {
               throw new DFWriteTransactionFailedError(
                 this,
-                "Max retries exceeded"
+                "Max retries exceeded",
               );
             }
             this.retryCount += 1;
@@ -236,7 +236,7 @@ export class DFWriteTransaction {
           }
           default:
             throw new Error(
-              "Transaction operation error handler returned invalid response. Error handlers must throw an error themselves, or return RETRY_TRANSACTION"
+              "Transaction operation error handler returned invalid response. Error handlers must throw an error themselves, or return RETRY_TRANSACTION",
             );
         }
       }
@@ -254,7 +254,7 @@ export class DFWriteTransaction {
       if (!e.CancellationReasons) {
         throw new DFWriteTransactionFailedError(
           this,
-          `Transaction failed, but no CancellationReasons were provided: ${e}`
+          `Transaction failed, but no CancellationReasons were provided: ${e}`,
         );
       }
 
@@ -277,7 +277,7 @@ export class DFWriteTransaction {
         if (op.errorHandler) {
           const errorHandlerResponse = await op.errorHandler(
             userFacingError,
-            op as any
+            op as any,
           );
 
           switch (errorHandlerResponse) {
@@ -285,7 +285,7 @@ export class DFWriteTransaction {
               if (this.retryCount >= MAX_TRANSACTION_RETRIES) {
                 throw new DFWriteTransactionFailedError(
                   this,
-                  "Max retries exceeded"
+                  "Max retries exceeded",
                 );
               }
               this.retryCount += 1;
@@ -300,7 +300,7 @@ export class DFWriteTransaction {
             }
             default:
               throw new Error(
-                "Transaction operation error handler returned invalid response. Error handlers must throw an error themselves, or return RETRY_TRANSACTION"
+                "Transaction operation error handler returned invalid response. Error handlers must throw an error themselves, or return RETRY_TRANSACTION",
               );
           }
         }
@@ -361,7 +361,7 @@ export class DFWriteTransaction {
           // must have been deleted between write and read?
           // not much we can do here, and success handlers aren't 'guaranteed' to be called
           console.warn(
-            "Unable to call transaction success handler, item deleted"
+            "Unable to call transaction success handler, item deleted",
           );
           return;
         }
@@ -372,7 +372,7 @@ export class DFWriteTransaction {
         }
 
         await Promise.all(handlers.map((handler) => handler(res.Item as any)));
-      })
+      }),
     );
 
     // call the provided transform function (if any) on the raw row before we return it
@@ -386,7 +386,7 @@ export class DFWriteTransaction {
     // typescript wrapper
     if (this.primaryOperation.type !== "Update") {
       throw new Error(
-        "Cannot call commitWithReturn() on a transaction with no primary operation of type 'Update'"
+        "Cannot call commitWithReturn() on a transaction with no primary operation of type 'Update'",
       );
     }
 
@@ -397,13 +397,13 @@ export class DFWriteTransaction {
     let retStr = `Primary operation: ${JSON.stringify(
       this.primaryOperation,
       null,
-      2
+      2,
     )}\n\n`;
     if (this.secondaryOperations.length > 0) {
       retStr += `Secondary operations: ${JSON.stringify(
         this.secondaryOperations,
         null,
-        2
+        2,
       )}\n`;
     }
 
@@ -416,7 +416,7 @@ export class DFWriteTransaction {
     switch (op.type) {
       case "Update": {
         const updateRes = await this.table.client.update(
-          this.updateExpressionToParams(op)
+          this.updateExpressionToParams(op),
         );
         return updateRes.Attributes as DynamoItem;
       }
@@ -528,7 +528,7 @@ export class DFWriteTransaction {
         expressionAttributeValues[`:zero`] = 0;
 
         operations.SET.push(
-          `${keyAttributeStr}=if_not_exists(${keyAttributeStr}, :zero) + :update_value${index}`
+          `${keyAttributeStr}=if_not_exists(${keyAttributeStr}, :zero) + :update_value${index}`,
         );
 
         return;
@@ -540,7 +540,7 @@ export class DFWriteTransaction {
           updateValue["$setIfNotExists"];
 
         operations.SET.push(
-          `${keyAttributeStr}=if_not_exists(${keyAttributeStr}, :update_value${index})`
+          `${keyAttributeStr}=if_not_exists(${keyAttributeStr}, :update_value${index})`,
         );
 
         return;
@@ -579,14 +579,14 @@ export class DFWriteTransaction {
           updateValue["$appendItemsToList"];
 
         operations.SET.push(
-          `${keyAttributeStr}=list_append(${keyAttributeStr}, :update_value${index})`
+          `${keyAttributeStr}=list_append(${keyAttributeStr}, :update_value${index})`,
         );
 
         return;
       }
 
       throw new Error(
-        `Invalid update operation: ${JSON.stringify(updateValue)}`
+        `Invalid update operation: ${JSON.stringify(updateValue)}`,
       );
     });
 
@@ -614,7 +614,7 @@ export class DFWriteTransaction {
     Object.assign(expressionAttributeNames, conditionExpressionAttributeNames);
     Object.assign(
       expressionAttributeValues,
-      conditionExpressionAttributeValues
+      conditionExpressionAttributeValues,
     );
 
     return {
@@ -645,7 +645,7 @@ export class DFWriteTransaction {
   }
 
   private conditionCheckExpressionToParams(
-    op: DFConditionCheckOperation
+    op: DFConditionCheckOperation,
   ): ConditionCheckCommandInput {
     const {
       conditionExpression,

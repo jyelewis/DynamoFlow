@@ -50,13 +50,13 @@ export class DFTable {
   }
 
   public createTransaction(
-    primaryOperation: DFWritePrimaryOperation
+    primaryOperation: DFWritePrimaryOperation,
   ): DFWriteTransaction {
     return new DFWriteTransaction(this, primaryOperation);
   }
 
   public createCollection<Entity extends SafeEntity<Entity>>(
-    collectionConfig: DFCollectionConfig<Entity>
+    collectionConfig: DFCollectionConfig<Entity>,
   ): DFCollection<Entity> {
     if (this.config.keyPrefix) {
       collectionConfig.name = `${this.config.keyPrefix}${collectionConfig.name}`;
@@ -137,14 +137,14 @@ export class DFTable {
           }
 
           const entity = (await collectionForItem.entityFromRawDynamoItem(
-            item
+            item,
           )) as SafeEntity<any>;
 
           return {
             collection: collectionForItem,
             entity,
           };
-        })
+        }),
       );
     };
 
@@ -191,7 +191,7 @@ export class DFTable {
       this.config.GSIs.forEach((gsi) => {
         attributeDefinitions.push(
           { AttributeName: `_${gsi}PK`, AttributeType: "S" },
-          { AttributeName: `_${gsi}SK`, AttributeType: "S" }
+          { AttributeName: `_${gsi}SK`, AttributeType: "S" },
         );
       });
     }
@@ -216,7 +216,7 @@ export class DFTable {
               ProjectionType: "ALL",
             },
           })),
-        })
+        }),
       );
 
       // enable ttl
@@ -227,7 +227,7 @@ export class DFTable {
             AttributeName: "_ttl",
             Enabled: true,
           },
-        })
+        }),
       );
     } catch (e) {
       // swallow if table already exists

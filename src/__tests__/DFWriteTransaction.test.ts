@@ -2267,37 +2267,37 @@ describe("DFWriteTransaction", () => {
       },
     );
 
-      it.concurrent(
-          "Allows error handlers to be asynchronous (multiple items)",
-          async () => {
-              const table = new DFTable(testDbConfigWithPrefix());
-              const keyPrefix = genTestPrefix();
+    it.concurrent(
+      "Allows error handlers to be asynchronous (multiple items)",
+      async () => {
+        const table = new DFTable(testDbConfigWithPrefix());
+        const keyPrefix = genTestPrefix();
 
-              const transaction = table.createTransaction({
-                  type: "Update",
-                  key: {
-                      _PK: `${keyPrefix}USER#user1`,
-                      _SK: "USER#user1",
-                  },
-                  updateValues: {
-                      firstName: "Joe",
-                      lastName: "Bot",
-                  },
-                  // this condition will never pass without something externally changing
-                  // should cause is to re-try indefinitely
-                  condition: {
-                      _PK: { $exists: true },
-                  },
-                  errorHandler: async () => {
-                      // remove our condition to allow this check to pass
-                      transaction.primaryOperation.condition = undefined;
-                      return RETRY_TRANSACTION;
-                  },
-              });
-
-              await expect(transaction.commit()).resolves.toBeDefined();
+        const transaction = table.createTransaction({
+          type: "Update",
+          key: {
+            _PK: `${keyPrefix}USER#user1`,
+            _SK: "USER#user1",
           },
-      );
+          updateValues: {
+            firstName: "Joe",
+            lastName: "Bot",
+          },
+          // this condition will never pass without something externally changing
+          // should cause is to re-try indefinitely
+          condition: {
+            _PK: { $exists: true },
+          },
+          errorHandler: async () => {
+            // remove our condition to allow this check to pass
+            transaction.primaryOperation.condition = undefined;
+            return RETRY_TRANSACTION;
+          },
+        });
+
+        await expect(transaction.commit()).resolves.toBeDefined();
+      },
+    );
 
     it.concurrent("Throws if operation type is unknown", async () => {
       const table = new DFTable(testDbConfigWithPrefix());
