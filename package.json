@@ -1,6 +1,6 @@
 {
   "name": "dynamoflow",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "A practical & extendable DynamoDB client for TypeScript applications.",
   "license": "MIT",
   "keywords": [

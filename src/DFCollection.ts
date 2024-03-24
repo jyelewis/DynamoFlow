@@ -66,17 +66,12 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
 
     const allowOverwrite = options && options.allowOverwrite;
 
-    const [pk, sk] = generateIndexStrings(
-      this.config.name,
-      this.config.partitionKey,
-      this.config.sortKey,
-      entityWithMetadata,
-    );
     const transaction = this.table.createTransaction({
       type: "Update",
       key: {
-        _PK: pk,
-        _SK: sk,
+        // keys populated after extensions have run
+        _PK: "temp-pk",
+        _SK: "temp-sk",
       },
       updateValues: entityWithMetadata,
       condition: !allowOverwrite
@@ -101,6 +96,15 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     this.extensions.map((extension) =>
       extension.onInsert(entityWithMetadata, transaction),
     );
+
+    // compute key after extensions, so we can use computed properties in the key
+    const [pk, sk] = generateIndexStrings(
+      this.config.name,
+      this.config.partitionKey,
+      this.config.sortKey,
+      entityWithMetadata,
+    );
+    transaction.primaryOperation.key = { _PK: pk, _SK: sk };
 
     // gotta still run postRetrieves on writes
     transaction.resultTransformer = this.entityFromRawDynamoItem.bind(this);
@@ -140,18 +144,12 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     // and re-try if we are interrupting their operation with this write
     updateFieldsWithMetadata["_wc"] = { $inc: 1 };
 
-    // this will throw if the user hasn't provided required keys
-    const [pk, sk] = generateIndexStrings(
-      this.config.name,
-      this.config.partitionKey,
-      this.config.sortKey,
-      key,
-    );
     const transaction = this.table.createTransaction({
       type: "Update",
       key: {
-        _PK: pk,
-        _SK: sk,
+        // keys populated after extensions have run
+        _PK: "temp-pk",
+        _SK: "temp-sk",
       },
       updateValues: updateFieldsWithMetadata,
       // ensure this entity already exists, we're expecting this to be an update
@@ -172,6 +170,14 @@ export class DFCollection<Entity extends SafeEntity<Entity>> {
     this.extensions.map((extension) =>
       extension.onUpdate(key, updateFieldsWithMetadata, transaction),
     );
+
+    const [pk, sk] = generateIndexStrings(
+      this.config.name,
+      this.config.partitionKey,
+      this.config.sortKey,
+      key,
+    );
+    transaction.primaryOperation.key = { _PK: pk, _SK: sk };
 
     // gotta still run postRetrieves on writes
     transaction.resultTransformer = this.entityFromRawDynamoItem.bind(this);
